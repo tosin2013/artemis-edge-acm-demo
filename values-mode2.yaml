@@ -1,0 +1,31 @@
+global:
+  mode: "multi-hub"
+
+hubBrokers:
+  - name: hub-01
+    adminUser: admin
+    adminPassword: admin
+    replicas: 1
+    persistenceEnabled: false
+    resources:
+      limits:
+        cpu: "1000m"
+        memory: "2Gi"
+      requests:
+        cpu: "1000m"
+        memory: "2Gi"
+  - name: hub-02
+    adminUser: admin
+    adminPassword: admin
+    replicas: 1
+    persistenceEnabled: false
+    resources:
+      limits:
+        cpu: "1000m"
+        memory: "2Gi"
+      requests:
+        cpu: "1000m"
+        memory: "2Gi"
+
+globalHub:
+  enabled: true

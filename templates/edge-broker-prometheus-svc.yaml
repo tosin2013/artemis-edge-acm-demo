@@ -1,0 +1,28 @@
+{{- if .Values.monitoring.enabled }}
+{{- range .Values.edgeBrokers }}
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ .name }}-broker-prometheus-0-svc
+  namespace: {{ $.Values.global.namespace }}
+  labels:
+    {{- include "artemis-edge.labels" $ | nindent 4 }}
+    ActiveMQArtemis: {{ .name }}-broker
+    application: {{ .name }}-broker-app
+    application-type: artemis
+    service-type: prometheus
+    edge-region: {{ .region }}
+spec:
+  ports:
+    - name: metrics
+      protocol: TCP
+      port: 8161
+      targetPort: 8161
+  type: ClusterIP
+  selector:
+    ActiveMQArtemis: {{ .name }}-broker
+    application: {{ .name }}-broker-app
+    statefulset.kubernetes.io/pod-name: {{ .name }}-broker-ss-0
+{{- end }}
+{{- end }}

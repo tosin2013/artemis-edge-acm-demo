@@ -1,0 +1,36 @@
+{{- $defaults := .Values.edgeBrokerDefaults }}
+{{- range .Values.edgeBrokers }}
+---
+apiVersion: broker.amq.io/v1beta1
+kind: ActiveMQArtemis
+metadata:
+  name: {{ .name }}-broker
+  namespace: {{ $.Values.global.namespace }}
+  labels:
+    {{- include "artemis-edge.labels" $ | nindent 4 }}
+    edge-region: {{ .region }}
+spec:
+  adminUser: {{ $defaults.adminUser | quote }}
+  adminPassword: {{ $defaults.adminPassword | quote }}
+  deploymentPlan:
+    size: {{ $defaults.replicas }}
+    persistenceEnabled: {{ $defaults.persistenceEnabled }}
+    journalType: nio
+    enableMetricsPlugin: true
+    resources:
+      limits:
+        cpu: {{ $defaults.resources.limits.cpu | quote }}
+        memory: {{ $defaults.resources.limits.memory | quote }}
+      requests:
+        cpu: {{ $defaults.resources.requests.cpu | quote }}
+        memory: {{ $defaults.resources.requests.memory | quote }}
+    extraMounts:
+      secrets:
+        - "oidc-jaas-config"
+        - "{{ .name }}-broker-bp"
+  acceptors:
+    {{- include "artemis-edge.brokerAcceptors" $ | nindent 4 }}
+  console:
+    expose: true
+    requireLogin: true
+{{- end }}

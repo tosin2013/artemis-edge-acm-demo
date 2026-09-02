@@ -1,0 +1,29 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: spoke-03-broker-service-monitor
+  labels:
+    ActiveMQArtemis: spoke-03-broker
+    application: spoke-03-broker-app
+    application-type: artemis
+spec:
+  jobLabel: "ActiveMQArtemis"
+  selector:
+    matchLabels:
+      application: spoke-03-broker-app
+      application-type: artemis
+      service-type: prometheus
+  namespaceSelector:
+    matchNames:
+    - artemis
+  endpoints:
+  - port: metrics
+    scheme: http
+    basicAuth:
+      password:
+        name: spoke-03-broker-auth
+        key: password
+      username:
+        name: spoke-03-broker-auth
+        key: user
+    followRedirects: true

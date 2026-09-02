@@ -1,0 +1,26 @@
+{{- range .Values.edgeBrokers }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .name }}-broker-tls-secret
+  namespace: {{ $.Values.global.namespace }}
+  labels:
+    {{- include "artemis-edge.labels" $ | nindent 4 }}
+    edge-region: {{ .region }}
+type: Opaque
+data:
+  {{- if $.Values.tls.spokeKeystoreBase64 }}
+  broker.ks: {{ $.Values.tls.spokeKeystoreBase64 }}
+  {{- else }}
+  broker.ks: ""
+  {{- end }}
+  {{- if $.Values.tls.spokeTruststoreBase64 }}
+  client.ts: {{ $.Values.tls.spokeTruststoreBase64 }}
+  {{- else }}
+  client.ts: ""
+  {{- end }}
+stringData:
+  keyStorePassword: {{ $.Values.tls.keystorePassword | quote }}
+  trustStorePassword: {{ $.Values.tls.truststorePassword | quote }}
+{{- end }}

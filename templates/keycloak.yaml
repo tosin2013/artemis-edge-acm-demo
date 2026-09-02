@@ -1,0 +1,24 @@
+{{- if .Values.keycloak.enabled }}
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: Keycloak
+metadata:
+  name: keycloak
+  namespace: {{ .Values.keycloak.namespace }}
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  instances: {{ .Values.keycloak.instances }}
+  db:
+    vendor: postgres
+    host: postgresql
+    usernameSecret:
+      name: keycloak-db-secret
+      key: username
+    passwordSecret:
+      name: keycloak-db-secret
+      key: password
+  http:
+    tlsSecret: keycloak-tls-secret
+  hostname:
+    hostname: keycloak-ingress-{{ .Values.keycloak.namespace }}.{{ .Values.global.clusterDomain }}
+{{- end }}

@@ -1,0 +1,37 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: spoke-03-broker-prometheus-0-svc
+  labels:
+    ActiveMQArtemis: spoke-03-broker
+    application: spoke-03-broker-app
+    application-type: artemis
+    service-type: prometheus
+spec:
+  ports:
+    - name: metrics
+      protocol: TCP
+      port: 8161
+      targetPort: 8161
+
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: spoke-03-broker-prometheus-0-svc-1
+  labels:
+    ActiveMQArtemis: spoke-03-broker
+    application: spoke-03-broker-app
+    application-type: artemis
+    service-type: prometheus
+    kubernetes.io/service-name: spoke-03-broker-prometheus-0-svc
+    endpointslice.kubernetes.io/managed-by: prometheus-manager
+addressType: IPv4
+ports:
+  - name: metrics
+    appProtocol: http
+    protocol: TCP
+    port: 8161
+endpoints:
+  - addresses:
+      - "10.4.5.6"

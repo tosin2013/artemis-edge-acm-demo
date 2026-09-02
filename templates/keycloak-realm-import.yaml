@@ -1,0 +1,80 @@
+{{- if .Values.keycloak.enabled }}
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: KeycloakRealmImport
+metadata:
+  name: artemis-keycloak
+  namespace: {{ .Values.keycloak.namespace }}
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  keycloakCRName: keycloak
+  realm:
+    realm: artemis-keycloak
+    enabled: true
+    sslRequired: external
+    roles:
+      client:
+        artemis-broker:
+          - name: amq
+            composite: false
+            clientRole: true
+          - name: consumer
+            composite: false
+            clientRole: true
+          - name: producer
+            composite: false
+            clientRole: true
+        artemis-console:
+          - name: amq
+            composite: false
+            clientRole: true
+    clients:
+      - clientId: artemis-broker
+        enabled: true
+        clientAuthenticatorType: client-secret
+        directAccessGrantsEnabled: true
+        serviceAccountsEnabled: true
+        publicClient: false
+        protocol: openid-connect
+        defaultClientScopes:
+          - web-origins
+          - acr
+          - profile
+          - roles
+          - email
+      - clientId: artemis-console
+        enabled: true
+        publicClient: true
+        standardFlowEnabled: true
+        directAccessGrantsEnabled: false
+        redirectUris:
+          - "*"
+        webOrigins:
+          - "*"
+        protocol: openid-connect
+        defaultClientScopes:
+          - web-origins
+          - acr
+          - profile
+          - roles
+          - email
+    users:
+      - username: alice
+        enabled: true
+        credentials:
+          - type: password
+            value: bosco
+            temporary: false
+        clientRoles:
+          artemis-broker:
+            - producer
+      - username: bob
+        enabled: true
+        credentials:
+          - type: password
+            value: bosco
+            temporary: false
+        clientRoles:
+          artemis-broker:
+            - consumer
+{{- end }}

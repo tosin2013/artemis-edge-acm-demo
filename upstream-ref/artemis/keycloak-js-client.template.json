@@ -1,0 +1,5 @@
+{
+  "realm"    : "artemis-keycloak",
+  "clientId" : "artemis-console",
+  "url"      : "https://keycloak-ingress-keycloak.${KC_DOMAIN}/"
+}

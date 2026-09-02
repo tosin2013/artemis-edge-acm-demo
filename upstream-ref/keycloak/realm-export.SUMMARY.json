@@ -1,0 +1,170 @@
+{
+  "realm": "artemis-keycloak",
+  "enabled": true,
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "sslRequired": "external",
+  "clients": [
+    {
+      "clientId": "account",
+      "publicClient": true,
+      "secret": null,
+      "redirectUris": [
+        "/realms/artemis-keycloak/account/*"
+      ],
+      "webOrigins": [],
+      "protocol": "openid-connect",
+      "serviceAccountsEnabled": false,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "fullScopeAllowed": false
+    },
+    {
+      "clientId": "account-console",
+      "publicClient": true,
+      "secret": null,
+      "redirectUris": [
+        "/realms/artemis-keycloak/account/*"
+      ],
+      "webOrigins": [],
+      "protocol": "openid-connect",
+      "serviceAccountsEnabled": false,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "fullScopeAllowed": false
+    },
+    {
+      "clientId": "admin-cli",
+      "publicClient": true,
+      "secret": null,
+      "redirectUris": [],
+      "webOrigins": [],
+      "protocol": "openid-connect",
+      "serviceAccountsEnabled": false,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "fullScopeAllowed": true
+    },
+    {
+      "clientId": "artemis-broker",
+      "publicClient": false,
+      "secret": "**********",
+      "redirectUris": [],
+      "webOrigins": [],
+      "protocol": "openid-connect",
+      "serviceAccountsEnabled": false,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "fullScopeAllowed": true
+    },
+    {
+      "clientId": "artemis-console",
+      "publicClient": true,
+      "secret": null,
+      "redirectUris": [
+        "*"
+      ],
+      "webOrigins": [
+        "*"
+      ],
+      "protocol": "openid-connect",
+      "serviceAccountsEnabled": false,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "fullScopeAllowed": true
+    },
+    {
+      "clientId": "broker",
+      "publicClient": false,
+      "secret": null,
+      "redirectUris": [],
+      "webOrigins": [],
+      "protocol": "openid-connect",
+      "serviceAccountsEnabled": false,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "fullScopeAllowed": false
+    },
+    {
+      "clientId": "realm-management",
+      "publicClient": false,
+      "secret": null,
+      "redirectUris": [],
+      "webOrigins": [],
+      "protocol": "openid-connect",
+      "serviceAccountsEnabled": false,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "fullScopeAllowed": false
+    },
+    {
+      "clientId": "security-admin-console",
+      "publicClient": true,
+      "secret": null,
+      "redirectUris": [
+        "/admin/artemis-keycloak/console/*"
+      ],
+      "webOrigins": [
+        "+"
+      ],
+      "protocol": "openid-connect",
+      "serviceAccountsEnabled": false,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "fullScopeAllowed": true
+    }
+  ],
+  "realmRoles": [
+    "offline_access",
+    "default-roles-artemis-keycloak",
+    "uma_authorization"
+  ],
+  "clientRoles": {
+    "realm-management": [
+      "view-clients",
+      "manage-realm",
+      "view-users",
+      "impersonation",
+      "view-realm",
+      "create-client",
+      "view-authorization",
+      "manage-identity-providers",
+      "query-clients",
+      "manage-clients",
+      "realm-admin",
+      "manage-authorization",
+      "manage-events",
+      "manage-users",
+      "view-events",
+      "view-identity-providers",
+      "query-users",
+      "query-realms",
+      "query-groups"
+    ],
+    "artemis-broker": [
+      "amq",
+      "consumer",
+      "producer"
+    ],
+    "security-admin-console": [],
+    "admin-cli": [],
+    "artemis-console": [
+      "amq"
+    ],
+    "account-console": [],
+    "broker": [
+      "read-token"
+    ],
+    "account": [
+      "manage-account-links",
+      "view-consent",
+      "delete-account",
+      "manage-consent",
+      "manage-account",
+      "view-applications",
+      "view-groups",
+      "view-profile"
+    ]
+  },
+  "users": []
+}

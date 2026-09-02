@@ -1,0 +1,42 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.grafana.enabled }}
+apiVersion: grafana.integreatly.org/v1beta1
+kind: Grafana
+metadata:
+  name: grafana
+  namespace: {{ .Values.monitoring.namespace }}
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+    dashboards: "artemis"
+spec:
+  config:
+    log:
+      mode: "console"
+    auth.anonymous:
+      enabled: "true"
+      org_name: "Main Org."
+      org_role: "Admin"
+    auth:
+      disable_login_form: "true"
+      disable_signout_menu: "true"
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: prometheus-datasource
+  namespace: {{ .Values.monitoring.namespace }}
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  instanceSelector:
+    matchLabels:
+      dashboards: "artemis"
+  datasource:
+    name: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus-operated:9090
+    isDefault: true
+    jsonData:
+      "timeInterval": "5s"
+    editable: true
+{{- end }}

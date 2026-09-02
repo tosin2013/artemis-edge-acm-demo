@@ -1,0 +1,8 @@
+cloudProvider: gcp
+sno:
+  instanceType: n2-standard-8
+  storageClass: pd-ssd
+  diskSize: 120Gi
+hub:
+  instanceType: n2-standard-16
+  storageClass: pd-ssd

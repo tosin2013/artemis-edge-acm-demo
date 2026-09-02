@@ -1,0 +1,55 @@
+{{- if .Values.monitoring.enabled }}
+{{- $allBrokers := list }}
+{{- range .Values.hubBrokers }}
+{{- $allBrokers = append $allBrokers .name }}
+{{- end }}
+{{- range .Values.edgeBrokers }}
+{{- $allBrokers = append $allBrokers .name }}
+{{- end }}
+{{- range $allBrokers }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ . }}-broker-auth
+  namespace: {{ $.Values.monitoring.namespace }}
+  labels:
+    {{- include "artemis-edge.labels" $ | nindent 4 }}
+type: Opaque
+stringData:
+  user: admin
+  password: admin
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ . }}-broker-service-monitor
+  namespace: {{ $.Values.monitoring.namespace }}
+  labels:
+    {{- include "artemis-edge.labels" $ | nindent 4 }}
+    ActiveMQArtemis: {{ . }}-broker
+    application: {{ . }}-broker-app
+    application-type: artemis
+spec:
+  jobLabel: "ActiveMQArtemis"
+  selector:
+    matchLabels:
+      application: {{ . }}-broker-app
+      application-type: artemis
+      service-type: prometheus
+  namespaceSelector:
+    matchNames:
+      - {{ $.Values.global.namespace }}
+  endpoints:
+    - port: metrics
+      scheme: http
+      basicAuth:
+        password:
+          name: {{ . }}-broker-auth
+          key: password
+        username:
+          name: {{ . }}-broker-auth
+          key: user
+      followRedirects: true
+{{- end }}
+{{- end }}

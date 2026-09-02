@@ -1,0 +1,105 @@
+{{- range $spoke := .Values.edgeBrokers }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ $spoke.name }}-broker-bp
+  namespace: {{ $.Values.global.namespace }}
+  labels:
+    {{- include "artemis-edge.labels" $ | nindent 4 }}
+    edge-region: {{ $spoke.region }}
+type: Opaque
+stringData:
+  broker.properties: |
+    globalMaxSize=1GiB
+    clusterConfigurations.my-cluster.messageLoadBalancingType=OFF
+
+    # --- Security roles: messages.# (all) ---
+    {{- include "artemis-edge.brokerSecurityRoles" $ | nindent 4 }}
+
+    # --- Security roles: messages.{{ $spoke.region }}.# (own region) ---
+    securityRoles."messages.{{ $spoke.region }}.#".admin.createAddress=true
+    securityRoles."messages.{{ $spoke.region }}.#".admin.deleteAddress=true
+    securityRoles."messages.{{ $spoke.region }}.#".admin.send=true
+    securityRoles."messages.{{ $spoke.region }}.#".admin.consume=true
+    securityRoles."messages.{{ $spoke.region }}.#".admin.browse=true
+    securityRoles."messages.{{ $spoke.region }}.#".admin.createDurableQueue=true
+    securityRoles."messages.{{ $spoke.region }}.#".admin.deleteDurableQueue=true
+    securityRoles."messages.{{ $spoke.region }}.#".admin.createNonDurableQueue=true
+    securityRoles."messages.{{ $spoke.region }}.#".admin.deleteNonDurableQueue=true
+    securityRoles."messages.{{ $spoke.region }}.#".admin.manage=true
+
+    # --- Security roles: messages.ALL.# ---
+    securityRoles."messages.ALL.#".admin.createAddress=true
+    securityRoles."messages.ALL.#".admin.deleteAddress=true
+    securityRoles."messages.ALL.#".admin.send=true
+    securityRoles."messages.ALL.#".admin.consume=true
+    securityRoles."messages.ALL.#".admin.browse=true
+    securityRoles."messages.ALL.#".admin.createDurableQueue=true
+    securityRoles."messages.ALL.#".admin.deleteDurableQueue=true
+    securityRoles."messages.ALL.#".admin.createNonDurableQueue=true
+    securityRoles."messages.ALL.#".admin.deleteNonDurableQueue=true
+    securityRoles."messages.ALL.#".admin.manage=true
+
+    # --- Producer/consumer roles for region + ALL ---
+    securityRoles."messages.{{ $spoke.region }}.#".producer.createAddress=true
+    securityRoles."messages.{{ $spoke.region }}.#".producer.send=true
+    securityRoles."messages.{{ $spoke.region }}.#".consumer.createAddress=true
+    securityRoles."messages.{{ $spoke.region }}.#".consumer.createDurableQueue=true
+    securityRoles."messages.{{ $spoke.region }}.#".consumer.createNonDurableQueue=true
+    securityRoles."messages.{{ $spoke.region }}.#".consumer.deleteNonDurableQueue=true
+    securityRoles."messages.{{ $spoke.region }}.#".consumer.browse=true
+    securityRoles."messages.{{ $spoke.region }}.#".consumer.consume=true
+
+    securityRoles."messages.ALL.#".producer.createAddress=true
+    securityRoles."messages.ALL.#".producer.send=true
+    securityRoles."messages.ALL.#".consumer.createAddress=true
+    securityRoles."messages.ALL.#".consumer.createDurableQueue=true
+    securityRoles."messages.ALL.#".consumer.createNonDurableQueue=true
+    securityRoles."messages.ALL.#".consumer.deleteNonDurableQueue=true
+    securityRoles."messages.ALL.#".consumer.browse=true
+    securityRoles."messages.ALL.#".consumer.consume=true
+
+    # --- Acceptor SSL ---
+    acceptorConfigurations.cores-acceptor.params.sslAutoReload=true
+    acceptorConfigurations.amqps-acceptor.params.sslAutoReload=true
+    acceptorConfigurations.mqtts-acceptor.params.sslAutoReload=true
+
+    # --- Address settings ---
+    {{- include "artemis-edge.brokerAddressSettings" $ | nindent 4 }}
+
+    # --- AMQP federation connections to hubs ---
+    {{- range $conn := $spoke.hubConnections }}
+    AMQPConnections.{{ $conn.hub }}-connection.autostart={{ $conn.autoStart }}
+    AMQPConnections.{{ $conn.hub }}-connection.uri=tcp://{{ $conn.hub }}-broker-amqps-acceptor-0-svc-rte-{{ $.Values.global.namespace }}.{{ $.Values.global.clusterDomain }}:443?sslEnabled=true&trustStorePath=/etc/broker-tls-secret-volume/client.ts&trustStorePassword={{ $.Values.tls.truststorePassword }}&trustStoreType=PKCS12&trustStoreProvider=SUN
+    AMQPConnections.{{ $conn.hub }}-connection.user={{ $.Values.edgeBrokerDefaults.adminUser }}
+    AMQPConnections.{{ $conn.hub }}-connection.password={{ $.Values.edgeBrokerDefaults.adminPassword }}
+    AMQPConnections.{{ $conn.hub }}-connection.retryInterval=5000
+    AMQPConnections.{{ $conn.hub }}-connection.reconnectAttempts=-1
+
+    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.type=FEDERATION
+
+    # Local policy: pull messages.ALL.# and messages.{{ $spoke.region }}.# from hub
+    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.localAddressPolicies.local-policy.autoDelete=true
+    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.localAddressPolicies.local-policy.autoDeleteDelay=0
+    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.localAddressPolicies.local-policy.autoDeleteMessageCount=1000
+    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.localAddressPolicies.local-policy.includes.all.addressMatch=messages.ALL.#
+    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.localAddressPolicies.local-policy.includes.region.addressMatch=messages.{{ $spoke.region }}.#
+    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.localAddressPolicies.local-policy.excludes.5604.addressMatch=messages.*.5604
+
+    # Remote policy: push everything except own region + ALL to hub
+    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.remoteAddressPolicies.remote-policy.autoDelete=true
+    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.remoteAddressPolicies.remote-policy.autoDeleteDelay=0
+    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.remoteAddressPolicies.remote-policy.autoDeleteMessageCount=1000
+    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.remoteAddressPolicies.remote-policy.includes.wild.addressMatch=messages.#
+    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.remoteAddressPolicies.remote-policy.excludes.all.addressMatch=messages.ALL.#
+    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.remoteAddressPolicies.remote-policy.excludes.region.addressMatch=messages.{{ $spoke.region }}.#
+
+    # Remote policy: 5604 with maxHops=1
+    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.remoteAddressPolicies.remote-policy-5604.autoDelete=true
+    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.remoteAddressPolicies.remote-policy-5604.autoDeleteDelay=0
+    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.remoteAddressPolicies.remote-policy-5604.autoDeleteMessageCount=1000
+    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.remoteAddressPolicies.remote-policy-5604.maxHops=1
+    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.remoteAddressPolicies.remote-policy-5604.includes.5604.addressMatch=messages.*.5604
+    {{- end }}
+{{- end }}

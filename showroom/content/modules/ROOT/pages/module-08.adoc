@@ -1,0 +1,59 @@
+= Module 8: Grafana Metrics Exploration
+
+== Objectives
+
+* Explore the AMQ Broker Grafana dashboard
+* Understand the 7 monitoring panels
+* Correlate metrics with messaging activity
+
+== Steps
+
+=== 1. Access Grafana
+
+Navigate to: {grafana_url}
+
+The dashboard uses anonymous admin access (no login required).
+
+=== 2. Dashboard Panels
+
+The *AMQ Broker* dashboard (uid: `amq_broker`) has 7 panels:
+
+[cols="1,2"]
+|===
+| Panel | Description
+
+| Queue Message Counts
+| `artemis_message_count`, `artemis_delivering_message_count`, `artemis_scheduled_message_count`
+
+| Messages Added & Acked
+| `artemis_messages_acknowledged`, `artemis_messages_added`
+
+| Connection Count
+| `artemis_connection_count` -- watch for federation connections from spokes
+
+| Queue Sizes
+| Persistent, delivering, and scheduled sizes in bytes
+
+| Address Message Counts
+| Routed vs unrouted messages per address
+
+| Address Memory Usage
+| `artemis_address_memory_usage` -- monitor against `globalMaxSize=1GiB`
+
+| Consumer Count
+| Active consumers per address/queue
+|===
+
+=== 3. Correlate with Messaging
+
+. Go back to the terminal and produce 100 messages from the NY edge
+. Watch the *Queue Message Counts* panel spike for `messages.NY.test`
+. Switch to *Connection Count* -- you should see federation connections from all 3 spokes
+. Check *Address Memory Usage* to ensure you are within the 1GiB global max
+
+=== 4. Cross-Cluster Metrics
+
+If Prometheus scrapes all clusters, you can filter by broker label:
+
+* `broker="hub-01-broker"` -- hub metrics
+* `broker="spoke-01-broker"` -- NY edge metrics

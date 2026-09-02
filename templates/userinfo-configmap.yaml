@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: artemis-edge-acm-userinfo
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+    {{- include "artemis-edge.userinfoLabel" . | nindent 4 }}
+data:
+  amq_console_url: "https://{{ (index .Values.hubBrokers 0).name }}-broker-wconsj-0-svc-rte-{{ .Values.global.namespace }}.{{ .Values.global.clusterDomain }}"
+  {{- if .Values.keycloak.enabled }}
+  keycloak_url: "https://keycloak-ingress-{{ .Values.keycloak.namespace }}.{{ .Values.global.clusterDomain }}"
+  {{- end }}
+  {{- if and .Values.monitoring.enabled .Values.monitoring.grafana.enabled }}
+  grafana_url: "https://grafana-service-{{ .Values.monitoring.namespace }}.{{ .Values.global.clusterDomain }}"
+  {{- end }}
+  producer_user: "alice"
+  producer_password: "bosco"
+  consumer_user: "bob"
+  consumer_password: "bosco"
+  deployment_mode: {{ .Values.global.mode | quote }}
+  {{- if .Values.showroom.enabled }}
+  showroom_url: "https://showroom-showroom.{{ .Values.global.clusterDomain }}"
+  {{- end }}

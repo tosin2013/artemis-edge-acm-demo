@@ -1,0 +1,58 @@
+= Module 4: AMQ Applications Overview and Deployment
+
+== Objectives
+
+* Understand the 4 Java applications in the demo
+* Build and deploy them to the clusters
+
+== Application Overview
+
+=== amqp-client (Quarkus Camel AMQP)
+
+The primary producer/consumer used throughout the demo. Supports `mode=producer|consumer`, configurable `uri` and `address`.
+
+=== mqtt-client (Quarkus Camel MQTT5)
+
+Demonstrates multi-protocol edge messaging. MQTT messages land on the local broker and are forwarded via AMQP federation to the hub.
+
+=== amqp-bridge (Camel AMQP)
+
+A durable subscription bridge between source and target brokers. Stamps a `Pedigree` header on forwarded messages and drops messages whose pedigree matches the target to prevent federation loops.
+
+=== artemis-extensions (StaticHeaderPlugin)
+
+A broker-side plugin that injects configurable headers via the `beforeSend` hook. Deployed into the broker's classpath.
+
+== Build and Deploy
+
+=== 1. Build Container Images
+
+[source,bash]
+----
+cd java/amqp-client
+mvn package -Dquarkus.container-image.build=true
+cd ../mqtt-client
+mvn package -Dquarkus.container-image.build=true
+cd ../amqp-bridge
+mvn package -Dquarkus.container-image.build=true
+----
+
+=== 2. Deploy AMQP Producer on Edge
+
+[source,bash]
+----
+oc -n artemis run producer -ti \
+  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12.3 \
+  --rm=true --restart=Never -- /bin/bash
+----
+
+Inside the container:
+
+[source,bash]
+----
+/opt/amq/bin/artemis producer \
+  --url=amqp://spoke-01-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672 \
+  --protocol=AMQP --user={producer_user} --password={producer_password} \
+  --message-count=10 --message='hello from NY edge' \
+  --destination=topic://messages.NY.test --verbose
+----

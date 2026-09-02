@@ -1,0 +1,20 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: spoke-01-broker-prometheus-0-svc
+  labels:
+    ActiveMQArtemis: spoke-01-broker
+    application: spoke-01-broker-app
+    application-type: artemis
+    service-type: prometheus
+spec:
+  ports:
+    - name: metrics
+      protocol: TCP
+      port: 8161
+      targetPort: 8161
+  type: ClusterIP
+  selector:
+    ActiveMQArtemis: spoke-01-broker
+    application: spoke-01-broker-app
+    statefulset.kubernetes.io/pod-name: spoke-01-broker-ss-0

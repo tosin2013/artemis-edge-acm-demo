@@ -1,0 +1,46 @@
+= Module 1: Verify Hub Cluster and RHACM
+
+== Objectives
+
+* Confirm the RHACM hub is healthy
+* Verify ArgoCD Applications are synced
+* Check operator subscriptions are installed
+
+== Steps
+
+=== 1. Verify RHACM MultiClusterHub
+
+[source,bash]
+----
+oc get multiclusterhub -A
+----
+
+The `status.phase` should be `Running`.
+
+=== 2. Check ArgoCD Applications
+
+[source,bash]
+----
+oc get applications -n openshift-gitops
+----
+
+All applications should show `Synced` and `Healthy`.
+
+=== 3. Verify Operator Subscriptions
+
+[source,bash]
+----
+oc get sub -n artemis
+oc get sub -n keycloak
+----
+
+Confirm `amq-broker-rhel8` and `keycloak-operator` subscriptions exist with `CurrentCSV` set.
+
+=== 4. Check Managed Clusters
+
+[source,bash]
+----
+oc get managedclusters
+----
+
+You should see 3 SNO edge clusters (or 6 in Mode 2) with `ManagedClusterConditionAvailable=True`.

@@ -1,0 +1,96 @@
+global:
+  mode: "single-hub"
+  clusterDomain: ""
+  clusterApiUrl: ""
+  namespace: "artemis"
+
+amqBrokerOperator:
+  enabled: true
+  channel: "7.12.x"
+  source: "redhat-operators"
+
+hubBrokers:
+  - name: hub-01
+    adminUser: admin
+    adminPassword: admin
+    replicas: 1
+    persistenceEnabled: false
+    resources:
+      limits:
+        cpu: "1000m"
+        memory: "2Gi"
+      requests:
+        cpu: "1000m"
+        memory: "2Gi"
+
+edgeBrokers:
+  - name: spoke-01
+    region: NY
+    hubConnections:
+      - hub: hub-01
+        autoStart: true
+      - hub: hub-02
+        autoStart: false
+  - name: spoke-02
+    region: NJ
+    hubConnections:
+      - hub: hub-01
+        autoStart: true
+      - hub: hub-02
+        autoStart: false
+  - name: spoke-03
+    region: CT
+    hubConnections:
+      - hub: hub-01
+        autoStart: true
+      - hub: hub-02
+        autoStart: false
+
+edgeBrokerDefaults:
+  adminUser: admin
+  adminPassword: admin
+  replicas: 1
+  persistenceEnabled: false
+  resources:
+    limits:
+      cpu: "1000m"
+      memory: "2Gi"
+    requests:
+      cpu: "1000m"
+      memory: "2Gi"
+
+keycloak:
+  enabled: true
+  namespace: "keycloak"
+  instances: 1
+  db:
+    username: admin
+    password: admin
+    database: keycloak
+  clientSecret: ""
+
+monitoring:
+  enabled: true
+  namespace: "metrics"
+  prometheus:
+    replicas: 1
+    memoryRequest: "400Mi"
+  grafana:
+    enabled: true
+
+globalHub:
+  enabled: false
+
+showroom:
+  enabled: true
+  contentRepoUrl: ""
+  contentRepoRef: "main"
+  terminalImage: "quay.io/rhpds/openshift-showroom-terminal-ocp:latest"
+
+tls:
+  hubKeystoreBase64: ""
+  hubTruststoreBase64: ""
+  spokeKeystoreBase64: ""
+  spokeTruststoreBase64: ""
+  keystorePassword: "password"
+  truststorePassword: "password"

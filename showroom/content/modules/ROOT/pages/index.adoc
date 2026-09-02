@@ -1,0 +1,40 @@
+= Artemis Edge ACM Demo
+:page-layout: home
+
+== Overview
+
+This demo showcases a federated AMQ Broker messaging architecture deployed across RHACM-managed Single Node OpenShift (SNO) edge clusters. Edge brokers use AMQP federation to route regional messages (`messages.NY.#`, `messages.NJ.#`, `messages.CT.#`) back to hub brokers with store-and-forward resilience.
+
+=== Architecture
+
+* *Hub Cluster* -- RHACM hub running ArgoCD, Keycloak OIDC, hub AMQ Brokers, Prometheus, and Grafana
+* *Edge Clusters* -- 3 SNO clusters (NY, NJ, CT regions), each running an edge AMQ Broker with federation connectors to the hub
+* *Messaging* -- AMQP federation with TLS, regional address routing, and automatic reconnection
+
+=== Deployment Mode
+
+ifdef::mode_multi_hub[]
+You are running *Mode 2: Multi-Hub* with a Multicluster Global Hub, 2 regional hubs, and 6 SNO edge clusters.
+endif::[]
+ifndef::mode_multi_hub[]
+You are running *Mode 1: Single Hub* with 1 RHACM hub and 3 SNO edge clusters.
+endif::[]
+
+=== Console Links
+
+[cols="1,2"]
+|===
+| Component | URL
+
+| AMQ Console (Hub)
+| {amq_console_url}
+
+| Keycloak Admin
+| {keycloak_url}
+
+| Grafana Dashboard
+| {grafana_url}
+
+| RHACM Console
+| https://multicloud-console.apps.{openshift_cluster_ingress_domain}
+|===

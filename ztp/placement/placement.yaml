@@ -1,0 +1,11 @@
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: edge-sno-placement
+  namespace: ztp-policies
+spec:
+  predicates:
+    - requiredClusterSelector:
+        labelSelector:
+          matchLabels:
+            sites: "edge-sno"

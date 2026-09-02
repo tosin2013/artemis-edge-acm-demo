@@ -1,0 +1,20 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: hub-02-broker-prometheus-0-svc
+  labels:
+    ActiveMQArtemis: hub-02-broker
+    application: hub-02-broker-app
+    application-type: artemis
+    service-type: prometheus
+spec:
+  ports:
+    - name: metrics
+      protocol: TCP
+      port: 8161
+      targetPort: 8161
+  type: ClusterIP
+  selector:
+    ActiveMQArtemis: hub-02-broker
+    application: hub-02-broker-app
+    statefulset.kubernetes.io/pod-name: hub-02-broker-ss-0

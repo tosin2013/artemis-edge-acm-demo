@@ -1,0 +1,79 @@
+{{- if .Values.showroom.enabled }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: showroom
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: showroom
+  namespace: showroom
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+    app: showroom
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: showroom
+  template:
+    metadata:
+      labels:
+        app: showroom
+    spec:
+      containers:
+        - name: showroom-content
+          image: ghcr.io/rhpds/showroom-httpd:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: GIT_REPO_URL
+              value: {{ .Values.showroom.contentRepoUrl | default "https://github.com/tosin2013/artemis-edge-acm-demo.git" | quote }}
+            - name: GIT_REPO_REF
+              value: {{ .Values.showroom.contentRepoRef | quote }}
+            - name: CONTENT_PATH
+              value: "showroom"
+        - name: showroom-terminal
+          image: {{ .Values.showroom.terminalImage | quote }}
+          ports:
+            - containerPort: 7681
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: showroom
+  namespace: showroom
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: showroom
+  ports:
+    - name: content
+      port: 8080
+      targetPort: 8080
+    - name: terminal
+      port: 7681
+      targetPort: 7681
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: showroom
+  namespace: showroom
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+    {{- include "artemis-edge.userinfoLabel" . | nindent 4 }}
+spec:
+  to:
+    kind: Service
+    name: showroom
+  port:
+    targetPort: content
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+{{- end }}

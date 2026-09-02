@@ -1,0 +1,47 @@
+= Module 7: Global Hub Dashboard (Mode 2 Only)
+
+== Objectives
+
+* Access the Multicluster Global Hub
+* View cross-hub compliance and fleet status
+* Observe aggregated security posture
+
+NOTE: This module applies only to Mode 2 (multi-hub) deployments. If you are running Mode 1, skip to xref:module-08.adoc[Module 8].
+
+== Steps
+
+=== 1. Access Global Hub Console
+
+Navigate to the Global Hub Grafana:
+
+[source,bash]
+----
+oc get route -n open-cluster-management -l app=multicluster-global-hub
+----
+
+=== 2. View Fleet Compliance
+
+In the Grafana dashboard:
+
+* Select the *Global Hub - Policy Compliance* dashboard
+* Observe compliance status across both regional hubs
+* Each hub manages 3 SNO clusters with AMQ Broker policies
+
+=== 3. Cross-Hub Cluster Inventory
+
+[source,bash]
+----
+oc get managedclusterset -A
+oc get placement -A
+----
+
+The Global Hub aggregates cluster inventory from both regional hubs without directly managing edge clusters.
+
+=== 4. Verify Security Integration
+
+If RHACS is deployed, the Global Hub aggregates vulnerability data:
+
+[source,bash]
+----
+oc get multiclusterglobalhub -n open-cluster-management -o yaml | grep stackrox
+----

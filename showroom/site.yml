@@ -1,0 +1,13 @@
+runtime:
+  cache_dir: ./.cache/antora
+site:
+  title: Artemis Edge ACM Demo
+  start_page: artemis-edge-acm::index.adoc
+content:
+  sources:
+    - url: ./
+      start_path: content
+ui:
+  bundle:
+    url: https://github.com/rhpds/showroom-ui/releases/latest/download/ui-bundle.zip
+    snapshot: true

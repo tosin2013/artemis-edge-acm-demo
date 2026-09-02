@@ -1,0 +1,50 @@
+= Module 3: Verify AMQ Brokers and Federation
+
+== Objectives
+
+* Confirm hub and edge brokers are running
+* Verify AMQP federation links are connected
+* Access the AMQ Console
+
+== Steps
+
+=== 1. Check Hub Broker Pods
+
+[source,bash]
+----
+oc get pods -n artemis -l application=hub-01-broker-app
+----
+
+The pod `hub-01-broker-ss-0` should be `Running` and `1/1 Ready`.
+
+=== 2. Check Edge Broker Pods
+
+For each edge SNO, log in and verify:
+
+[source,bash]
+----
+oc get pods -n artemis -l ActiveMQArtemis
+----
+
+=== 3. Verify ActiveMQArtemis CR Status
+
+[source,bash]
+----
+oc get activemqartemis -n artemis -o wide
+----
+
+=== 4. Open AMQ Console
+
+Navigate to the AMQ Console:
+
+* Hub: {amq_console_url}
+* Login: `admin` / `admin`
+
+In the console, navigate to *Connections* to verify federation links from the spoke brokers.
+
+=== 5. Verify Federation Connections
+
+Each edge broker should show active connections:
+
+* `hub-01-connection` with `autostart=true`
+* `hub-02-connection` with `autostart=false` (failover)

@@ -1,0 +1,123 @@
+name: artemis-edge-acm-demo
+description: AMQ Broker edge federation on RHACM-managed SNO clusters
+version: "0.1.0"
+
+modes:
+  dev:
+    description: Contributor setup with linters and pre-commit hooks
+  prod:
+    description: Demo deployer with full prerequisites and validation
+
+prerequisites:
+  - name: oc
+    command: oc version --client
+    install_hint: "Install from https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/"
+  - name: helm
+    command: helm version --short
+    install_hint: "curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash"
+  - name: keytool
+    command: keytool 2>&1 | head -1
+    install_hint: "Install Java JDK 17+ (keytool is included)"
+  - name: java
+    command: java -version
+    min_version: "17"
+    install_hint: "Install OpenJDK 17+ from your package manager"
+  - name: mvn
+    command: mvn -version
+    install_hint: "Install Apache Maven from https://maven.apache.org/download.cgi"
+  - name: podman
+    command: podman --version
+    install_hint: "Install podman from your package manager"
+  - name: git
+    command: git --version
+  - name: jq
+    command: jq --version
+    install_hint: "Install jq from your package manager"
+  - name: gcloud
+    command: gcloud --version
+    condition: "config.cloud_provider == 'gcp'"
+    install_hint: "Install from https://cloud.google.com/sdk/docs/install"
+  - name: az
+    command: az --version
+    condition: "config.cloud_provider == 'azure'"
+    install_hint: "Install from https://learn.microsoft.com/en-us/cli/azure/install-azure-cli"
+
+config:
+  prompts:
+    - key: mode
+      prompt: "Deployment mode"
+      default: "single-hub"
+      choices:
+        - single-hub
+        - multi-hub
+    - key: cloud_provider
+      prompt: "Cloud provider"
+      default: "gcp"
+      choices:
+        - gcp
+        - azure
+    - key: hub_domain
+      prompt: "Hub cluster ingress domain"
+      required: true
+    - key: hub02_domain
+      prompt: "Second hub domain (multi-hub only)"
+      condition: "config.mode == 'multi-hub'"
+    - key: spoke_count
+      prompt: "Number of edge SNO clusters"
+      default: "3"
+    - key: keycloak_client_secret
+      prompt: "Keycloak broker client secret"
+      required: true
+      sensitive: true
+  output: config.yml
+
+setup:
+  steps:
+    - name: Generate TLS certificates
+      command: "./scripts/generate-tls.sh"
+      env_from_config:
+        KC_DOMAIN: hub_domain
+        HUB01_DOMAIN: hub_domain
+        HUB02_DOMAIN: hub02_domain
+      check:
+        command: "ls artemis/tls/hub-01-broker-keystore.jks"
+        message: "TLS keystores generated"
+    - name: Build Java clients
+      command: "cd java/amqp-client && mvn package -DskipTests && cd ../mqtt-client && mvn package -DskipTests && cd ../amqp-bridge && mvn package -DskipTests"
+      check:
+        command: "ls java/amqp-client/target/*.jar"
+        message: "Java clients built"
+      optional: true
+
+validation:
+  checks:
+    - name: OpenShift login
+      command: "oc whoami"
+      required: true
+      message: "Must be logged into OpenShift"
+    - name: RHACM installed
+      command: "oc get mch -A --no-headers"
+      required: true
+      message: "RHACM MultiClusterHub must be installed"
+    - name: Helm template renders
+      command: "helm template . --values values.yaml"
+      required: true
+      message: "Helm chart must render cleanly"
+    - name: TLS keystores exist
+      command: "ls artemis/tls/hub-01-broker-keystore.jks"
+      required: true
+      message: "Run scripts/generate-tls.sh first"
+    - name: AMQ Broker operator
+      command: "oc get sub -n openshift-operators amq-broker-rhel8 --no-headers 2>/dev/null"
+      required: false
+      message: "AMQ Broker operator not yet installed (will be deployed by chart)"
+    - name: Cloud CLI authenticated
+      command: |
+        if [ "$CLOUD_PROVIDER" = "gcp" ]; then
+          gcloud auth list --filter=status:ACTIVE --format='value(account)'
+        elif [ "$CLOUD_PROVIDER" = "azure" ]; then
+          az account show --query name -o tsv
+        fi
+      required: true
+      condition: "config.cloud_provider"
+      message: "Cloud CLI must be authenticated for ZTP provisioning"

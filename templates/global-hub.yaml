@@ -1,0 +1,30 @@
+{{- if .Values.globalHub.enabled }}
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: multicluster-global-hub-operator
+  namespace: open-cluster-management
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  channel: release-1.3
+  installPlanApproval: Automatic
+  name: multicluster-global-hub-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+---
+apiVersion: operator.open-cluster-management.io/v1alpha4
+kind: MulticlusterGlobalHub
+metadata:
+  name: multiclusterglobalhub
+  namespace: open-cluster-management
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+  annotations:
+    global-hub.open-cluster-management.io/with-stackrox-integration: ""
+spec:
+  dataLayer:
+    postgres:
+      retention: 18m
+  enableMetrics: true
+{{- end }}

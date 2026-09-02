@@ -1,0 +1,45 @@
+= Module 2: Observe ZTP SNO Provisioning
+
+== Objectives
+
+* Understand how SiteConfig drives SNO cluster provisioning
+* Watch the ZTP pipeline in action
+* Verify ManagedCluster resources and labels
+
+== Steps
+
+=== 1. Review SiteConfig Resources
+
+[source,bash]
+----
+oc get siteconfigs -A
+----
+
+Each SiteConfig defines one or more SNO clusters with cloud-provider-specific machine types (n2-standard-8 for GCP, Standard_D8s_v5 for Azure).
+
+=== 2. Monitor Agent Cluster Installs
+
+[source,bash]
+----
+oc get agentclusterinstalls -A -w
+----
+
+Watch for status transitions: `requirements-met` -> `installing` -> `installed`.
+
+=== 3. Verify ManagedCluster Labels
+
+[source,bash]
+----
+oc get managedcluster -o custom-columns=NAME:.metadata.name,REGION:.metadata.labels.edge-region,PROVIDER:.metadata.labels.cloud-provider
+----
+
+Each cluster should show its assigned region (NY, NJ, CT) and cloud provider label.
+
+=== 4. Check Placement Decisions
+
+[source,bash]
+----
+oc get placementdecisions -n ztp-policies
+----
+
+The Placement API (not deprecated PlacementRule) should have selected all edge-sno clusters.

@@ -1,0 +1,66 @@
+= Module 6: Store-and-Forward Resilience
+
+== Objectives
+
+* Simulate a network partition at the edge
+* Produce messages while disconnected
+* Observe automatic store-and-forward on reconnection
+
+== Steps
+
+=== 1. Start a Consumer on the Hub
+
+Start a long-running consumer on `messages.NY.test`:
+
+[source,bash]
+----
+/opt/amq/bin/artemis consumer \
+  --url=amqp://hub-01-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672 \
+  --protocol=AMQP --user={consumer_user} --password={consumer_password} \
+  --destination=topic://messages.NY.test --verbose
+----
+
+=== 2. Simulate Network Partition
+
+Disconnect the NY edge broker from the hub by scaling down the federation or cordoning network:
+
+[source,bash]
+----
+# On the SNO edge cluster, block outbound to hub
+oc annotate activemqartemis spoke-01-broker -n artemis \
+  "pause-federation"="true" --overwrite
+----
+
+NOTE: In production, you would simulate this with network policies or by physically disconnecting the edge node.
+
+=== 3. Produce While Disconnected
+
+On the disconnected NY spoke:
+
+[source,bash]
+----
+/opt/amq/bin/artemis producer \
+  --url=amqp://spoke-01-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672 \
+  --protocol=AMQP --user={producer_user} --password={producer_password} \
+  --message-count=20 --message='queued during partition' \
+  --destination=topic://messages.NY.test --verbose
+----
+
+Messages are stored in the edge broker's local journal.
+
+=== 4. Restore Connectivity
+
+[source,bash]
+----
+oc annotate activemqartemis spoke-01-broker -n artemis \
+  "pause-federation"- --overwrite
+----
+
+=== 5. Observe Store-and-Forward Flush
+
+Watch the hub consumer -- all 20 messages should arrive automatically once the federation link re-establishes. The AMQ Broker logs will show:
+
+[source,text]
+----
+AMQ111003: Federation connection established
+----

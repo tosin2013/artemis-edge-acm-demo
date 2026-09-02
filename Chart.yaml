@@ -1,0 +1,15 @@
+apiVersion: v2
+name: artemis-edge-acm-demo
+description: AMQ Broker edge federation on RHACM-managed SNO clusters
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - amq
+  - artemis
+  - edge
+  - rhacm
+  - federation
+  - gitops
+maintainers:
+  - name: Tosin Akinosho

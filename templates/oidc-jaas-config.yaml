@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: oidc-jaas-config
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+type: Opaque
+stringData:
+  login.config: |
+    console {
+      org.apache.activemq.artemis.spi.core.security.jaas.PropertiesLoginModule sufficient
+        org.apache.activemq.jaas.properties.user="artemis-users.properties"
+        org.apache.activemq.jaas.properties.role="artemis-roles.properties"
+        baseDir="${artemis.instance}/etc"
+      ;
+    };
+
+    activemq {
+      org.apache.activemq.artemis.spi.core.security.jaas.PropertiesLoginModule sufficient
+        org.apache.activemq.jaas.properties.user="artemis-users.properties"
+        org.apache.activemq.jaas.properties.role="artemis-roles.properties"
+        baseDir="${artemis.instance}/etc"
+      ;
+
+      org.keycloak.adapters.jaas.DirectAccessGrantsLoginModule required
+        keycloak-config-file="/amq/extra/secrets/oidc-jaas-config/_keycloak-direct-access.json"
+        role-principal-class=org.apache.activemq.artemis.spi.core.security.jaas.RolePrincipal
+      ;
+
+      org.apache.activemq.artemis.spi.core.security.jaas.PrincipalConversionLoginModule requisite
+        principalClassList=org.keycloak.KeycloakPrincipal
+      ;
+    };
+  _keycloak-direct-access.json: |
+    {
+      "realm": "artemis-keycloak",
+      "resource": "artemis-broker",
+      "auth-server-url": "https://keycloak-ingress-{{ .Values.keycloak.namespace }}.{{ .Values.global.clusterDomain }}/",
+      "principal-attribute": "preferred_username",
+      "use-resource-role-mappings": true,
+      "ssl-required": "external",
+      "truststore": "/etc/broker-tls-secret-volume/client.ts",
+      "truststore-password": {{ .Values.tls.truststorePassword | quote }},
+      "confidential-port": 443,
+      "credentials": {
+        "secret": {{ .Values.keycloak.clientSecret | quote }}
+      }
+    }
+  _keycloak-bearer-token.json: |
+    {
+      "realm": "artemis-keycloak",
+      "resource": "artemis-console",
+      "auth-server-url": "https://keycloak-ingress-{{ .Values.keycloak.namespace }}.{{ .Values.global.clusterDomain }}/",
+      "principal-attribute": "preferred_username",
+      "use-resource-role-mappings": true,
+      "ssl-required": "external",
+      "truststore": "/etc/broker-tls-secret-volume/client.ts",
+      "truststore-password": {{ .Values.tls.truststorePassword | quote }},
+      "confidential-port": 443
+    }
+  _keycloak-js-client.json: |
+    {
+      "realm": "artemis-keycloak",
+      "clientId": "artemis-console",
+      "url": "https://keycloak-ingress-{{ .Values.keycloak.namespace }}.{{ .Values.global.clusterDomain }}/"
+    }

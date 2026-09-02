@@ -1,0 +1,11 @@
+{
+  "realm": "artemis-keycloak",
+  "resource": "artemis-console",
+  "auth-server-url": "https://keycloak-ingress-keycloak.${KC_DOMAIN}/",
+  "principal-attribute": "preferred_username",
+  "use-resource-role-mappings": true,
+  "ssl-required": "external",
+  "truststore": "${TRUSTSTORE_PATH}",
+  "truststore-password": "password",
+  "confidential-port": 443
+}

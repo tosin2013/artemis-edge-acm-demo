@@ -1,0 +1,8 @@
+cloudProvider: azure
+sno:
+  instanceType: Standard_D8s_v5
+  storageClass: managed-premium
+  diskSize: 120Gi
+hub:
+  instanceType: Standard_D8s_v5
+  storageClass: managed-premium

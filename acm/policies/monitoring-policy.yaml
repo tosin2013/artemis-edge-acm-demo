@@ -1,0 +1,53 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: policy-edge-monitoring
+  namespace: ztp-policies
+spec:
+  remediationAction: enforce
+  disabled: false
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: edge-monitoring-namespace
+        spec:
+          remediationAction: enforce
+          severity: medium
+          object-templates:
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: v1
+                kind: Namespace
+                metadata:
+                  name: metrics
+                  labels:
+                    demo.redhat.com/application: "artemis-edge-acm"
+---
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: policy-edge-monitoring-placement
+  namespace: ztp-policies
+spec:
+  predicates:
+    - requiredClusterSelector:
+        labelSelector:
+          matchLabels:
+            sites: "edge-sno"
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: policy-edge-monitoring-binding
+  namespace: ztp-policies
+spec:
+  placementRef:
+    name: policy-edge-monitoring-placement
+    apiGroup: cluster.open-cluster-management.io
+    kind: Placement
+  subjects:
+    - name: policy-edge-monitoring
+      apiGroup: policy.open-cluster-management.io
+      kind: Policy

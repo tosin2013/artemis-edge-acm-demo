@@ -1,0 +1,62 @@
+apiVersion: broker.amq.io/v1beta1
+kind: ActiveMQArtemis
+metadata:
+  name: hub-02-broker
+spec:
+  adminUser: "admin"
+  adminPassword: "admin"
+  deploymentPlan:
+    size: 1
+    persistenceEnabled: false
+    journalType: nio
+    enableMetricsPlugin: true
+#    storage:
+#      size: 1Gi
+    resources:
+      limits:
+        cpu: "1000m"
+        memory: "2Gi"
+      requests:
+        cpu: "1000m"
+        memory: "2Gi"
+    extraMounts:
+      secrets:
+        - "oidc-jaas-config"
+        - "hub-02-broker-bp"
+  acceptors:
+    - name: core-acceptor
+      protocols: core
+      port: 61616
+    - name: cores-acceptor
+      protocols: core
+      port: 61617
+      sslEnabled: true
+      sslSecret: broker-tls-secret
+      needClientAuth: false
+      expose: true
+    - name: amqp-acceptor
+      protocols: amqp
+      port: 5672
+    - name: amqps-acceptor
+      protocols: amqp
+      port: 5671
+      sslEnabled: true
+      sslSecret: broker-tls-secret
+      needClientAuth: false
+      expose: true
+    - name: mqtt-acceptor
+      protocols: mqtt
+      port: 1833
+    - name: mqtts-acceptor
+      protocols: mqtt
+      port: 8883
+      sslEnabled: true
+      sslSecret: broker-tls-secret
+      needClientAuth: false
+      expose: true
+#  env:
+#    - name: JAVA_ARGS_APPEND
+#      value: "-Dhawtio.realm=console -Dhawtio.role=admin -Dhawtio.keycloakEnabled=true -Dhawtio.authenticationEnabled=true -Dhawtio.keycloakClientConfig=/amq/extra/secrets/oidc-jaas-config/_keycloak-js-client.json"
+  console:
+    expose: true
+    requireLogin: true

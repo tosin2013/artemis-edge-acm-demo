@@ -1,0 +1,15 @@
+{{- if .Values.keycloak.enabled }}
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: keycloak-operator
+  namespace: {{ .Values.keycloak.namespace }}
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  channel: stable-v26
+  installPlanApproval: Automatic
+  name: keycloak-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+{{- end }}

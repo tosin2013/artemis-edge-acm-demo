@@ -1,0 +1,68 @@
+= Module 5: Produce and Consume Messages
+
+== Objectives
+
+* Send messages from edge brokers using regional addresses
+* Consume messages at the hub
+* Observe federation routing in action
+
+== Steps
+
+=== 1. Start a Consumer on the Hub
+
+[source,bash]
+----
+oc -n artemis run consumer -ti \
+  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12.3 \
+  --rm=true --restart=Never -- /bin/bash
+----
+
+Inside the container:
+
+[source,bash]
+----
+/opt/amq/bin/artemis consumer \
+  --url=amqp://hub-01-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672 \
+  --protocol=AMQP --user={consumer_user} --password={consumer_password} \
+  --destination=topic://messages.NY.test --verbose
+----
+
+=== 2. Produce from Edge (NY Region)
+
+On the NY spoke cluster:
+
+[source,bash]
+----
+/opt/amq/bin/artemis producer \
+  --url=amqp://spoke-01-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672 \
+  --protocol=AMQP --user={producer_user} --password={producer_password} \
+  --message-count=5 --message='hello from NY' \
+  --destination=topic://messages.NY.test --verbose
+----
+
+=== 3. Try the ALL Address
+
+Messages sent to `messages.ALL.*` are federated to all brokers:
+
+[source,bash]
+----
+/opt/amq/bin/artemis producer \
+  --url=amqp://spoke-02-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672 \
+  --protocol=AMQP --user={producer_user} --password={producer_password} \
+  --message-count=5 --message='broadcast from NJ' \
+  --destination=topic://messages.ALL.broadcast --verbose
+----
+
+=== 4. Try MQTT from Edge
+
+On a spoke cluster, use the MQTT protocol:
+
+[source,bash]
+----
+# MQTT publishes to port 1833
+/opt/amq/bin/artemis producer \
+  --url=tcp://spoke-03-broker-mqtt-acceptor-0-svc.artemis.svc.cluster.local:1833 \
+  --protocol=MQTT --user={producer_user} --password={producer_password} \
+  --message-count=5 --message='MQTT from CT' \
+  --destination=topic://messages.CT.mqtt --verbose
+----

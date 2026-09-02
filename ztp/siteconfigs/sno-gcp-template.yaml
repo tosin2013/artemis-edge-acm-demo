@@ -1,0 +1,72 @@
+apiVersion: ran.openshift.io/v2
+kind: SiteConfig
+metadata:
+  name: edge-sno-gcp
+  namespace: edge-sno-gcp
+spec:
+  baseDomain: example.com
+  pullSecretRef:
+    name: assisted-deployment-pull-secret
+  clusterImageSetNameRef: img4.22.0-multi
+  sshPublicKey: ""
+  clusters:
+    - clusterName: sno-edge-01
+      networkType: OVNKubernetes
+      clusterLabels:
+        common: "true"
+        sites: "edge-sno"
+        edge-region: "NY"
+        cloud-provider: "gcp"
+      clusterNetwork:
+        - cidr: 10.128.0.0/14
+          hostPrefix: 23
+      machineNetwork:
+        - cidr: 10.0.0.0/16
+      serviceNetwork:
+        - 172.30.0.0/16
+      nodes:
+        - hostName: sno-edge-01
+          role: master
+          platformConfig:
+            gcp:
+              machineType: n2-standard-8
+    - clusterName: sno-edge-02
+      networkType: OVNKubernetes
+      clusterLabels:
+        common: "true"
+        sites: "edge-sno"
+        edge-region: "NJ"
+        cloud-provider: "gcp"
+      clusterNetwork:
+        - cidr: 10.128.0.0/14
+          hostPrefix: 23
+      machineNetwork:
+        - cidr: 10.0.0.0/16
+      serviceNetwork:
+        - 172.30.0.0/16
+      nodes:
+        - hostName: sno-edge-02
+          role: master
+          platformConfig:
+            gcp:
+              machineType: n2-standard-8
+    - clusterName: sno-edge-03
+      networkType: OVNKubernetes
+      clusterLabels:
+        common: "true"
+        sites: "edge-sno"
+        edge-region: "CT"
+        cloud-provider: "gcp"
+      clusterNetwork:
+        - cidr: 10.128.0.0/14
+          hostPrefix: 23
+      machineNetwork:
+        - cidr: 10.0.0.0/16
+      serviceNetwork:
+        - 172.30.0.0/16
+      nodes:
+        - hostName: sno-edge-03
+          role: master
+          platformConfig:
+            gcp:
+              machineType: n2-standard-8
