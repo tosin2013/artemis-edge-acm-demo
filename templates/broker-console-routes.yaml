@@ -1,0 +1,42 @@
+{{- range .Values.hubBrokers }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ .name }}-broker-wconsj-0-svc-rte
+  namespace: {{ $.Values.global.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
+  labels:
+    {{- include "artemis-edge.labels" $ | nindent 4 }}
+spec:
+  to:
+    kind: Service
+    name: {{ .name }}-broker-wconsj-0-svc
+  port:
+    targetPort: wconsj-0
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+{{- end }}
+{{- range .Values.edgeBrokers }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ .name }}-broker-wconsj-0-svc-rte
+  namespace: {{ $.Values.global.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
+  labels:
+    {{- include "artemis-edge.labels" $ | nindent 4 }}
+spec:
+  to:
+    kind: Service
+    name: {{ .name }}-broker-wconsj-0-svc
+  port:
+    targetPort: wconsj-0
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+{{- end }}
