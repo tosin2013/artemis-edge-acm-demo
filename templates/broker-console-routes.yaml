@@ -1,5 +1,24 @@
 {{- range .Values.hubBrokers }}
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .name }}-broker-wconsj-0-svc
+  namespace: {{ $.Values.global.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  labels:
+    {{- include "artemis-edge.labels" $ | nindent 4 }}
+spec:
+  selector:
+    ActiveMQArtemis: {{ .name }}-broker
+    statefulset.kubernetes.io/pod-name: {{ .name }}-broker-ss-0
+  ports:
+    - name: wconsj-0
+      port: 8161
+      targetPort: 8161
+      protocol: TCP
+---
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
@@ -20,6 +39,25 @@ spec:
     insecureEdgeTerminationPolicy: Redirect
 {{- end }}
 {{- range .Values.edgeBrokers }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .name }}-broker-wconsj-0-svc
+  namespace: {{ $.Values.global.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  labels:
+    {{- include "artemis-edge.labels" $ | nindent 4 }}
+spec:
+  selector:
+    ActiveMQArtemis: {{ .name }}-broker
+    statefulset.kubernetes.io/pod-name: {{ .name }}-broker-ss-0
+  ports:
+    - name: wconsj-0
+      port: 8161
+      targetPort: 8161
+      protocol: TCP
 ---
 apiVersion: route.openshift.io/v1
 kind: Route
