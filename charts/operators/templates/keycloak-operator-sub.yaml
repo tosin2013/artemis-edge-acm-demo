@@ -9,7 +9,7 @@ metadata:
   labels:
     {{- include "artemis-edge.labels" . | nindent 4 }}
 spec:
-  channel: stable-v26
+  channel: fast
   installPlanApproval: Automatic
   name: keycloak-operator
   source: community-operators
