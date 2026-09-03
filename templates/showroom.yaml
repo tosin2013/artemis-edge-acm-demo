@@ -6,6 +6,29 @@ metadata:
   labels:
     {{- include "artemis-edge.labels" . | nindent 4 }}
 ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: showroom-terminal
+  namespace: showroom
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: showroom-terminal-cluster-admin
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: showroom-terminal
+    namespace: showroom
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -24,6 +47,7 @@ spec:
       labels:
         app: showroom
     spec:
+      serviceAccountName: showroom-terminal
       containers:
         - name: showroom-content
           image: ghcr.io/rhpds/showroom-httpd:latest

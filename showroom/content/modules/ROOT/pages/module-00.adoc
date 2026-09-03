@@ -1,0 +1,107 @@
+= Module 0: Access Your Environment
+
+== Objectives
+
+* Log in to the OpenShift cluster from the terminal
+* Verify access to all demo services
+* Understand which credentials to use
+
+== Cluster Access
+
+Your environment is a single OpenShift cluster running on GCP with RHACM, ArgoCD, AMQ Broker, and Keycloak pre-deployed.
+
+=== Terminal Login
+
+The Showroom terminal is pre-authenticated with cluster-admin access. Verify by running:
+
+[source,bash]
+----
+oc whoami
+----
+
+You should see `system:serviceaccount:showroom:showroom-terminal`.
+
+If the terminal is not pre-authenticated, log in manually:
+
+[source,bash]
+----
+oc login {openshift_api_url} -u admin -p <your-admin-password>
+----
+
+TIP: Your admin password was provided in the lab provisioning email or deployment output.
+
+=== OpenShift Web Console
+
+Open the OpenShift web console in your browser:
+
+* URL: https://console-openshift-console.{openshift_cluster_ingress_domain}
+* Login: `admin` / `<your-admin-password>`
+
+== Service Credentials
+
+[cols="1,2,1,1"]
+|===
+| Service | URL | Username | Password
+
+| AMQ Console (Hub)
+| {amq_console_url}
+| `admin`
+| `admin`
+
+| Keycloak Admin
+| {keycloak_url}
+| `admin`
+| `admin`
+
+| Grafana (MCO)
+| {grafana_url}
+| (OpenShift SSO)
+| (use OCP credentials)
+
+| RHACM Console
+| https://multicloud-console.apps.{openshift_cluster_ingress_domain}
+| (OpenShift SSO)
+| (use OCP credentials)
+|===
+
+== Messaging Users (OIDC)
+
+These users are configured in the Keycloak realm for broker authentication:
+
+[cols="1,1,1,1"]
+|===
+| User | Password | Role | Used In
+
+| `{producer_user}`
+| `{producer_password}`
+| producer
+| Modules 4, 5
+
+| `{consumer_user}`
+| `{consumer_password}`
+| consumer
+| Modules 4, 5
+|===
+
+== Namespaces
+
+The demo uses the following namespaces:
+
+* `artemis` -- AMQ Broker hub and edge instances
+* `keycloak` -- Keycloak OIDC provider
+* `open-cluster-management` -- RHACM hub
+* `open-cluster-management-observability` -- MCO (Grafana, Thanos)
+* `openshift-gitops` -- ArgoCD
+
+Verify the ArgoCD application is healthy:
+
+[source,bash]
+----
+oc get application.argoproj.io -n openshift-gitops
+----
+
+You should see `field-content` with `Synced` and `Healthy` status.
+
+== Next Steps
+
+Proceed to xref:module-01.adoc[Module 1: Verify Hub + RHACM].

@@ -1,4 +1,5 @@
 * xref:index.adoc[Overview]
+* xref:module-00.adoc[0. Access Your Environment]
 * xref:module-01.adoc[1. Verify Hub + RHACM]
 * xref:module-02.adoc[2. ZTP SNO Provisioning]
 * xref:module-03.adoc[3. Verify AMQ Brokers]
