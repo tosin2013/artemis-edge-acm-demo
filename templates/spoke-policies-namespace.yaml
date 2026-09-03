@@ -1,0 +1,11 @@
+{{- if .Values.spokeProvisioning.enabled }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ztp-policies
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+{{- end }}

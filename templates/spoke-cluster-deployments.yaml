@@ -1,0 +1,79 @@
+{{- if .Values.spokeProvisioning.enabled }}
+{{- range .Values.spokeProvisioning.clusters }}
+---
+apiVersion: hive.openshift.io/v1
+kind: ClusterDeployment
+metadata:
+  name: {{ .name }}
+  namespace: {{ .name }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+  labels:
+    {{- include "artemis-edge.labels" $ | nindent 4 }}
+    edge-region: {{ .region }}
+    cloud-provider: gcp
+spec:
+  baseDomain: {{ $.Values.spokeProvisioning.baseDomain }}
+  clusterName: {{ .name }}
+  controlPlaneConfig:
+    servingCertificates: {}
+  installed: false
+  platform:
+    gcp:
+      credentialsSecretRef:
+        name: {{ .name }}-gcp-creds
+      region: {{ $.Values.spokeProvisioning.gcpRegion }}
+  provisioning:
+    installConfigSecretRef:
+      name: {{ .name }}-install-config
+    sshPrivateKeySecretRef:
+      name: {{ .name }}-ssh-private-key
+    imageSetRef:
+      name: {{ $.Values.spokeProvisioning.clusterImageSet }}
+  pullSecretRef:
+    name: {{ .name }}-pull-secret
+---
+apiVersion: cluster.open-cluster-management.io/v1
+kind: ManagedCluster
+metadata:
+  name: {{ .name }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+  labels:
+    {{- include "artemis-edge.labels" $ | nindent 4 }}
+    name: {{ .name }}
+    cloud: GCP
+    vendor: OpenShift
+    sites: edge-sno
+    edge-region: {{ .region }}
+    cloud-provider: gcp
+spec:
+  hubAcceptsClient: true
+---
+apiVersion: agent.open-cluster-management.io/v1
+kind: KlusterletAddonConfig
+metadata:
+  name: {{ .name }}
+  namespace: {{ .name }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+  labels:
+    {{- include "artemis-edge.labels" $ | nindent 4 }}
+spec:
+  clusterName: {{ .name }}
+  clusterNamespace: {{ .name }}
+  clusterLabels:
+    cloud: GCP
+    vendor: OpenShift
+  applicationManager:
+    enabled: true
+  certPolicyController:
+    enabled: true
+  iamPolicyController:
+    enabled: true
+  policyController:
+    enabled: true
+  searchCollector:
+    enabled: true
+{{- end }}
+{{- end }}

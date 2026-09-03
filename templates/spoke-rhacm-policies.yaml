@@ -1,0 +1,222 @@
+{{- if .Values.spokeProvisioning.enabled }}
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: policy-amq-broker-operator
+  namespace: ztp-policies
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  remediationAction: enforce
+  disabled: false
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: amq-broker-operator-sub
+        spec:
+          remediationAction: enforce
+          severity: high
+          object-templates:
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: v1
+                kind: Namespace
+                metadata:
+                  name: {{ .Values.global.namespace }}
+                  labels:
+                    demo.redhat.com/application: "artemis-edge-acm"
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: operators.coreos.com/v1
+                kind: OperatorGroup
+                metadata:
+                  name: amq-broker-og
+                  namespace: {{ .Values.global.namespace }}
+                spec:
+                  targetNamespaces:
+                    - {{ .Values.global.namespace }}
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: operators.coreos.com/v1alpha1
+                kind: Subscription
+                metadata:
+                  name: amq-broker-rhel8
+                  namespace: {{ .Values.global.namespace }}
+                spec:
+                  channel: {{ .Values.amqBrokerOperator.channel | quote }}
+                  installPlanApproval: Automatic
+                  name: amq-broker-rhel8
+                  source: {{ .Values.amqBrokerOperator.source }}
+                  sourceNamespace: openshift-marketplace
+---
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: policy-amq-broker-placement
+  namespace: ztp-policies
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  predicates:
+    - requiredClusterSelector:
+        labelSelector:
+          matchLabels:
+            sites: "edge-sno"
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: policy-amq-broker-binding
+  namespace: ztp-policies
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  placementRef:
+    name: policy-amq-broker-placement
+    apiGroup: cluster.open-cluster-management.io
+    kind: Placement
+  subjects:
+    - name: policy-amq-broker-operator
+      apiGroup: policy.open-cluster-management.io
+      kind: Policy
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: policy-edge-monitoring
+  namespace: ztp-policies
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  remediationAction: enforce
+  disabled: false
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: edge-monitoring-namespace
+        spec:
+          remediationAction: enforce
+          severity: medium
+          object-templates:
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: v1
+                kind: Namespace
+                metadata:
+                  name: metrics
+                  labels:
+                    demo.redhat.com/application: "artemis-edge-acm"
+---
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: policy-edge-monitoring-placement
+  namespace: ztp-policies
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  predicates:
+    - requiredClusterSelector:
+        labelSelector:
+          matchLabels:
+            sites: "edge-sno"
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: policy-edge-monitoring-binding
+  namespace: ztp-policies
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  placementRef:
+    name: policy-edge-monitoring-placement
+    apiGroup: cluster.open-cluster-management.io
+    kind: Placement
+  subjects:
+    - name: policy-edge-monitoring
+      apiGroup: policy.open-cluster-management.io
+      kind: Policy
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: artemis-edge-workloads
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  generators:
+    - clusterDecisionResource:
+        configMapRef: acm-placement
+        labelSelector:
+          matchLabels:
+            cluster.open-cluster-management.io/placement: edge-sno-placement
+        requeueAfterSeconds: 180
+  template:
+    metadata:
+      name: "artemis-edge-{{`{{name}}`}}"
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/tosin2013/artemis-edge-acm-demo.git
+        targetRevision: main
+        path: "."
+        helm:
+          valueFiles:
+            - values.yaml
+          parameters:
+            - name: global.clusterDomain
+              value: "{{`{{metadata.labels.clusterDomain}}`}}"
+            - name: global.mode
+              value: "edge"
+            - name: spokeProvisioning.enabled
+              value: "false"
+            - name: externalSecrets.enabled
+              value: "false"
+      destination:
+        server: "{{`{{server}}`}}"
+        namespace: {{ .Values.global.namespace }}
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - SkipDryRunOnMissingResource=true
+---
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: edge-sno-placement
+  namespace: ztp-policies
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  predicates:
+    - requiredClusterSelector:
+        labelSelector:
+          matchLabels:
+            sites: "edge-sno"
+{{- end }}

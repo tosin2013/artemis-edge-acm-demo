@@ -1,36 +1,71 @@
-= Module 2: Observe ZTP SNO Provisioning
+= Module 2: Observe Spoke Cluster Provisioning
 
 == Objectives
 
-* Understand how SiteConfig drives SNO cluster provisioning
-* Watch the ZTP pipeline in action
+* Understand how Hive ClusterDeployment drives SNO cluster provisioning on GCP
+* Watch the provisioning pipeline in action via RHACM
 * Verify ManagedCluster resources and labels
+* Confirm RHACM policies push AMQ Broker operator to spokes
+
+== Background
+
+This demo uses *Hive* (via Red Hat Advanced Cluster Management) to provision SNO edge clusters on GCP. Each spoke cluster is defined as a `ClusterDeployment` CR, which triggers Hive to create a new OpenShift cluster using the GCP cloud provider.
+
+NOTE: Spoke cluster provisioning takes approximately 30-45 minutes per cluster. All three clusters provision in parallel.
 
 == Steps
 
-=== 1. Review SiteConfig Resources
+=== 1. Review ClusterDeployments
 
 [source,bash]
 ----
-oc get siteconfigs -A
+oc get clusterdeployments -A
 ----
 
-Each SiteConfig defines one or more SNO clusters with cloud-provider-specific machine types (n2-standard-8 for GCP, Standard_D8s_v5 for Azure).
+Each `ClusterDeployment` defines one SNO cluster:
 
-=== 2. Monitor Agent Cluster Installs
+[cols="1,1,1"]
+|===
+| Cluster | Region | GCP Machine Type
+
+| sno-edge-01
+| NY
+| n2-standard-8
+
+| sno-edge-02
+| NJ
+| n2-standard-8
+
+| sno-edge-03
+| CT
+| n2-standard-8
+|===
+
+=== 2. Monitor Provisioning Progress
+
+Watch the ClusterDeployment status:
 
 [source,bash]
 ----
-oc get agentclusterinstalls -A -w
+oc get clusterdeployments -A -o custom-columns=NAME:.metadata.name,INSTALLED:.spec.installed,PLATFORM:.spec.platform.gcp.region
 ----
 
-Watch for status transitions: `requirements-met` -> `installing` -> `installed`.
+For more detail, check the provisioning job logs:
+
+[source,bash]
+----
+oc get pods -n sno-edge-01 -l hive.openshift.io/cluster-deployment-name=sno-edge-01
+----
+
+TIP: You can also monitor provisioning from the RHACM console under *Infrastructure > Clusters*.
 
 === 3. Verify ManagedCluster Labels
 
+Once clusters are provisioned, they auto-register as ManagedClusters:
+
 [source,bash]
 ----
-oc get managedcluster -o custom-columns=NAME:.metadata.name,REGION:.metadata.labels.edge-region,PROVIDER:.metadata.labels.cloud-provider
+oc get managedcluster -o custom-columns=NAME:.metadata.name,REGION:.metadata.labels.edge-region,PROVIDER:.metadata.labels.cloud-provider,AVAILABLE:.status.conditions[0].status
 ----
 
 Each cluster should show its assigned region (NY, NJ, CT) and cloud provider label.
@@ -42,4 +77,32 @@ Each cluster should show its assigned region (NY, NJ, CT) and cloud provider lab
 oc get placementdecisions -n ztp-policies
 ----
 
-The Placement API (not deprecated PlacementRule) should have selected all edge-sno clusters.
+The Placement API selects all clusters with label `sites: edge-sno`.
+
+=== 5. Verify RHACM Policies
+
+[source,bash]
+----
+oc get policy -n ztp-policies
+----
+
+Two policies should show `Compliant`:
+
+* `policy-amq-broker-operator` -- ensures AMQ Broker operator is installed on each spoke
+* `policy-edge-monitoring` -- creates the metrics namespace on each spoke
+
+=== 6. Troubleshooting
+
+If a cluster is stuck provisioning:
+
+[source,bash]
+----
+# Check ClusterDeployment conditions
+oc get clusterdeployment sno-edge-01 -n sno-edge-01 -o yaml | grep -A 10 conditions
+
+# Check provisioning pod logs
+oc logs -n sno-edge-01 -l hive.openshift.io/cluster-deployment-name=sno-edge-01 --tail=50
+
+# Check GCP quota (common failure)
+# Ensure n2-standard-8 vCPU quota allows 3 concurrent SNO installs (24 vCPUs)
+----
