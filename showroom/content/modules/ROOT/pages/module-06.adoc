@@ -12,55 +12,102 @@
 
 Start a long-running consumer on `messages.NY.test`:
 
+IMPORTANT: Start the consumer *before* simulating the partition so it is subscribed to the topic.
+
 [source,bash]
 ----
-/opt/amq/bin/artemis consumer \
+oc -n artemis run consumer-m6 -ti \
+  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12.3 \
+  --rm=true --restart=Never -- /opt/amq/bin/artemis consumer \
   --url=amqp://hub-01-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672 \
   --protocol=AMQP --user={consumer_user} --password={consumer_password} \
   --destination=topic://messages.NY.test --verbose
 ----
 
+Leave this running in a separate terminal.
+
 === 2. Simulate Network Partition
 
-Disconnect the NY edge broker from the hub by scaling down the federation or cordoning network:
+Apply a NetworkPolicy that blocks all egress from the NY spoke broker, simulating a network partition:
 
 [source,bash]
 ----
-# On the SNO edge cluster, block outbound to hub
-oc annotate activemqartemis spoke-01-broker -n artemis \
-  "pause-federation"="true" --overwrite
+cat <<EOF | oc apply -f -
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: block-spoke-01-federation
+  namespace: artemis
+spec:
+  podSelector:
+    matchLabels:
+      ActiveMQArtemis: spoke-01-broker
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              ActiveMQArtemis: spoke-01-broker
+EOF
 ----
 
-NOTE: In production, you would simulate this with network policies or by physically disconnecting the edge node.
+This blocks all egress from `spoke-01-broker` except to itself. The federation connection to the hub will drop.
+
+Verify the partition by checking broker logs:
+
+[source,bash]
+----
+oc logs spoke-01-broker-ss-0 -n artemis --tail=5
+----
+
+You should see connection errors as the federation link fails.
 
 === 3. Produce While Disconnected
 
-On the disconnected NY spoke:
+On the disconnected NY spoke, produce messages that will be stored locally:
 
 [source,bash]
 ----
-/opt/amq/bin/artemis producer \
+oc -n artemis run producer-m6 -ti \
+  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12.3 \
+  --rm=true --restart=Never -- /opt/amq/bin/artemis producer \
   --url=amqp://spoke-01-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672 \
   --protocol=AMQP --user={producer_user} --password={producer_password} \
   --message-count=20 --message='queued during partition' \
   --destination=topic://messages.NY.test --verbose
 ----
 
-Messages are stored in the edge broker's local journal.
+Messages are stored in the edge broker's local journal because the federation link is down.
 
 === 4. Restore Connectivity
 
+Remove the NetworkPolicy to restore the federation link:
+
 [source,bash]
 ----
-oc annotate activemqartemis spoke-01-broker -n artemis \
-  "pause-federation"- --overwrite
+oc delete networkpolicy block-spoke-01-federation -n artemis
 ----
 
 === 5. Observe Store-and-Forward Flush
 
-Watch the hub consumer -- all 20 messages should arrive automatically once the federation link re-establishes. The AMQ Broker logs will show:
+Watch the hub consumer terminal -- the 20 messages should arrive automatically once the federation link re-establishes. Check the broker logs for confirmation:
+
+[source,bash]
+----
+oc logs spoke-01-broker-ss-0 -n artemis --tail=10
+----
+
+You should see:
 
 [source,text]
 ----
 AMQ111003: Federation connection established
+----
+
+=== 6. Clean Up
+
+[source,bash]
+----
+oc delete pod consumer-m6 -n artemis --force 2>/dev/null
 ----
