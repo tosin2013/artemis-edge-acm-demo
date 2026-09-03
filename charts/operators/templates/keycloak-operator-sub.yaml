@@ -12,6 +12,6 @@ spec:
   channel: stable-v26
   installPlanApproval: Automatic
   name: keycloak-operator
-  source: redhat-operators
+  source: community-operators
   sourceNamespace: openshift-marketplace
 {{- end }}
