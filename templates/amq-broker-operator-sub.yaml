@@ -4,6 +4,8 @@ kind: Subscription
 metadata:
   name: amq-broker-rhel8
   namespace: {{ .Values.global.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
   labels:
     {{- include "artemis-edge.labels" . | nindent 4 }}
 spec:

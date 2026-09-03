@@ -5,6 +5,8 @@ kind: ActiveMQArtemis
 metadata:
   name: {{ .name }}-broker
   namespace: {{ $.Values.global.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
   labels:
     {{- include "artemis-edge.labels" $ | nindent 4 }}
 spec:

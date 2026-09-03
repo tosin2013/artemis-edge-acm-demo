@@ -4,6 +4,8 @@ kind: Subscription
 metadata:
   name: keycloak-operator
   namespace: {{ .Values.keycloak.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
   labels:
     {{- include "artemis-edge.labels" . | nindent 4 }}
 spec:
