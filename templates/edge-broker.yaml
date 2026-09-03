@@ -33,5 +33,5 @@ spec:
   acceptors:
     {{- include "artemis-edge.brokerAcceptors" $ | nindent 4 }}
   console:
-    expose: true
+    expose: false
 {{- end }}
