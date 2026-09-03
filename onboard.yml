@@ -69,6 +69,14 @@ config:
       prompt: "Keycloak broker client secret"
       required: true
       sensitive: true
+    - key: agd_guid
+      prompt: "AgnosticD deployment GUID"
+      default: "artgcp"
+      condition: "config.mode == 'prod'"
+    - key: agd_output_dir
+      prompt: "AgnosticD output directory"
+      default: "~/Development/agnosticd-v2-output/${agd_guid}"
+      condition: "config.mode == 'prod'"
   output: config.yml
 
 setup:
@@ -88,6 +96,15 @@ setup:
         command: "ls java/amqp-client/target/*.jar"
         message: "Java clients built"
       optional: true
+    - name: Save deployment info
+      command: "./scripts/save-deployment-info.sh ${agd_guid}"
+      env_from_config:
+        AGD_GUID: agd_guid
+        AGD_OUTPUT_DIR: agd_output_dir
+      check:
+        command: "test -f deployment-info.yml"
+        message: "Deployment info already saved"
+      condition: "config.mode == 'prod'"
 
 validation:
   checks:

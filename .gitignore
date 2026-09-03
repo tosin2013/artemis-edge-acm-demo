@@ -39,6 +39,7 @@ nb-configuration.xml
 # Local environment
 .env
 config.yml
+deployment-info.yml
 
 # Plugin directory
 /.quarkus/cli/plugins/
@@ -57,3 +58,10 @@ PRD.md
 
 # Catalog from upstream (development artifact)
 .catalog-from-upstream/
+
+# Cursor IDE
+.cursor/
+
+# Repo Governor (local governance state)
+.repo-governor.json
+.repo-governor/
