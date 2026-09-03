@@ -1,3 +1,4 @@
+{{- if .Values.tls.enabled }}
 {{- range .Values.edgeBrokers }}
 ---
 apiVersion: v1
@@ -23,4 +24,5 @@ data:
 stringData:
   keyStorePassword: {{ $.Values.tls.keystorePassword | quote }}
   trustStorePassword: {{ $.Values.tls.truststorePassword | quote }}
+{{- end }}
 {{- end }}

@@ -71,11 +71,13 @@ addressSettings."messages.#".defaultPurgeOnNoConsumers=true
 
 {{/*
 Broker acceptor list (shared between hub and edge).
+When tls.enabled is false, only plain-text acceptors are created.
 */}}
 {{- define "artemis-edge.brokerAcceptors" -}}
 - name: core-acceptor
   protocols: core
   port: 61616
+{{- if .Values.tls.enabled }}
 - name: cores-acceptor
   protocols: core
   port: 61617
@@ -83,9 +85,11 @@ Broker acceptor list (shared between hub and edge).
   sslSecret: broker-tls-secret
   needClientAuth: false
   expose: true
+{{- end }}
 - name: amqp-acceptor
   protocols: amqp
   port: 5672
+{{- if .Values.tls.enabled }}
 - name: amqps-acceptor
   protocols: amqp
   port: 5671
@@ -93,9 +97,11 @@ Broker acceptor list (shared between hub and edge).
   sslSecret: broker-tls-secret
   needClientAuth: false
   expose: true
+{{- end }}
 - name: mqtt-acceptor
   protocols: mqtt
   port: 1833
+{{- if .Values.tls.enabled }}
 - name: mqtts-acceptor
   protocols: mqtt
   port: 8883
@@ -103,4 +109,5 @@ Broker acceptor list (shared between hub and edge).
   sslSecret: broker-tls-secret
   needClientAuth: false
   expose: true
+{{- end }}
 {{- end }}

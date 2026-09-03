@@ -60,10 +60,12 @@ stringData:
     securityRoles."messages.ALL.#".consumer.browse=true
     securityRoles."messages.ALL.#".consumer.consume=true
 
+    {{- if $.Values.tls.enabled }}
     # --- Acceptor SSL ---
     acceptorConfigurations.cores-acceptor.params.sslAutoReload=true
     acceptorConfigurations.amqps-acceptor.params.sslAutoReload=true
     acceptorConfigurations.mqtts-acceptor.params.sslAutoReload=true
+    {{- end }}
 
     # --- Address settings ---
     {{- include "artemis-edge.brokerAddressSettings" $ | nindent 4 }}
@@ -71,7 +73,11 @@ stringData:
     # --- AMQP federation connections to hubs ---
     {{- range $conn := $spoke.hubConnections }}
     AMQPConnections.{{ $conn.hub }}-connection.autostart={{ $conn.autoStart }}
+    {{- if $.Values.tls.enabled }}
     AMQPConnections.{{ $conn.hub }}-connection.uri=tcp://{{ $conn.hub }}-broker-amqps-acceptor-0-svc-rte-{{ $.Values.global.namespace }}.{{ $.Values.global.clusterDomain }}:443?sslEnabled=true&trustStorePath=/etc/broker-tls-secret-volume/client.ts&trustStorePassword={{ $.Values.tls.truststorePassword }}&trustStoreType=PKCS12&trustStoreProvider=SUN
+    {{- else }}
+    AMQPConnections.{{ $conn.hub }}-connection.uri=tcp://{{ $conn.hub }}-broker-amqp-acceptor-0-svc.{{ $.Values.global.namespace }}.svc.cluster.local:5672
+    {{- end }}
     AMQPConnections.{{ $conn.hub }}-connection.user={{ $.Values.edgeBrokerDefaults.adminUser }}
     AMQPConnections.{{ $conn.hub }}-connection.password={{ $.Values.edgeBrokerDefaults.adminPassword }}
     AMQPConnections.{{ $conn.hub }}-connection.retryInterval=5000

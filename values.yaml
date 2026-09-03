@@ -84,6 +84,7 @@ showroom:
   terminalImage: "quay.io/rhpds/openshift-showroom-terminal-ocp:latest"
 
 tls:
+  enabled: false
   hubKeystoreBase64: ""
   hubTruststoreBase64: ""
   spokeKeystoreBase64: ""

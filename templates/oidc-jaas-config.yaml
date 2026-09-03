@@ -39,9 +39,13 @@ stringData:
       "auth-server-url": "https://keycloak-ingress-{{ .Values.keycloak.namespace }}.{{ .Values.global.clusterDomain }}/",
       "principal-attribute": "preferred_username",
       "use-resource-role-mappings": true,
+      {{- if .Values.tls.enabled }}
       "ssl-required": "external",
       "truststore": "/etc/broker-tls-secret-volume/client.ts",
       "truststore-password": {{ .Values.tls.truststorePassword | quote }},
+      {{- else }}
+      "ssl-required": "none",
+      {{- end }}
       "confidential-port": 443,
       "credentials": {
         "secret": {{ .Values.keycloak.clientSecret | quote }}
@@ -54,9 +58,13 @@ stringData:
       "auth-server-url": "https://keycloak-ingress-{{ .Values.keycloak.namespace }}.{{ .Values.global.clusterDomain }}/",
       "principal-attribute": "preferred_username",
       "use-resource-role-mappings": true,
+      {{- if .Values.tls.enabled }}
       "ssl-required": "external",
       "truststore": "/etc/broker-tls-secret-volume/client.ts",
       "truststore-password": {{ .Values.tls.truststorePassword | quote }},
+      {{- else }}
+      "ssl-required": "none",
+      {{- end }}
       "confidential-port": 443
     }
   _keycloak-js-client.json: |

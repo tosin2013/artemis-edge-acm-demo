@@ -19,8 +19,15 @@ spec:
     passwordSecret:
       name: keycloak-db-secret
       key: password
+  {{- if .Values.tls.enabled }}
   http:
     tlsSecret: keycloak-tls-secret
+  {{- else }}
+  http:
+    httpEnabled: true
+  proxy:
+    headers: xforwarded
+  {{- end }}
   hostname:
     hostname: keycloak-ingress-{{ .Values.keycloak.namespace }}.{{ .Values.global.clusterDomain }}
 {{- end }}

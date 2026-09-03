@@ -13,9 +13,11 @@ stringData:
     globalMaxSize=1GiB
     clusterConfigurations.my-cluster.messageLoadBalancingType=OFF
 
+    {{- if $.Values.tls.enabled }}
     acceptorConfigurations.cores-acceptor.params.sslAutoReload=true
     acceptorConfigurations.amqps-acceptor.params.sslAutoReload=true
     acceptorConfigurations.mqtts-acceptor.params.sslAutoReload=true
+    {{- end }}
 
     {{- include "artemis-edge.brokerSecurityRoles" $ | nindent 4 }}
 
