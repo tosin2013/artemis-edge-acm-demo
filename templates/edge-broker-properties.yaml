@@ -74,7 +74,11 @@ stringData:
     {{- range $conn := $spoke.hubConnections }}
     AMQPConnections.{{ $conn.hub }}-connection.autostart={{ $conn.autoStart }}
     {{- if $.Values.tls.enabled }}
-    AMQPConnections.{{ $conn.hub }}-connection.uri=tcp://{{ $conn.hub }}-broker-amqps-acceptor-0-svc-rte-{{ $.Values.global.namespace }}.{{ $.Values.global.clusterDomain }}:443?sslEnabled=true&trustStorePath=/etc/broker-tls-secret-volume/client.ts&trustStorePassword={{ $.Values.tls.truststorePassword }}&trustStoreType=PKCS12&trustStoreProvider=SUN
+    {{- if $.Values.tls.certManager.enabled }}
+    AMQPConnections.{{ $conn.hub }}-connection.uri=tcp://{{ $conn.hub }}-broker-amqps-acceptor-0-svc-rte-{{ $.Values.global.namespace }}.{{ $.Values.global.clusterDomain }}:443?sslEnabled=true&trustStorePath=/etc/{{ $spoke.name }}-broker-tls-secret-volume/truststore.p12&trustStorePassword={{ $.Values.tls.keystorePassword }}&trustStoreType=PKCS12
+    {{- else }}
+    AMQPConnections.{{ $conn.hub }}-connection.uri=tcp://{{ $conn.hub }}-broker-amqps-acceptor-0-svc-rte-{{ $.Values.global.namespace }}.{{ $.Values.global.clusterDomain }}:443?sslEnabled=true&trustStorePath=/etc/{{ $spoke.name }}-broker-tls-secret-volume/client.ts&trustStorePassword={{ $.Values.tls.truststorePassword }}&trustStoreType=PKCS12&trustStoreProvider=SUN
+    {{- end }}
     {{- else }}
     AMQPConnections.{{ $conn.hub }}-connection.uri=tcp://{{ $conn.hub }}-broker-amqp-acceptor-0-svc.{{ $.Values.global.namespace }}.svc.cluster.local:5672
     {{- end }}

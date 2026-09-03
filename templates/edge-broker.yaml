@@ -31,7 +31,7 @@ spec:
         - "oidc-jaas-config"
         - "{{ .name }}-broker-bp"
   acceptors:
-    {{- include "artemis-edge.brokerAcceptors" $ | nindent 4 }}
+    {{- include "artemis-edge.brokerAcceptorsWithSecret" (dict "Values" $.Values "tlsSecretName" (printf "%s-broker-tls-secret" .name)) | nindent 4 }}
   console:
     expose: false
 {{- end }}

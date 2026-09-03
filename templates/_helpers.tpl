@@ -70,10 +70,11 @@ addressSettings."messages.#".defaultPurgeOnNoConsumers=true
 {{- end }}
 
 {{/*
-Broker acceptor list (shared between hub and edge).
+Broker acceptor list (parameterized by TLS secret name).
 When tls.enabled is false, only plain-text acceptors are created.
+Call with: include "artemis-edge.brokerAcceptorsWithSecret" (dict "Values" .Values "tlsSecretName" "broker-tls-secret")
 */}}
-{{- define "artemis-edge.brokerAcceptors" -}}
+{{- define "artemis-edge.brokerAcceptorsWithSecret" -}}
 - name: core-acceptor
   protocols: core
   port: 61616
@@ -82,7 +83,7 @@ When tls.enabled is false, only plain-text acceptors are created.
   protocols: core
   port: 61617
   sslEnabled: true
-  sslSecret: broker-tls-secret
+  sslSecret: {{ .tlsSecretName }}
   needClientAuth: false
   expose: true
 {{- end }}
@@ -94,7 +95,7 @@ When tls.enabled is false, only plain-text acceptors are created.
   protocols: amqp
   port: 5671
   sslEnabled: true
-  sslSecret: broker-tls-secret
+  sslSecret: {{ .tlsSecretName }}
   needClientAuth: false
   expose: true
 {{- end }}
@@ -106,8 +107,15 @@ When tls.enabled is false, only plain-text acceptors are created.
   protocols: mqtt
   port: 8883
   sslEnabled: true
-  sslSecret: broker-tls-secret
+  sslSecret: {{ .tlsSecretName }}
   needClientAuth: false
   expose: true
 {{- end }}
+{{- end }}
+
+{{/*
+Backward-compatible wrapper: hub brokers use the shared "broker-tls-secret".
+*/}}
+{{- define "artemis-edge.brokerAcceptors" -}}
+{{- include "artemis-edge.brokerAcceptorsWithSecret" (dict "Values" .Values "tlsSecretName" "broker-tls-secret") -}}
 {{- end }}

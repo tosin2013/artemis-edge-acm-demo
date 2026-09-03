@@ -41,8 +41,13 @@ stringData:
       "use-resource-role-mappings": true,
       {{- if .Values.tls.enabled }}
       "ssl-required": "external",
+      {{- if .Values.tls.certManager.enabled }}
+      "truststore": "/etc/broker-tls-secret-volume/truststore.p12",
+      "truststore-password": {{ .Values.tls.keystorePassword | quote }},
+      {{- else }}
       "truststore": "/etc/broker-tls-secret-volume/client.ts",
       "truststore-password": {{ .Values.tls.truststorePassword | quote }},
+      {{- end }}
       {{- else }}
       "ssl-required": "none",
       {{- end }}
@@ -60,8 +65,13 @@ stringData:
       "use-resource-role-mappings": true,
       {{- if .Values.tls.enabled }}
       "ssl-required": "external",
+      {{- if .Values.tls.certManager.enabled }}
+      "truststore": "/etc/broker-tls-secret-volume/truststore.p12",
+      "truststore-password": {{ .Values.tls.keystorePassword | quote }},
+      {{- else }}
       "truststore": "/etc/broker-tls-secret-volume/client.ts",
       "truststore-password": {{ .Values.tls.truststorePassword | quote }},
+      {{- end }}
       {{- else }}
       "ssl-required": "none",
       {{- end }}

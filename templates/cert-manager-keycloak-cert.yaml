@@ -1,0 +1,29 @@
+{{- if and .Values.tls.enabled .Values.tls.certManager.enabled .Values.keycloak.enabled }}
+{{- $issuerName := .Values.tls.certManager.issuerRef | default "artemis-ca-issuer" }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: keycloak-tls-cert
+  namespace: {{ .Values.keycloak.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  secretName: keycloak-tls-secret
+  duration: 8760h
+  renewBefore: 720h
+  commonName: keycloak-ingress-{{ .Values.keycloak.namespace }}.{{ .Values.global.clusterDomain }}
+  privateKey:
+    algorithm: RSA
+    size: 2048
+  dnsNames:
+    - "keycloak-ingress-{{ .Values.keycloak.namespace }}.{{ .Values.global.clusterDomain }}"
+    - "keycloak-service.{{ .Values.keycloak.namespace }}.svc"
+    - "keycloak-service.{{ .Values.keycloak.namespace }}.svc.cluster.local"
+  issuerRef:
+    name: {{ $issuerName }}
+    kind: Issuer
+    group: cert-manager.io
+{{- end }}

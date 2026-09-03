@@ -1,4 +1,4 @@
-{{- if .Values.tls.enabled }}
+{{- if and .Values.tls.enabled (not .Values.tls.certManager.enabled) }}
 {{- range .Values.edgeBrokers }}
 ---
 apiVersion: v1

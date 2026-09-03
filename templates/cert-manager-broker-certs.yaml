@@ -1,0 +1,99 @@
+{{- if and .Values.tls.enabled .Values.tls.certManager.enabled }}
+{{- $issuerName := .Values.tls.certManager.issuerRef | default "artemis-ca-issuer" }}
+{{- range .Values.hubBrokers }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .name }}-broker-cert
+  namespace: {{ $.Values.global.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  labels:
+    {{- include "artemis-edge.labels" $ | nindent 4 }}
+spec:
+  secretName: broker-tls-secret
+  duration: 8760h
+  renewBefore: 720h
+  commonName: {{ .name }}-broker
+  privateKey:
+    algorithm: RSA
+    size: 2048
+  keystores:
+    pkcs12:
+      create: true
+      passwordSecretRef:
+        name: broker-tls-keystore-password
+        key: password
+  dnsNames:
+    - "{{ .name }}-broker-hdls-svc.{{ $.Values.global.namespace }}.svc.cluster.local"
+    - "{{ .name }}-broker-cores-acceptor-0-svc.{{ $.Values.global.namespace }}.svc.cluster.local"
+    - "{{ .name }}-broker-amqp-acceptor-0-svc.{{ $.Values.global.namespace }}.svc.cluster.local"
+    - "{{ .name }}-broker-amqps-acceptor-0-svc.{{ $.Values.global.namespace }}.svc.cluster.local"
+    - "{{ .name }}-broker-mqtt-acceptor-0-svc.{{ $.Values.global.namespace }}.svc.cluster.local"
+    {{- if $.Values.global.clusterDomain }}
+    - "{{ .name }}-broker-cores-acceptor-0-svc-rte-{{ $.Values.global.namespace }}.{{ $.Values.global.clusterDomain }}"
+    - "{{ .name }}-broker-amqps-acceptor-0-svc-rte-{{ $.Values.global.namespace }}.{{ $.Values.global.clusterDomain }}"
+    - "{{ .name }}-broker-mqtts-acceptor-0-svc-rte-{{ $.Values.global.namespace }}.{{ $.Values.global.clusterDomain }}"
+    {{- end }}
+  issuerRef:
+    name: {{ $issuerName }}
+    kind: Issuer
+    group: cert-manager.io
+{{- end }}
+{{- range .Values.edgeBrokers }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .name }}-broker-cert
+  namespace: {{ $.Values.global.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  labels:
+    {{- include "artemis-edge.labels" $ | nindent 4 }}
+    edge-region: {{ .region }}
+spec:
+  secretName: {{ .name }}-broker-tls-secret
+  duration: 8760h
+  renewBefore: 720h
+  commonName: {{ .name }}-broker
+  privateKey:
+    algorithm: RSA
+    size: 2048
+  keystores:
+    pkcs12:
+      create: true
+      passwordSecretRef:
+        name: broker-tls-keystore-password
+        key: password
+  dnsNames:
+    - "{{ .name }}-broker-hdls-svc.{{ $.Values.global.namespace }}.svc.cluster.local"
+    - "{{ .name }}-broker-cores-acceptor-0-svc.{{ $.Values.global.namespace }}.svc.cluster.local"
+    - "{{ .name }}-broker-amqp-acceptor-0-svc.{{ $.Values.global.namespace }}.svc.cluster.local"
+    - "{{ .name }}-broker-amqps-acceptor-0-svc.{{ $.Values.global.namespace }}.svc.cluster.local"
+    - "{{ .name }}-broker-mqtt-acceptor-0-svc.{{ $.Values.global.namespace }}.svc.cluster.local"
+    {{- if $.Values.global.clusterDomain }}
+    - "{{ .name }}-broker-cores-acceptor-0-svc-rte-{{ $.Values.global.namespace }}.{{ $.Values.global.clusterDomain }}"
+    - "{{ .name }}-broker-amqps-acceptor-0-svc-rte-{{ $.Values.global.namespace }}.{{ $.Values.global.clusterDomain }}"
+    - "{{ .name }}-broker-mqtts-acceptor-0-svc-rte-{{ $.Values.global.namespace }}.{{ $.Values.global.clusterDomain }}"
+    {{- end }}
+  issuerRef:
+    name: {{ $issuerName }}
+    kind: Issuer
+    group: cert-manager.io
+{{- end }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: broker-tls-keystore-password
+  namespace: {{ .Values.global.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+type: Opaque
+stringData:
+  password: {{ .Values.tls.keystorePassword | quote }}
+{{- end }}

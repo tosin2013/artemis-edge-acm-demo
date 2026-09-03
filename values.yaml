@@ -86,6 +86,9 @@ showroom:
 
 tls:
   enabled: false
+  certManager:
+    enabled: true
+    issuerRef: ""
   hubKeystoreBase64: ""
   hubTruststoreBase64: ""
   spokeKeystoreBase64: ""
