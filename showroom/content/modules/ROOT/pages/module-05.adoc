@@ -10,6 +10,10 @@
 
 === 1. Start a Consumer on the Hub
 
+IMPORTANT: Start the consumer *before* producing messages. Topic (multicast) subscriptions only receive messages sent after the subscription is created.
+
+Open a terminal and run:
+
 [source,bash]
 ----
 oc -n artemis run consumer -ti \
@@ -24,8 +28,10 @@ Inside the container:
 /opt/amq/bin/artemis consumer \
   --url=amqp://hub-01-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672 \
   --protocol=AMQP --user={consumer_user} --password={consumer_password} \
-  --destination=topic://messages.NY.test --verbose
+  --destination=topic://messages.NY.test --message-count=5 --receive-timeout=60000 --verbose
 ----
+
+Leave this consumer running and open a *second terminal* for the next step.
 
 === 2. Produce from Edge (NY Region)
 
@@ -55,14 +61,17 @@ Messages sent to `messages.ALL.*` are federated to all brokers:
 
 === 4. Try MQTT from Edge
 
-On a spoke cluster, use the MQTT protocol:
+NOTE: The `artemis` CLI does not support `--protocol=MQTT`. Use the AMQP protocol to send a message that lands on the MQTT address, or use an external MQTT client like `mosquitto_pub`.
+
+Using AMQP to produce to the CT region address:
 
 [source,bash]
 ----
-# MQTT publishes to port 1833
 /opt/amq/bin/artemis producer \
-  --url=tcp://spoke-03-broker-mqtt-acceptor-0-svc.artemis.svc.cluster.local:1833 \
-  --protocol=MQTT --user={producer_user} --password={producer_password} \
-  --message-count=5 --message='MQTT from CT' \
-  --destination=topic://messages.CT.mqtt --verbose
+  --url=amqp://spoke-03-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672 \
+  --protocol=AMQP --user={producer_user} --password={producer_password} \
+  --message-count=5 --message='message from CT' \
+  --destination=topic://messages.CT.test --verbose
 ----
+
+TIP: To test native MQTT, deploy a pod with `mosquitto-clients` and use `mosquitto_pub -h spoke-03-broker-mqtt-acceptor-0-svc.artemis.svc.cluster.local -p 1833 -t messages/CT/mqtt -m "MQTT from CT" -u {producer_user} -P {producer_password}`.

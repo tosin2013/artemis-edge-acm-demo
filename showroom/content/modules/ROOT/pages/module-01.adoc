@@ -21,7 +21,7 @@ The `status.phase` should be `Running`.
 
 [source,bash]
 ----
-oc get applications -n openshift-gitops
+oc get application.argoproj.io -n openshift-gitops
 ----
 
 All applications should show `Synced` and `Healthy`.
@@ -43,4 +43,9 @@ Confirm `amq-broker-rhel8` and `keycloak-operator` subscriptions exist with `Cur
 oc get managedclusters
 ----
 
+ifndef::mode_multi_hub[]
+NOTE: In Mode 1 (single-hub), you will only see `local-cluster`. Edge SNO clusters are provisioned in Module 2 for multi-cluster deployments.
+endif::[]
+ifdef::mode_multi_hub[]
 You should see 3 SNO edge clusters (or 6 in Mode 2) with `ManagedClusterConditionAvailable=True`.
+endif::[]

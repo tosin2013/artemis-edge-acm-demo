@@ -19,7 +19,12 @@ The pod `hub-01-broker-ss-0` should be `Running` and `1/1 Ready`.
 
 === 2. Check Edge Broker Pods
 
+ifndef::mode_multi_hub[]
+NOTE: In Mode 1 (single-hub), all broker pods run on the hub cluster. Verify all pods with a single command:
+endif::[]
+ifdef::mode_multi_hub[]
 For each edge SNO, log in and verify:
+endif::[]
 
 [source,bash]
 ----

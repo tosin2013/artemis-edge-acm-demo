@@ -12,11 +12,11 @@
 
 Navigate to: {grafana_url}
 
-The dashboard uses anonymous admin access (no login required).
+NOTE: MCO Grafana requires OpenShift authentication. Log in with your OpenShift credentials (the same ones from Module 0).
 
 === 2. Dashboard Panels
 
-The *AMQ Broker* dashboard (uid: `amq_broker`) has 7 panels:
+The *AMQ Broker* dashboard (uid: `artemis_amq_broker_acm`) has 7 panels:
 
 [cols="1,2"]
 |===
