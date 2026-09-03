@@ -7,7 +7,6 @@ on:
       - 'Chart.yaml'
       - 'values.yaml'
       - 'templates/**'
-      - 'charts/**'
       - '.github/workflows/helm-validate.yaml'
   pull_request:
     branches: [main]
@@ -15,7 +14,6 @@ on:
       - 'Chart.yaml'
       - 'values.yaml'
       - 'templates/**'
-      - 'charts/**'
 
 jobs:
   lint-and-template:
@@ -29,30 +27,11 @@ jobs:
         with:
           version: 'latest'
 
-      - name: Lint root chart (App-of-Apps parent)
+      - name: Helm lint
         run: helm lint .
 
-      - name: Lint operators subchart
-        run: helm lint charts/operators
-
-      - name: Lint workloads subchart
-        run: helm lint charts/workloads
-
-      - name: Template root chart
+      - name: Helm template (smoke test)
         run: |
           helm template test . \
-            --set gitops.repoURL=https://github.com/tosin2013/artemis-edge-acm-demo.git \
-            --set gitops.revision=main \
-            --set global.clusterDomain=ci-test.example.com \
-            --set global.clusterApiUrl=https://api.ci-test.example.com:6443
-
-      - name: Template operators subchart
-        run: |
-          helm template test charts/operators \
-            --set global.namespace=artemis
-
-      - name: Template workloads subchart
-        run: |
-          helm template test charts/workloads \
             --set global.clusterDomain=ci-test.example.com \
             --set global.clusterApiUrl=https://api.ci-test.example.com:6443

@@ -1,6 +1,0 @@
-apiVersion: v2
-name: artemis-operators
-description: Operator Subscriptions and namespaces for Artemis Edge
-type: application
-version: 0.1.0
-appVersion: "1.0.0"

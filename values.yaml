@@ -1,7 +1,3 @@
-gitops:
-  repoURL: ""
-  revision: "main"
-
 global:
   mode: "single-hub"
   clusterDomain: ""

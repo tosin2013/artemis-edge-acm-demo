@@ -1,6 +1,0 @@
-apiVersion: v2
-name: artemis-workloads
-description: AMQ Broker CRs, Keycloak, monitoring, and supporting resources for Artemis Edge
-type: application
-version: 0.1.0
-appVersion: "1.0.0"
