@@ -4,6 +4,8 @@ kind: KeycloakRealmImport
 metadata:
   name: artemis-keycloak
   namespace: {{ .Values.keycloak.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
   labels:
     {{- include "artemis-edge.labels" . | nindent 4 }}
 spec:
@@ -32,6 +34,7 @@ spec:
       - clientId: artemis-broker
         enabled: true
         clientAuthenticatorType: client-secret
+        secret: {{ .Values.keycloak.clientSecret | quote }}
         directAccessGrantsEnabled: true
         serviceAccountsEnabled: true
         publicClient: false

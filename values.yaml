@@ -67,7 +67,7 @@ keycloak:
     username: admin
     password: admin
     database: keycloak
-  clientSecret: ""
+  clientSecret: "artemis-broker-secret"
 
 monitoring:
   enabled: true
