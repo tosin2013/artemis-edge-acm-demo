@@ -72,7 +72,7 @@ keycloak:
 monitoring:
   enabled: true
   acmObservability:
-    enabled: true
+    enabled: false
 
 globalHub:
   enabled: false
