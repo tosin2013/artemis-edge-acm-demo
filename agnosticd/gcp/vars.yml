@@ -1,0 +1,196 @@
+---
+# ===================================================================
+# Artemis Edge ACM Demo — GCP Deployment Variables
+# ===================================================================
+#
+# Usage:
+#   cd ~/Development/agnosticd-v2
+#   agd provision --guid <GUID> --config artemis-edge-gcp --account <ACCOUNT>
+#
+# Or using the wrapper script:
+#   ./scripts/deploy.sh --guid <GUID> --account <ACCOUNT>
+#
+# ===================================================================
+
+# ===================================================================
+# Mandatory Variables
+# ===================================================================
+tag: main
+cloud_provider: gcp
+cloud_provider_repo: https://github.com/tosin2013/cloud_provider_gcp.git
+config: openshift-cluster
+
+# ===================================================================
+# Additional Collections & roles to be installed for this config
+# ===================================================================
+requirements_content:
+  collections:
+    - name: https://github.com/rhpds/core_workloads.git
+      type: git
+      version: "{{ tag }}"
+    - name: https://github.com/tosin2013/cloud_provider_gcp.git
+      type: git
+      version: main
+    - name: google.cloud
+      version: ">=1.0.0"
+
+# ===================================================================
+# GCP Specific settings
+# ===================================================================
+gcp_region: us-east1
+
+cloud_tags:
+  - owner: tosin2013@redhat.com
+  - Purpose: development
+  - config: openshift-cluster
+  - guid: "{{ guid }}"
+
+# ===================================================================
+# OpenShift cluster specific settings
+# ===================================================================
+
+host_ssh_authorized_keys:
+  - key: https://github.com/tosin2013.keys
+
+# -------------------------------------------------------------------
+# Bastion
+# -------------------------------------------------------------------
+install_bastion: true
+bastion_setup_student_user: true
+bastion_student_user_name: lab-user
+bastion_instance_type: n2-standard-4
+bastion_rootfs_size: 50
+
+# -------------------------------------------------------------------
+# Bastion VM repositories
+# GCP RHEL cloud images have repos pre-configured via RHUI
+# -------------------------------------------------------------------
+install_satellite_repositories: false
+install_rhn_repositories: false
+
+# -------------------------------------------------------------------
+# OpenShift
+# -------------------------------------------------------------------
+cluster_name: hub
+cluster_dns_zone: "{{ base_domain }}"
+
+host_ocp4_installer_root_url: https://mirror.openshift.com/pub/openshift-v4/clients
+host_ocp4_installer_version: "4.22"
+host_ocp4_installer_set_user_data_kubeadmin_password: true
+
+openshift_cluster_admin_service_account_enable: true
+
+# GCP machine types for OpenShift nodes
+control_plane_instance_type: n2-standard-16
+control_plane_instance_count: 3
+control_plane_storage_type: pd-ssd
+control_plane_storage_size: 250
+
+worker_instance_type: n2-standard-16
+worker_instance_count: 3
+worker_storage_type: pd-ssd
+worker_storage_size: 250
+
+# Instances to provision (bastion)
+instances:
+  - name: "bastion-{{ guid }}"
+    instance_type: "{{ bastion_instance_type }}"
+    image_project: rhel-cloud
+    image_family: rhel-9
+    rootfs_size: "{{ bastion_rootfs_size }}"
+    public_ip: true
+    ansible_group: bastions
+    tags:
+      - "{{ project_tag }}"
+      - bastion
+
+# ===================================================================
+# Workloads — executed in order after cluster is up
+# ===================================================================
+workloads:
+  # cert-manager: deployed by core; LE cert issued via fix-cert-manager-zone.sh
+  # Commented out to avoid upstream template overwriting corrected zone on re-runs.
+  # - agnosticd.core_workloads.ocp4_workload_cert_manager
+  - agnosticd.core_workloads.ocp4_workload_authentication_htpasswd
+  - ocp4_workload_rhacm
+  - ocp4_workload_rhacm_observability
+  - agnosticd.core_workloads.ocp4_workload_openshift_gitops
+  - agnosticd.core_workloads.ocp4_workload_field_content
+  - ocp4_workload_artemis_edge
+  - agnosticd.core_workloads.ocp4_workload_showroom
+
+remove_workloads:
+  - ocp4_workload_artemis_edge
+
+# ===================================================================
+# Workload Variables
+# ===================================================================
+
+# --- cert-manager ---
+ocp4_workload_cert_manager_channel: stable-v1
+ocp4_workload_cert_manager_use_catalog_snapshot: false
+ocp4_workload_cert_manager_install_ingress_certificates: true
+ocp4_workload_cert_manager_install_api_certificates: false
+# Upstream template hardcodes dns-zone-{{ guid }}, but Open Environment
+# zones use the sandbox ID. Override via gcp_dns_zone_name.
+ocp4_workload_cert_manager_gcp_dns_zone_name: "dns-zone-{{ base_domain.split('.')[0] }}"
+
+# --- authentication ---
+ocp4_workload_authentication_htpasswd_user_count: 2
+ocp4_workload_authentication_htpasswd_user_password_randomized: true
+ocp4_workload_authentication_htpasswd_admin_user: admin
+
+# --- RHACM ---
+ocp4_workload_rhacm_channel: release-2.17
+ocp4_workload_rhacm_catalog_source: redhat-operators
+
+# --- RHACM Observability (MCO with GCS backend) ---
+ocp4_workload_rhacm_observability_cloud_provider: gcp
+ocp4_workload_rhacm_observability_gcp_project: "{{ gcp_project_id }}"
+ocp4_workload_rhacm_observability_gcp_sa_email: "{{ gcp_service_account }}"
+ocp4_workload_rhacm_observability_gcp_credentials_file: "{{ gcp_credentials_file }}"
+ocp4_workload_rhacm_observability_gcp_region: "{{ gcp_region }}"
+ocp4_workload_rhacm_observability_gcp_storage_class: standard-csi
+
+# --- OpenShift GitOps (ArgoCD) ---
+ocp4_workload_openshift_gitops_channel: latest
+
+# --- Field-Sourced Content (deploys Artemis Edge Helm chart via ArgoCD) ---
+ocp4_workload_field_content_gitops_repo_url: "https://github.com/tosin2013/artemis-edge-acm-demo.git"
+ocp4_workload_field_content_gitops_repo_revision: main
+ocp4_workload_field_content_gitops_repo_path: "."
+ocp4_workload_field_content_namespace: openshift-gitops
+ocp4_workload_field_content_helm_values:
+  global:
+    mode: "single-hub"
+    clusterDomain: "{{ openshift_cluster_ingress_domain }}"
+    clusterApiUrl: "{{ openshift_api_url }}"
+    namespace: "artemis"
+  keycloak:
+    enabled: true
+  monitoring:
+    enabled: true
+    acmObservability:
+      enabled: true
+  showroom:
+    enabled: false
+    terminalRbac:
+      - namespace: showroom
+        serviceAccount: showroom
+  tls:
+    hubKeystoreBase64: ""
+    hubTruststoreBase64: ""
+    spokeKeystoreBase64: ""
+    spokeTruststoreBase64: ""
+
+# --- Artemis Edge workload role ---
+ocp4_workload_artemis_edge_mode: single-hub
+ocp4_workload_artemis_edge_spoke_count: 3
+ocp4_workload_artemis_edge_deploy_ztp: true
+ocp4_workload_artemis_edge_showroom_enabled: true
+
+# --- Showroom ---
+ocp4_workload_showroom_content_git_repo: "https://github.com/tosin2013/artemis-edge-acm-demo.git"
+ocp4_workload_showroom_content_git_repo_ref: main
+ocp4_workload_showroom_content_antora_playbook: showroom/site.yml
+ocp4_workload_showroom_content_title: "Artemis Edge ACM Demo"
