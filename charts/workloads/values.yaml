@@ -1,17 +1,8 @@
-gitops:
-  repoURL: ""
-  revision: "main"
-
 global:
   mode: "single-hub"
   clusterDomain: ""
   clusterApiUrl: ""
   namespace: "artemis"
-
-amqBrokerOperator:
-  enabled: true
-  channel: "7.12.x"
-  source: "redhat-operators"
 
 hubBrokers:
   - name: hub-01

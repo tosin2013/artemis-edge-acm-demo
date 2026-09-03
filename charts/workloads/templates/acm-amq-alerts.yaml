@@ -1,0 +1,38 @@
+{{- if and .Values.monitoring.enabled (index .Values.monitoring "acmObservability" | default dict).enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: thanos-ruler-custom-rules
+  namespace: open-cluster-management-observability
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+data:
+  custom_rules.yaml: |
+    groups:
+      - name: artemis-broker-health
+        rules:
+        - alert: ArtemisBrokerDown
+          annotations:
+            summary: "AMQ Broker has no connections on cluster {{ "{{" }} $labels.cluster {{ "}}" }}"
+            description: "Broker {{ "{{" }} $labels.broker {{ "}}" }} on cluster {{ "{{" }} $labels.cluster {{ "}}" }} has zero connections for over 5 minutes."
+          expr: artemis_connection_count == 0
+          for: 5m
+          labels:
+            severity: warning
+        - alert: ArtemisHighUnroutedMessages
+          annotations:
+            summary: "High unrouted messages on cluster {{ "{{" }} $labels.cluster {{ "}}" }}"
+            description: "Address {{ "{{" }} $labels.address {{ "}}" }} on broker {{ "{{" }} $labels.broker {{ "}}" }} (cluster {{ "{{" }} $labels.cluster {{ "}}" }}) has over 100 unrouted messages."
+          expr: artemis_unrouted_message_count > 100
+          for: 2m
+          labels:
+            severity: critical
+        - alert: ArtemisHighMemoryUsage
+          annotations:
+            summary: "AMQ Broker address memory high on cluster {{ "{{" }} $labels.cluster {{ "}}" }}"
+            description: "Broker {{ "{{" }} $labels.broker {{ "}}" }} on cluster {{ "{{" }} $labels.cluster {{ "}}" }} address memory usage exceeds 500MB."
+          expr: artemis_address_memory_usage > 500000000
+          for: 5m
+          labels:
+            severity: warning
+{{- end }}

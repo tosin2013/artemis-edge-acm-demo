@@ -13,8 +13,8 @@ data:
   {{- if .Values.keycloak.enabled }}
   keycloak_url: "https://keycloak-ingress-{{ .Values.keycloak.namespace }}.{{ .Values.global.clusterDomain }}"
   {{- end }}
-  {{- if and .Values.monitoring.enabled .Values.monitoring.grafana.enabled }}
-  grafana_url: "https://grafana-service-{{ .Values.monitoring.namespace }}.{{ .Values.global.clusterDomain }}"
+  {{- if and .Values.monitoring.enabled (index .Values.monitoring "acmObservability" | default dict).enabled }}
+  grafana_url: "https://grafana-open-cluster-management-observability.{{ .Values.global.clusterDomain }}"
   {{- end }}
   producer_user: "alice"
   producer_password: "bosco"

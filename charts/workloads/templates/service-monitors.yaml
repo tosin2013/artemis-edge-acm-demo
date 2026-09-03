@@ -12,7 +12,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: {{ . }}-broker-auth
-  namespace: {{ $.Values.monitoring.namespace }}
+  namespace: {{ $.Values.global.namespace }}
   labels:
     {{- include "artemis-edge.labels" $ | nindent 4 }}
 type: Opaque
@@ -24,7 +24,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: {{ . }}-broker-service-monitor
-  namespace: {{ $.Values.monitoring.namespace }}
+  namespace: {{ $.Values.global.namespace }}
   labels:
     {{- include "artemis-edge.labels" $ | nindent 4 }}
     ActiveMQArtemis: {{ . }}-broker

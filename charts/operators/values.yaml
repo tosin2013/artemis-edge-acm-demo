@@ -1,0 +1,14 @@
+global:
+  namespace: "artemis"
+
+amqBrokerOperator:
+  enabled: true
+  channel: "7.12.x"
+  source: "redhat-operators"
+
+keycloak:
+  enabled: true
+  namespace: "keycloak"
+
+monitoring:
+  enabled: true

@@ -17,14 +17,3 @@ metadata:
   labels:
     {{- include "artemis-edge.labels" . | nindent 4 }}
 {{- end }}
----
-{{- if .Values.monitoring.enabled }}
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: {{ .Values.monitoring.namespace }}
-  annotations:
-    argocd.argoproj.io/sync-wave: "0"
-  labels:
-    {{- include "artemis-edge.labels" . | nindent 4 }}
-{{- end }}
