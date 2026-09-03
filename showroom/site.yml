@@ -5,8 +5,8 @@ site:
   start_page: artemis-edge-acm::index.adoc
 content:
   sources:
-    - url: ./
-      start_path: content
+    - url: ../
+      start_path: showroom/content
 ui:
   bundle:
     url: https://github.com/rhpds/showroom-ui/releases/latest/download/ui-bundle.zip
