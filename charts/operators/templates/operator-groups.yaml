@@ -1,0 +1,27 @@
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: {{ .Values.global.namespace }}-og
+  namespace: {{ .Values.global.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  targetNamespaces:
+    - {{ .Values.global.namespace }}
+---
+{{- if .Values.keycloak.enabled }}
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: {{ .Values.keycloak.namespace }}-og
+  namespace: {{ .Values.keycloak.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  targetNamespaces:
+    - {{ .Values.keycloak.namespace }}
+{{- end }}
