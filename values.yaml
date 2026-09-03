@@ -82,6 +82,7 @@ showroom:
   contentRepoUrl: ""
   contentRepoRef: "main"
   terminalImage: "quay.io/rhpds/openshift-showroom-terminal-ocp:latest"
+  terminalRbac: []
 
 tls:
   enabled: false
