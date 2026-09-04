@@ -62,6 +62,5 @@ PRD.md
 # Cursor IDE
 .cursor/
 
-# Repo Governor (local governance state)
-.repo-governor.json
-.repo-governor/
+# Repo Governor proposed files (local, not committed)
+.repo-governor.proposed.json

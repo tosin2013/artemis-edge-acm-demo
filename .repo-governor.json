@@ -1,0 +1,36 @@
+{
+  "repo_governor": { "version": 1 },
+  "repository": { "id": "tosin2013/artemis-edge-acm-demo" },
+  "condition": { "assessed": "L1", "profile": "GOVERNOR_LITE" },
+  "providers": {
+    "repository": {
+      "type": "git",
+      "adapter": "adapters/git"
+    },
+    "roadmap_authority": {
+      "type": "github-projects",
+      "adapter": "adapters/github-projects",
+      "env": {
+        "REPO_GOVERNOR_GH_REPO": "tosin2013/artemis-edge-acm-demo",
+        "REPO_GOVERNOR_GH_ADMISSION": "label",
+        "REPO_GOVERNOR_GH_ADMISSION_LABEL": "ready",
+        "REPO_GOVERNOR_GH_AUTHORIZE_LABEL": "authorized"
+      },
+      "admission": {
+        "signal": "label",
+        "admission_label": "ready",
+        "authorize_label": "authorized"
+      }
+    },
+    "acceptance_criteria": {
+      "type": "acceptance-file",
+      "adapter": "adapters/acceptance-file",
+      "path": ".repo-governor/acceptance"
+    }
+  },
+  "permissions": {
+    "roadmap_authority": { "read": true, "write": false },
+    "repository": { "read": true, "write": false },
+    "acceptance_criteria": { "read": true, "write": true }
+  }
+}
