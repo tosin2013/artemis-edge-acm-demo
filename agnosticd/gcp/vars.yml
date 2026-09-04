@@ -89,6 +89,7 @@ install_rhn_repositories: false
 # -------------------------------------------------------------------
 cluster_name: hub
 cluster_dns_zone: "{{ base_domain }}"
+ocp4_base_domain: "{{ base_domain }}"
 
 host_ocp4_installer_root_url: https://mirror.openshift.com/pub/openshift-v4/clients
 host_ocp4_installer_version: "4.22"
