@@ -25,12 +25,14 @@ OUTPUT_DIR="${HOME}/Development/agnosticd-v2-output"
 
 : "${AGD_GUID:=artgcp}"
 : "${AGD_ACCOUNT:=openenv-gcp}"
+: "${AGD_TAGS:=}"
 
-# Parse --guid and --account from CLI args
+# Parse CLI args
 while [[ $# -gt 0 ]]; do
   case $1 in
     --guid) AGD_GUID="$2"; shift 2 ;;
     --account) AGD_ACCOUNT="$2"; shift 2 ;;
+    --tags) AGD_TAGS="$2"; shift 2 ;;
     *) echo "Unknown argument: $1" >&2; exit 1 ;;
   esac
 done
@@ -46,6 +48,9 @@ echo "Vars:        ${VARS_FILE}"
 echo "Secrets:     ${SECRETS_FILE}"
 echo "GCP Key:     ${GCP_KEY_FILE:-NOT FOUND}"
 echo "Output:      ${GUID_OUTPUT_DIR}"
+if [[ -n "${AGD_TAGS}" ]]; then
+  echo "Tags:        ${AGD_TAGS}"
+fi
 echo ""
 
 # Validate prerequisites
@@ -100,7 +105,8 @@ if [[ "${USE_NAVIGATOR}" == "true" ]]; then
     -e @"${VARS_FILE}" \
     -e @"${SECRETS_FILE}" \
     -e "gcp_credentials_file=${GCP_KEY_FILE}" \
-    -e "output_dir=${GUID_OUTPUT_DIR}"
+    -e "output_dir=${GUID_OUTPUT_DIR}" \
+    ${AGD_TAGS:+--tags "${AGD_TAGS}"}
 else
   echo "Using ansible-playbook directly..."
   ansible-playbook ansible/main.yml \
@@ -108,7 +114,8 @@ else
     -e @"${VARS_FILE}" \
     -e @"${SECRETS_FILE}" \
     -e "gcp_credentials_file=${GCP_KEY_FILE}" \
-    -e "output_dir=${GUID_OUTPUT_DIR}"
+    -e "output_dir=${GUID_OUTPUT_DIR}" \
+    ${AGD_TAGS:+--tags "${AGD_TAGS}"}
 fi
 
 echo ""
