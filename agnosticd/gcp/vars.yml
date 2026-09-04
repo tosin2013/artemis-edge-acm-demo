@@ -24,6 +24,10 @@ env_type: ocp4-cluster
 # expect gcp_credentials as the parsed JSON, not just the file path.
 gcp_credentials: "{{ lookup('file', gcp_credentials_file) | from_json }}"
 
+# GCP auth type and account for SDK authorization (infra-gcp-install-sdk)
+gcp_auth_type: serviceaccount
+gcp_account: "{{ gcp_service_account }}"
+
 # Skip Open Environment project creation and credentials-file roles.
 # For developer-driven deployment against an already-provisioned Open Environment,
 # the project, service account, and key file already exist on disk.
