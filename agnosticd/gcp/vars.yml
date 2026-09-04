@@ -76,8 +76,10 @@ bastion_rootfs_size: 50
 
 # -------------------------------------------------------------------
 # Bastion VM repositories
-# GCP RHEL cloud images have repos pre-configured via RHUI
+# GCP RHEL cloud images have repos pre-configured via RHUI.
+# No Satellite or RHN registration needed.
 # -------------------------------------------------------------------
+repo_method: none
 install_satellite_repositories: false
 install_rhn_repositories: false
 
