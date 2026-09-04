@@ -24,6 +24,11 @@ env_type: ocp4-cluster
 # expect gcp_credentials as the parsed JSON, not just the file path.
 gcp_credentials: "{{ lookup('file', gcp_credentials_file) | from_json }}"
 
+# Skip Open Environment project creation and credentials-file roles.
+# For developer-driven deployment against an already-provisioned Open Environment,
+# the project, service account, and key file already exist on disk.
+gcp_create_open_env_project: false
+
 # ===================================================================
 # Additional Collections & roles to be installed for this config
 # ===================================================================
