@@ -19,6 +19,11 @@ tag: main
 cloud_provider: gcp
 env_type: ocp4-cluster
 
+# Load GCP service account JSON content from key file at runtime.
+# AgnosticD roles (open-env-gcp-add-user-to-project, infra-gcp-credentials-file)
+# expect gcp_credentials as the parsed JSON, not just the file path.
+gcp_credentials: "{{ lookup('file', gcp_credentials_file) | from_json }}"
+
 # ===================================================================
 # Additional Collections & roles to be installed for this config
 # ===================================================================
