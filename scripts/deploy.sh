@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 #
-# Deploy Artemis Edge ACM Demo on GCP via AgnosticD v2
+# Deploy / Destroy Artemis Edge ACM Demo on GCP via AgnosticD v2
 #
 # Uses ansible-playbook directly against the AgnosticD main.yml entrypoint.
+# Supports provisioning (default) and destroy actions.
 #
 # Prerequisites:
 #   - ansible-playbook installed (ansible-core)
@@ -13,6 +14,8 @@ set -euo pipefail
 #
 # Usage:
 #   ./scripts/deploy.sh --guid 725j2 --account openenv-gcp
+#   ./scripts/deploy.sh --destroy --guid artgcp --account openenv-gcp
+#   ./scripts/deploy.sh --action stop --guid artgcp --account openenv-gcp
 #   ./scripts/deploy.sh  # uses defaults from AGD_GUID / AGD_ACCOUNT env vars
 #
 
@@ -26,6 +29,7 @@ OUTPUT_DIR="${HOME}/Development/agnosticd-v2-output"
 : "${AGD_GUID:=artgcp}"
 : "${AGD_ACCOUNT:=openenv-gcp}"
 : "${AGD_TAGS:=}"
+: "${AGD_ACTION:=provision}"
 
 # Parse CLI args
 while [[ $# -gt 0 ]]; do
@@ -33,15 +37,44 @@ while [[ $# -gt 0 ]]; do
     --guid) AGD_GUID="$2"; shift 2 ;;
     --account) AGD_ACCOUNT="$2"; shift 2 ;;
     --tags) AGD_TAGS="$2"; shift 2 ;;
-    *) echo "Unknown argument: $1" >&2; exit 1 ;;
+    --action) AGD_ACTION="$2"; shift 2 ;;
+    --destroy) AGD_ACTION="destroy"; shift ;;
+    --stop) AGD_ACTION="stop"; shift ;;
+    --status) AGD_ACTION="status"; shift ;;
+    -h|--help)
+      echo "Usage: $0 [OPTIONS]"
+      echo ""
+      echo "Options:"
+      echo "  --guid GUID        Deployment GUID (default: artgcp)"
+      echo "  --account ACCOUNT  Secrets account name (default: openenv-gcp)"
+      echo "  --tags TAGS        Ansible tags to run (e.g. step003,step005)"
+      echo "  --action ACTION    AgnosticD action: provision, destroy, stop, status (default: provision)"
+      echo "  --destroy          Shorthand for --action destroy"
+      echo "  --stop             Shorthand for --action stop"
+      echo "  --status           Shorthand for --action status"
+      echo "  -h, --help         Show this help message"
+      exit 0
+      ;;
+    *) echo "Unknown argument: $1" >&2; echo "Use --help for usage." >&2; exit 1 ;;
   esac
 done
+
+# Determine the playbook based on action
+case "${AGD_ACTION}" in
+  provision) AGD_PLAYBOOK="ansible/main.yml" ;;
+  destroy)   AGD_PLAYBOOK="ansible/destroy.yml" ;;
+  stop)      AGD_PLAYBOOK="ansible/lifecycle.yml" ;;
+  status)    AGD_PLAYBOOK="ansible/lifecycle.yml" ;;
+  *) echo "ERROR: Unknown action '${AGD_ACTION}'. Use: provision, destroy, stop, status" >&2; exit 1 ;;
+esac
 
 SECRETS_FILE="${SECRETS_DIR}/secrets-${AGD_ACCOUNT}.yml"
 GCP_KEY_FILE=$(find "${SECRETS_DIR}" -name "gcp-key-*.json" 2>/dev/null | head -1)
 GUID_OUTPUT_DIR="${OUTPUT_DIR}/${AGD_GUID}"
 
-echo "=== Artemis Edge ACM Demo — GCP Deployment ==="
+echo "=== Artemis Edge ACM Demo — GCP ${AGD_ACTION^} ==="
+echo "Action:      ${AGD_ACTION}"
+echo "Playbook:    ${AGD_PLAYBOOK}"
 echo "GUID:        ${AGD_GUID}"
 echo "Account:     ${AGD_ACCOUNT}"
 echo "Vars:        ${VARS_FILE}"
@@ -90,18 +123,19 @@ fi
 
 mkdir -p "${GUID_OUTPUT_DIR}"
 
-echo "=== Starting provision... ==="
+echo "=== Starting ${AGD_ACTION}... ==="
 cd "${AGD_DIR}"
 
 if [[ "${USE_NAVIGATOR}" == "true" ]]; then
   echo "Using ansible-navigator with EE image..."
-  ansible-navigator run ansible/main.yml \
+  ansible-navigator run "${AGD_PLAYBOOK}" \
     --mode stdout \
     --eei quay.io/agnosticd/ee-multicloud:latest \
     --eev "${PROJECT_ROOT}:${PROJECT_ROOT}" \
     --eev "${SECRETS_DIR}:${SECRETS_DIR}" \
     --eev "${GUID_OUTPUT_DIR}:${GUID_OUTPUT_DIR}" \
     -e guid="${AGD_GUID}" \
+    -e ACTION="${AGD_ACTION}" \
     -e @"${VARS_FILE}" \
     -e @"${SECRETS_FILE}" \
     -e "gcp_credentials_file=${GCP_KEY_FILE}" \
@@ -109,8 +143,9 @@ if [[ "${USE_NAVIGATOR}" == "true" ]]; then
     ${AGD_TAGS:+--tags "${AGD_TAGS}"}
 else
   echo "Using ansible-playbook directly..."
-  ansible-playbook ansible/main.yml \
+  ansible-playbook "${AGD_PLAYBOOK}" \
     -e guid="${AGD_GUID}" \
+    -e ACTION="${AGD_ACTION}" \
     -e @"${VARS_FILE}" \
     -e @"${SECRETS_FILE}" \
     -e "gcp_credentials_file=${GCP_KEY_FILE}" \
@@ -119,6 +154,11 @@ else
 fi
 
 echo ""
-echo "=== Provision complete! ==="
-echo "Run: ./scripts/save-deployment-info.sh ${AGD_GUID}"
-echo "     to populate deployment-info.yml"
+echo "=== ${AGD_ACTION^} complete! ==="
+if [[ "${AGD_ACTION}" == "provision" ]]; then
+  echo "Run: ./scripts/save-deployment-info.sh ${AGD_GUID}"
+  echo "     to populate deployment-info.yml"
+elif [[ "${AGD_ACTION}" == "destroy" ]]; then
+  echo "Cluster resources for GUID '${AGD_GUID}' have been destroyed."
+  echo "Output directory preserved at: ${GUID_OUTPUT_DIR}"
+fi

@@ -232,12 +232,19 @@ if [ "$CLOUD" = "gcp" ]; then
     GCP_FOLDER_ID=$(gcloud projects describe "${GCP_PROJECT_ID}" --format='value(parent.id)' 2>/dev/null || echo "")
     GCP_COST_CENTER=$(gcloud projects describe "${GCP_PROJECT_ID}" --format='value(labels.cost-center)' 2>/dev/null || echo "")
     GCP_BILLING_ID=$(gcloud billing projects describe "${GCP_PROJECT_ID}" --format='value(billingAccountName)' 2>/dev/null | sed 's|billingAccounts/||' || echo "")
+    GCP_ORG_ID=$(gcloud projects get-ancestors "${GCP_PROJECT_ID}" --format='csv[no-heading](id,type)' 2>/dev/null | awk -F, '$2=="organization"{print $1}' || echo "")
     GCP_BASE_DOMAIN="${SANDBOX_ID}.gcp.redhatworkshops.io"
+    GCP_ROOT_DNS_ZONE="gcp.redhatworkshops.io"
 
     if [ -n "$GCP_FOLDER_ID" ]; then
       pass "Discovered folder ID: ${GCP_FOLDER_ID}"
     else
       warn "Could not discover folder ID -- you may need to add it manually"
+    fi
+    if [ -n "$GCP_ORG_ID" ]; then
+      pass "Discovered organization ID: ${GCP_ORG_ID}"
+    else
+      warn "Could not discover organization ID -- you may need to add it manually"
     fi
 
     read -rp "  OpenShift pull secret (paste JSON, or path to file): " PULL_SECRET_INPUT
@@ -267,6 +274,9 @@ gcp_cost_center: "${GCP_COST_CENTER}"
 gcp_billing_account_id: "${GCP_BILLING_ID}"
 gcp_admin_group: "group:rhdp-gcp-admins@redhat.com"
 project_name: "${GCP_PROJECT_ID}"
+gcp_organization: "${GCP_ORG_ID}"
+gcp_root_dns_zone: "${GCP_ROOT_DNS_ZONE}"
+service_account_email: "${GCP_SA_EMAIL}"
 
 # OpenShift pull secret
 ocp4_pull_secret: >-
