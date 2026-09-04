@@ -18,6 +18,7 @@
 tag: main
 cloud_provider: gcp
 env_type: ocp4-cluster
+software_to_deploy: openshift4
 
 # Load GCP service account JSON content from key file at runtime.
 # AgnosticD roles (open-env-gcp-add-user-to-project, infra-gcp-credentials-file)
