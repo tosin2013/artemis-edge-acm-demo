@@ -17,8 +17,7 @@
 # ===================================================================
 tag: main
 cloud_provider: gcp
-cloud_provider_repo: https://github.com/tosin2013/cloud_provider_gcp.git
-config: openshift-cluster
+env_type: ocp4-cluster
 
 # ===================================================================
 # Additional Collections & roles to be installed for this config

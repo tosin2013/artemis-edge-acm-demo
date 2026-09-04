@@ -17,11 +17,11 @@ prerequisites:
     install_hint: "curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash"
   - name: keytool
     command: keytool 2>&1 | head -1
-    install_hint: "Install Java JDK 17+ (keytool is included)"
+    install_hint: "Install Java JDK 21+ (keytool is included): sudo dnf install -y java-21-openjdk-devel"
   - name: java
     command: java -version
-    min_version: "17"
-    install_hint: "Install OpenJDK 17+ from your package manager"
+    min_version: "21"
+    install_hint: "Install OpenJDK 21+ (required by Java clients): sudo dnf install -y java-21-openjdk-devel"
   - name: mvn
     command: mvn -version
     install_hint: "Install Apache Maven from https://maven.apache.org/download.cgi"
@@ -33,6 +33,12 @@ prerequisites:
   - name: jq
     command: jq --version
     install_hint: "Install jq from your package manager"
+  - name: ansible-navigator
+    command: ansible-navigator --version
+    install_hint: "Install: pip3 install --user 'ansible-navigator[ansible-core]'"
+  - name: ansible
+    command: ansible-playbook --version
+    install_hint: "Install ansible-core: sudo dnf install -y ansible-core"
   - name: gcloud
     command: gcloud --version
     condition: "config.cloud_provider == 'gcp'"
@@ -92,10 +98,33 @@ setup:
         message: "TLS keystores generated"
     - name: Build Java clients
       command: "cd java/amqp-client && mvn package -DskipTests && cd ../mqtt-client && mvn package -DskipTests && cd ../amqp-bridge && mvn package -DskipTests"
+      env:
+        JAVA_HOME: "/usr/lib/jvm/java-21-openjdk"
       check:
         command: "ls java/amqp-client/target/*.jar"
         message: "Java clients built"
       optional: true
+    - name: Clone AgnosticD v2 repo
+      command: "git clone https://github.com/redhat-cop/agnosticd.git ~/Development/agnosticd-v2"
+      check:
+        command: "test -d ~/Development/agnosticd-v2/ansible"
+        message: "AgnosticD v2 repo already cloned"
+    - name: Install Ansible collections
+      command: "ansible-galaxy collection install google.cloud git+https://github.com/rhpds/core_workloads.git git+https://github.com/tosin2013/cloud_provider_gcp.git"
+      check:
+        command: "ansible-galaxy collection list 2>/dev/null | grep -q google.cloud && ansible-galaxy collection list 2>/dev/null | grep -q cloud_provider_gcp"
+        message: "Ansible collections already installed"
+    - name: Scaffold GCP secrets
+      command: |
+        mkdir -p ~/Development/agnosticd-v2-secrets
+        if [ ! -f ~/Development/agnosticd-v2-secrets/secrets-openenv-gcp.yml ]; then
+          cp agnosticd/gcp/secrets.yml.example ~/Development/agnosticd-v2-secrets/secrets-openenv-gcp.yml
+          echo "Secrets file scaffolded — edit ~/Development/agnosticd-v2-secrets/secrets-openenv-gcp.yml with your values"
+        fi
+      check:
+        command: "test -f ~/Development/agnosticd-v2-secrets/secrets-openenv-gcp.yml"
+        message: "GCP secrets file already exists"
+      condition: "config.cloud_provider == 'gcp'"
     - name: Save deployment info
       command: "./scripts/save-deployment-info.sh ${agd_guid}"
       env_from_config:
@@ -106,16 +135,18 @@ setup:
         message: "Deployment info already saved"
       condition: "config.mode == 'prod'"
 
+# ===================================================================
+# Validation is split into two stages:
+#   1. pre_deploy  — checks that can pass BEFORE OpenShift is provisioned
+#   2. post_deploy — checks that require a running OpenShift cluster
+#
+# The onboarding process runs pre_deploy first. If the user has not yet
+# provisioned OpenShift (deploy.sh), it reports clearly what to do next
+# rather than failing against a nonexistent cluster.
+# ===================================================================
+
 validation:
-  checks:
-    - name: OpenShift login
-      command: "oc whoami"
-      required: true
-      message: "Must be logged into OpenShift"
-    - name: RHACM installed
-      command: "oc get mch -A --no-headers"
-      required: true
-      message: "RHACM MultiClusterHub must be installed"
+  pre_deploy:
     - name: Helm template renders
       command: "helm template . --values values.yaml"
       required: true
@@ -124,17 +155,48 @@ validation:
       command: "ls artemis/tls/hub-01-broker-keystore.jks"
       required: true
       message: "Run scripts/generate-tls.sh first"
-    - name: AMQ Broker operator
-      command: "oc get sub -n openshift-operators amq-broker-rhel8 --no-headers 2>/dev/null"
-      required: false
-      message: "AMQ Broker operator not yet installed (will be deployed by chart)"
     - name: Cloud CLI authenticated
       command: |
-        if [ "$CLOUD_PROVIDER" = "gcp" ]; then
+        if [ "${CLOUD_PROVIDER}" = "gcp" ]; then
           gcloud auth list --filter=status:ACTIVE --format='value(account)'
-        elif [ "$CLOUD_PROVIDER" = "azure" ]; then
+        elif [ "${CLOUD_PROVIDER}" = "azure" ]; then
           az account show --query name -o tsv
         fi
       required: true
       condition: "config.cloud_provider"
       message: "Cloud CLI must be authenticated for ZTP provisioning"
+    - name: GCP secrets file populated
+      command: "test -f ~/Development/agnosticd-v2-secrets/secrets-openenv-gcp.yml"
+      required: true
+      condition: "config.cloud_provider == 'gcp'"
+      message: "GCP secrets file missing — run scaffold step or copy secrets.yml.example"
+    - name: GCP service account key
+      command: "find ~/Development/agnosticd-v2-secrets -name 'gcp-key-*.json' | head -1 | grep -q ."
+      required: true
+      condition: "config.cloud_provider == 'gcp'"
+      message: "GCP service account JSON key not found in ~/Development/agnosticd-v2-secrets/"
+    - name: AgnosticD v2 repo
+      command: "test -d ~/Development/agnosticd-v2/ansible"
+      required: true
+      message: "AgnosticD v2 repo not found — run: git clone https://github.com/redhat-cop/agnosticd.git ~/Development/agnosticd-v2"
+
+  post_deploy:
+    - name: OpenShift login
+      command: "oc whoami"
+      required: true
+      message: "Must be logged into OpenShift — run: oc login https://api.${hub_domain#apps.}:6443"
+    - name: RHACM installed
+      command: "oc get mch -A --no-headers"
+      required: true
+      message: "RHACM MultiClusterHub must be installed on the hub cluster"
+    - name: AMQ Broker operator
+      command: "oc get sub -n openshift-operators amq-broker-rhel8 --no-headers 2>/dev/null"
+      required: false
+      message: "AMQ Broker operator not yet installed (will be deployed by chart)"
+
+  deploy_hint: |
+    OpenShift is not yet provisioned. To deploy:
+      1. Authenticate gcloud:  gcloud auth activate-service-account --key-file=<key.json>
+      2. Run deploy script:    ./scripts/deploy.sh --guid ${agd_guid} --account openenv-gcp
+      3. After provisioning:   ./scripts/save-deployment-info.sh ${agd_guid}
+      4. Re-run onboarding to validate the deployed cluster
