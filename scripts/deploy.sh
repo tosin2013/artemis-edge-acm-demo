@@ -93,6 +93,7 @@ if [[ "${USE_NAVIGATOR}" == "true" ]]; then
   ansible-navigator run ansible/main.yml \
     --mode stdout \
     --eei quay.io/agnosticd/ee-multicloud:latest \
+    --eev "${PROJECT_ROOT}:${PROJECT_ROOT}" \
     --eev "${SECRETS_DIR}:${SECRETS_DIR}" \
     --eev "${GUID_OUTPUT_DIR}:${GUID_OUTPUT_DIR}" \
     -e guid="${AGD_GUID}" \
