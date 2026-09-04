@@ -125,9 +125,7 @@ instances:
 # Workloads — executed in order after cluster is up
 # ===================================================================
 workloads:
-  # cert-manager: deployed by core; LE cert issued via fix-cert-manager-zone.sh
-  # Commented out to avoid upstream template overwriting corrected zone on re-runs.
-  # - agnosticd.core_workloads.ocp4_workload_cert_manager
+  - agnosticd.core_workloads.ocp4_workload_cert_manager
   - agnosticd.core_workloads.ocp4_workload_authentication_htpasswd
   - ocp4_workload_rhacm
   - ocp4_workload_rhacm_observability
