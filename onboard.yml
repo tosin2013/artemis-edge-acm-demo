@@ -79,6 +79,10 @@ config:
       prompt: "AgnosticD deployment GUID (your GCP sandbox ID, e.g. 725j2)"
       required: true
       condition: "config.mode == 'prod'"
+    - key: ocp_version
+      prompt: "Target OpenShift version (must match agnosticd/gcp/vars.yml ocp4_installer_version)"
+      default: "4.22"
+      condition: "config.mode == 'prod'"
     - key: agd_output_dir
       prompt: "AgnosticD output directory"
       default: "~/Development/agnosticd-v2-output/${agd_guid}"
@@ -193,6 +197,14 @@ validation:
       command: "oc get sub -n openshift-operators amq-broker-rhel8 --no-headers 2>/dev/null"
       required: false
       message: "AMQ Broker operator not yet installed (will be deployed by chart)"
+    - name: OpenShift GitOps server healthy
+      command: "oc get route openshift-gitops-server -n openshift-gitops -o jsonpath='{.spec.host}' 2>/dev/null | grep -q ."
+      required: false
+      message: "OpenShift GitOps (ArgoCD) route not found — workloads may still be deploying"
+    - name: ArgoCD applications synced
+      command: "oc get applications -n openshift-gitops --no-headers 2>/dev/null | grep -v 'Synced.*Healthy' | wc -l | grep -q '^0$'"
+      required: false
+      message: "One or more ArgoCD applications are not in Synced/Healthy state"
 
   deploy_hint: |
     OpenShift is not yet provisioned. To deploy:

@@ -1,0 +1,34 @@
+{
+  "$comment": "Acceptance bar for issue #27: Fix AgnosticD variable names, deployment-info extraction, and ArgoCD health checks.",
+  "authority_id": "27",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q '^ocp4_installer_version:' agnosticd/gcp/vars.yml && ! grep -q 'host_ocp4_installer_version' agnosticd/gcp/vars.yml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q '^infra_workloads:' agnosticd/gcp/vars.yml && ! grep -qP '^workloads:' agnosticd/gcp/vars.yml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'openshift_kubeadmin_password' scripts/save-deployment-info.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "! grep -q 'openshift-cluster_' scripts/save-deployment-info.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'ocp_version' onboard.yml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'ArgoCD\\|openshift-gitops' onboard.yml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'kubeadmin' scripts/save-deployment-info.sh"
+    }
+  ]
+}

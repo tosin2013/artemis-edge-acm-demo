@@ -91,8 +91,8 @@ cluster_name: hub
 cluster_dns_zone: "{{ base_domain }}"
 ocp4_base_domain: "{{ base_domain }}"
 
-host_ocp4_installer_root_url: https://mirror.openshift.com/pub/openshift-v4/clients
-host_ocp4_installer_version: "4.22"
+ocp4_installer_root_url: https://mirror.openshift.com/pub/openshift-v4/clients
+ocp4_installer_version: "4.22"
 host_ocp4_installer_set_user_data_kubeadmin_password: true
 
 openshift_cluster_admin_service_account_enable: true
@@ -124,7 +124,7 @@ instances:
 # ===================================================================
 # Workloads — executed in order after cluster is up
 # ===================================================================
-workloads:
+infra_workloads:
   - agnosticd.core_workloads.ocp4_workload_cert_manager
   - agnosticd.core_workloads.ocp4_workload_authentication_htpasswd
   - ocp4_workload_rhacm
