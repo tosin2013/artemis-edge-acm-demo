@@ -1,0 +1,34 @@
+{
+  "$comment": "Acceptance bar for issue #22: Fix onboarding gaps discovered during GCP from-scratch setup. Each criterion maps to one of the 8 acceptance conditions listed in the issue body.",
+  "authority_id": "22",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'ansible-navigator\\|ansible-playbook' scripts/deploy.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'java-21' onboard.yml || grep -q 'min_version.*21' onboard.yml"
+    },
+    {
+      "check": "command_exit",
+      "target": "! grep -v '^#' agnosticd/gcp/secrets.yml.example | grep -qi satellite"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'env_type: ocp4-cluster' agnosticd/gcp/vars.yml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'pre_deploy' onboard.yml && grep -q 'post_deploy' onboard.yml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'ansible-navigator' onboard.yml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'cloud_provider_gcp' onboard.yml"
+    }
+  ]
+}

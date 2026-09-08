@@ -26,11 +26,17 @@
       "type": "acceptance-file",
       "adapter": "adapters/acceptance-file",
       "path": ".repo-governor/acceptance"
-    }
+    },
+    "decision_history": [{
+      "type": "decision-history-file",
+      "adapter": "adapters/decision-history-file",
+      "contract_version": 1
+    }]
   },
   "permissions": {
     "roadmap_authority": { "read": true, "write": false },
     "repository": { "read": true, "write": false },
-    "acceptance_criteria": { "read": true, "write": true }
+    "acceptance_criteria": { "read": true, "write": true },
+    "decision_history": { "read": true, "write": true }
   }
 }

@@ -62,5 +62,8 @@ PRD.md
 # Cursor IDE
 .cursor/
 
+# Agent instructions (local governance, not committed)
+AGENTS.md
+
 # Repo Governor proposed files (local, not committed)
 .repo-governor.proposed.json

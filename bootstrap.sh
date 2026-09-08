@@ -17,6 +17,21 @@ fail() { echo -e "${RED}[FAIL]${NC} $1"; }
 warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 info() { echo -e "${CYAN}[INFO]${NC} $1"; }
 
+# Read default values from onboard.yml (single source of truth)
+get_manifest_default() {
+  local key="$1" fallback="$2"
+  python3 -c "
+import yaml
+m = yaml.safe_load(open('${SCRIPT_DIR}/onboard.yml'))
+for p in m.get('config',{}).get('prompts',[]):
+    if p.get('key') == '$key':
+        print(p.get('default','$fallback'))
+        break
+else:
+    print('$fallback')
+" 2>/dev/null || echo "$fallback"
+}
+
 echo "============================================"
 echo "  Artemis Edge ACM Demo -- Bootstrap"
 echo "============================================"
@@ -88,8 +103,11 @@ if [ ! -f "$CONFIG_FILE" ]; then
     exit 1
   fi
 
-  read -rp "AgnosticD GUID (artgcp): " AGD_GUID
-  AGD_GUID="${AGD_GUID:-artgcp}"
+  read -rp "AgnosticD GUID (your GCP sandbox ID, e.g. 725j2): " AGD_GUID
+  if [ -z "$AGD_GUID" ]; then
+    fail "GUID is required -- find it in your GCP Open Environment email or project name (openenv-XXXXX)"
+    exit 1
+  fi
 
   read -rp "AgnosticD account name (openenv-gcp): " AGD_ACCOUNT
   AGD_ACCOUNT="${AGD_ACCOUNT:-openenv-gcp}"
@@ -113,7 +131,7 @@ fi
 MODE=$(python3 -c "import yaml; print(yaml.safe_load(open('$CONFIG_FILE'))['mode'])")
 CLOUD=$(python3 -c "import yaml; print(yaml.safe_load(open('$CONFIG_FILE'))['cloud_provider'])")
 HUB_DOMAIN=$(python3 -c "import yaml; print(yaml.safe_load(open('$CONFIG_FILE'))['hub_domain'])")
-AGD_GUID=$(python3 -c "import yaml; print(yaml.safe_load(open('$CONFIG_FILE')).get('agd_guid','artgcp'))")
+AGD_GUID=$(python3 -c "import yaml; print(yaml.safe_load(open('$CONFIG_FILE'))['agd_guid'])")
 AGD_ACCOUNT=$(python3 -c "import yaml; print(yaml.safe_load(open('$CONFIG_FILE')).get('agd_account','openenv-gcp'))")
 
 echo "Configuration:"
