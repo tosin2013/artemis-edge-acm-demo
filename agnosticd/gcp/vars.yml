@@ -17,6 +17,7 @@
 # ===================================================================
 tag: main
 cloud_provider: gcp
+cloud_provider_repo: "https://github.com/tosin2013/cloud_provider_gcp.git"
 config: openshift-cluster
 
 # Load GCP service account JSON content from key file at runtime.
@@ -32,6 +33,7 @@ gcp_account: "{{ gcp_service_account }}"
 # For developer-driven deployment against an already-provisioned Open Environment,
 # the project, service account, and key file already exist on disk.
 gcp_create_open_env_project: false
+agnosticd_open_environment: false
 
 # ===================================================================
 # Additional Collections & roles to be installed for this config
