@@ -1,0 +1,30 @@
+{
+  "$comment": "Acceptance bar for issue #26: Fix lifecycle script bugs and hardcoded GUID defaults.",
+  "authority_id": "26",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'deploy.sh' scripts/start.sh && ! grep -q 'agd ' scripts/start.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'deploy.sh' scripts/stop.sh && ! grep -q 'agd ' scripts/stop.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'deploy.sh' scripts/teardown.sh && ! grep -q 'agd ' scripts/teardown.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "! grep -r 'artgcp' scripts/"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'config.yml' scripts/deploy.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'config.yml' scripts/save-deployment-info.sh"
+    }
+  ]
+}

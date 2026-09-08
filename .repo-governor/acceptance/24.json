@@ -1,0 +1,22 @@
+{
+  "$comment": "Acceptance bar for issue #24: deploy.sh lifecycle management flags. Criteria match the 4 acceptance conditions from the issue.",
+  "authority_id": "24",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "scripts/deploy.sh --help 2>&1 | grep -q '\\-\\-destroy'"
+    },
+    {
+      "check": "command_exit",
+      "target": "scripts/deploy.sh --help 2>&1 | grep -q '\\-\\-start'"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'start)' scripts/deploy.sh && grep -q 'stop)' scripts/deploy.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "scripts/deploy.sh --help 2>&1 | grep -q 'provision, destroy, stop, start, status'"
+    }
+  ]
+}

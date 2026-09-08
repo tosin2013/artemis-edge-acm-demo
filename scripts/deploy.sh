@@ -1,22 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 #
-# Deploy / Destroy Artemis Edge ACM Demo on GCP via AgnosticD v2
+# Deploy / Destroy / Lifecycle Artemis Edge ACM Demo on GCP via AgnosticD v2
 #
-# Uses ansible-playbook directly against the AgnosticD main.yml entrypoint.
-# Supports provisioning (default) and destroy actions.
+# Uses ansible-navigator (preferred) or ansible-playbook against AgnosticD entrypoints.
+# Supports provisioning (default), destroy, stop, start, and status actions.
 #
 # Prerequisites:
-#   - ansible-playbook installed (ansible-core)
+#   - ansible-navigator or ansible-playbook installed
 #   - AgnosticD v2 repo cloned to ~/Development/agnosticd-v2
 #   - GCP secrets populated (see agnosticd/gcp/secrets.yml.example)
 #   - GCP service account JSON key downloaded
 #
 # Usage:
 #   ./scripts/deploy.sh --guid 725j2 --account openenv-gcp
-#   ./scripts/deploy.sh --destroy --guid artgcp --account openenv-gcp
-#   ./scripts/deploy.sh --action stop --guid artgcp --account openenv-gcp
-#   ./scripts/deploy.sh  # uses defaults from AGD_GUID / AGD_ACCOUNT env vars
+#   ./scripts/deploy.sh --destroy --guid 725j2 --account openenv-gcp
+#   ./scripts/deploy.sh --action stop --guid 725j2 --account openenv-gcp
+#   ./scripts/deploy.sh --start --guid 725j2 --account openenv-gcp
+#   ./scripts/deploy.sh  # reads GUID from config.yml or AGD_GUID env var
 #
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -26,7 +27,11 @@ SECRETS_DIR="${HOME}/Development/agnosticd-v2-secrets"
 AGD_DIR="${HOME}/Development/agnosticd-v2"
 OUTPUT_DIR="${HOME}/Development/agnosticd-v2-output"
 
-: "${AGD_GUID:=artgcp}"
+# Read GUID from config.yml if not set via env or CLI
+if [[ -z "${AGD_GUID:-}" && -f "${PROJECT_ROOT}/config.yml" ]]; then
+  AGD_GUID=$(python3 -c "import yaml; print(yaml.safe_load(open('${PROJECT_ROOT}/config.yml'))['agd_guid'])" 2>/dev/null) || true
+fi
+: "${AGD_GUID:=}"
 : "${AGD_ACCOUNT:=openenv-gcp}"
 : "${AGD_TAGS:=}"
 : "${AGD_ACTION:=provision}"
@@ -40,17 +45,19 @@ while [[ $# -gt 0 ]]; do
     --action) AGD_ACTION="$2"; shift 2 ;;
     --destroy) AGD_ACTION="destroy"; shift ;;
     --stop) AGD_ACTION="stop"; shift ;;
+    --start) AGD_ACTION="start"; shift ;;
     --status) AGD_ACTION="status"; shift ;;
     -h|--help)
       echo "Usage: $0 [OPTIONS]"
       echo ""
       echo "Options:"
-      echo "  --guid GUID        Deployment GUID (default: artgcp)"
+      echo "  --guid GUID        Deployment GUID (reads from config.yml if not set)"
       echo "  --account ACCOUNT  Secrets account name (default: openenv-gcp)"
       echo "  --tags TAGS        Ansible tags to run (e.g. step003,step005)"
-      echo "  --action ACTION    AgnosticD action: provision, destroy, stop, status (default: provision)"
+      echo "  --action ACTION    AgnosticD action: provision, destroy, stop, start, status (default: provision)"
       echo "  --destroy          Shorthand for --action destroy"
       echo "  --stop             Shorthand for --action stop"
+      echo "  --start            Shorthand for --action start"
       echo "  --status           Shorthand for --action status"
       echo "  -h, --help         Show this help message"
       exit 0
@@ -59,13 +66,20 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# Require GUID
+if [[ -z "${AGD_GUID}" ]]; then
+  echo "ERROR: GUID required. Use --guid <id>, set AGD_GUID, or run bootstrap.sh first." >&2
+  exit 1
+fi
+
 # Determine the playbook based on action
 case "${AGD_ACTION}" in
   provision) AGD_PLAYBOOK="ansible/main.yml" ;;
   destroy)   AGD_PLAYBOOK="ansible/destroy.yml" ;;
   stop)      AGD_PLAYBOOK="ansible/lifecycle.yml" ;;
+  start)     AGD_PLAYBOOK="ansible/lifecycle.yml" ;;
   status)    AGD_PLAYBOOK="ansible/lifecycle.yml" ;;
-  *) echo "ERROR: Unknown action '${AGD_ACTION}'. Use: provision, destroy, stop, status" >&2; exit 1 ;;
+  *) echo "ERROR: Unknown action '${AGD_ACTION}'. Use: provision, destroy, stop, start, status" >&2; exit 1 ;;
 esac
 
 SECRETS_FILE="${SECRETS_DIR}/secrets-${AGD_ACCOUNT}.yml"

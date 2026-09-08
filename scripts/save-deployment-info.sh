@@ -7,12 +7,22 @@ set -euo pipefail
 # Usage:
 #   ./scripts/save-deployment-info.sh [GUID]
 #
-# GUID defaults to the AGD_GUID environment variable or "artgcp".
+# GUID is read from the first argument, AGD_GUID env var, or config.yml.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-GUID="${1:-${AGD_GUID:-artgcp}}"
+if [[ -n "${1:-}" ]]; then
+  GUID="$1"
+elif [[ -n "${AGD_GUID:-}" ]]; then
+  GUID="$AGD_GUID"
+elif [[ -f "${PROJECT_ROOT}/config.yml" ]]; then
+  GUID=$(python3 -c "import yaml; print(yaml.safe_load(open('${PROJECT_ROOT}/config.yml'))['agd_guid'])" 2>/dev/null) || true
+fi
+if [[ -z "${GUID:-}" ]]; then
+  echo "ERROR: GUID required. Pass as argument, set AGD_GUID, or run bootstrap.sh first." >&2
+  exit 1
+fi
 OUTPUT_DIR="${AGD_OUTPUT_DIR:-${HOME}/Development/agnosticd-v2-output/${GUID}}"
 USER_DATA="${OUTPUT_DIR}/provision-user-data.yaml"
 DEST="${PROJECT_ROOT}/deployment-info.yml"
