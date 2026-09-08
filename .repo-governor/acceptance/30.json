@@ -1,0 +1,16 @@
+{
+  "authority_id": "30",
+  "$comment": "ArgoCD field-content sync fix: SkipDryRunOnMissingResource for hub ArgoCD Application",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'ocp4_workload_field_content_sync_options' agnosticd/gcp/vars.yml",
+      "$comment": "vars.yml declares sync options override for field-content ArgoCD Application"
+    },
+    {
+      "check": "command_exit",
+      "target": "python3 -c \"import yaml; v=yaml.safe_load(open('agnosticd/gcp/vars.yml')); opts=v.get('ocp4_workload_field_content_sync_options',[]); assert 'SkipDryRunOnMissingResource=true' in opts, 'missing SkipDryRunOnMissingResource'\"",
+      "$comment": "sync options list includes SkipDryRunOnMissingResource=true"
+    }
+  ]
+}

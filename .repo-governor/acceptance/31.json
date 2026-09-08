@@ -1,0 +1,21 @@
+{
+  "authority_id": "31",
+  "$comment": "E2E release gate: project-onboard driven deploy-validate cycle",
+  "criteria": [
+    {
+      "check": "file_exists",
+      "target": "scripts/validate-deployment.sh",
+      "$comment": "Post-deploy validation script exists for E2E cycle"
+    },
+    {
+      "check": "command_exit",
+      "target": "python3 -c \"import yaml; m=yaml.safe_load(open('onboard.yml')); v=m.get('validation',[]); names=[c['name'] for c in v]; assert 'Workloads healthy' in names or 'All workloads synced' in names, 'onboard.yml needs post-deploy workload health check'\"",
+      "$comment": "onboard.yml includes a workload health validation check"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'validate-deployment' scripts/deploy.sh || grep -q 'validate-deployment' onboard.yml",
+      "$comment": "deploy flow references post-deploy validation"
+    }
+  ]
+}
