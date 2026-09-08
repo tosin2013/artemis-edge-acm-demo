@@ -127,15 +127,10 @@ instances:
 infra_workloads:
   - agnosticd.core_workloads.ocp4_workload_cert_manager
   - agnosticd.core_workloads.ocp4_workload_authentication_htpasswd
-  - ocp4_workload_rhacm
-  - ocp4_workload_rhacm_observability
+  - agnosticd.core_workloads.ocp4_workload_rhacm
   - agnosticd.core_workloads.ocp4_workload_openshift_gitops
   - agnosticd.core_workloads.ocp4_workload_field_content
-  - ocp4_workload_artemis_edge
   - agnosticd.core_workloads.ocp4_workload_showroom
-
-remove_workloads:
-  - ocp4_workload_artemis_edge
 
 # ===================================================================
 # Workload Variables
@@ -158,14 +153,6 @@ ocp4_workload_authentication_htpasswd_admin_user: admin
 # --- RHACM ---
 ocp4_workload_rhacm_channel: release-2.17
 ocp4_workload_rhacm_catalog_source: redhat-operators
-
-# --- RHACM Observability (MCO with GCS backend) ---
-ocp4_workload_rhacm_observability_cloud_provider: gcp
-ocp4_workload_rhacm_observability_gcp_project: "{{ gcp_project_id }}"
-ocp4_workload_rhacm_observability_gcp_sa_email: "{{ gcp_service_account }}"
-ocp4_workload_rhacm_observability_gcp_credentials_file: "{{ gcp_credentials_file }}"
-ocp4_workload_rhacm_observability_gcp_region: "{{ gcp_region }}"
-ocp4_workload_rhacm_observability_gcp_storage_class: standard-csi
 
 # --- OpenShift GitOps (ArgoCD) ---
 ocp4_workload_openshift_gitops_channel: latest
@@ -197,12 +184,6 @@ ocp4_workload_field_content_helm_values:
     hubTruststoreBase64: ""
     spokeKeystoreBase64: ""
     spokeTruststoreBase64: ""
-
-# --- Artemis Edge workload role ---
-ocp4_workload_artemis_edge_mode: single-hub
-ocp4_workload_artemis_edge_spoke_count: 3
-ocp4_workload_artemis_edge_deploy_ztp: true
-ocp4_workload_artemis_edge_showroom_enabled: true
 
 # --- Showroom ---
 ocp4_workload_showroom_content_git_repo: "https://github.com/tosin2013/artemis-edge-acm-demo.git"

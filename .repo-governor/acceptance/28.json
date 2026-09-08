@@ -1,0 +1,31 @@
+{
+  "authority_id": "28",
+  "$comment": "Fix workload auto-deployment: remove non-existent roles, use FQCN for all infra_workloads",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'agnosticd.core_workloads.ocp4_workload_rhacm' agnosticd/gcp/vars.yml",
+      "$comment": "RHACM uses FQCN"
+    },
+    {
+      "check": "command_exit",
+      "target": "! grep -q 'ocp4_workload_rhacm_observability' agnosticd/gcp/vars.yml",
+      "$comment": "Non-existent observability role removed"
+    },
+    {
+      "check": "command_exit",
+      "target": "! grep -q 'ocp4_workload_artemis_edge' agnosticd/gcp/vars.yml",
+      "$comment": "Non-existent artemis_edge role removed"
+    },
+    {
+      "check": "command_exit",
+      "target": "python3 -c \"import yaml; d=yaml.safe_load(open('agnosticd/gcp/vars.yml')); [exit(1) for r in d.get('infra_workloads',[]) if not r.startswith('agnosticd.')]\"",
+      "$comment": "All infra_workloads entries use FQCN (no bare role names)"
+    },
+    {
+      "check": "command_exit",
+      "target": "! grep -q 'remove_workloads' agnosticd/gcp/vars.yml",
+      "$comment": "remove_workloads list referencing non-existent role removed"
+    }
+  ]
+}
