@@ -1,0 +1,26 @@
+{
+  "authority_id": "33",
+  "$comment": "Multi Hub mode: end-to-end deploy on OCP 4.22 (GCP)",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "helm template . -f values-mode2.yaml --set global.clusterDomain=test.example.com > /dev/null 2>&1",
+      "$comment": "Multi Hub Helm template renders cleanly with values-mode2.yaml"
+    },
+    {
+      "check": "file_exists",
+      "target": "agnosticd/gcp/vars-multihub.yml",
+      "$comment": "Multi Hub AgnosticD vars file exists for GCP"
+    },
+    {
+      "check": "command_exit",
+      "target": "python3 -c \"import yaml; v=yaml.safe_load(open('values-mode2.yaml')); assert v.get('globalHub',{}).get('enabled') == True, 'globalHub must be enabled'\"",
+      "$comment": "values-mode2.yaml enables Global Hub"
+    },
+    {
+      "check": "command_exit",
+      "target": "python3 -c \"import yaml; v=yaml.safe_load(open('values-mode2.yaml')); hubs=v.get('hubBrokers',[]); assert len(hubs) >= 2, f'need 2 hub brokers, got {len(hubs)}'\"",
+      "$comment": "values-mode2.yaml defines at least 2 hub brokers"
+    }
+  ]
+}

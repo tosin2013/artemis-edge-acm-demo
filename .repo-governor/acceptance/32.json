@@ -1,0 +1,26 @@
+{
+  "authority_id": "32",
+  "$comment": "Single Hub mode: end-to-end deploy on OCP 4.22 (GCP)",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "python3 -c \"import yaml; v=yaml.safe_load(open('agnosticd/gcp/vars.yml')); assert v.get('ocp4_installer_version') == '4.22', f'expected 4.22 got {v.get(\\\"ocp4_installer_version\\\")}'\"",
+      "$comment": "vars.yml targets OCP 4.22"
+    },
+    {
+      "check": "command_exit",
+      "target": "helm template . --values values.yaml --set global.clusterDomain=test.example.com > /dev/null 2>&1",
+      "$comment": "Single Hub Helm template renders cleanly"
+    },
+    {
+      "check": "command_exit",
+      "target": "python3 -c \"import yaml; v=yaml.safe_load(open('agnosticd/gcp/vars.yml')); wl=v.get('workloads',[]); assert len(wl) >= 6, f'need 6 workloads, got {len(wl)}'\"",
+      "$comment": "vars.yml declares at least 6 workloads"
+    },
+    {
+      "check": "file_exists",
+      "target": "scripts/validate-deployment.sh",
+      "$comment": "Post-deploy validation script exists"
+    }
+  ]
+}
