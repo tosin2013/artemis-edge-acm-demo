@@ -1,0 +1,39 @@
+{
+  "authority_id": "29",
+  "$comment": "One-shot deployment: align with agnosticd-v2 and agd CLI",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "python3 -c \"import yaml; m=yaml.safe_load(open('onboard.yml')); assert 'check_command' in str(m.get('prerequisites',[])), 'missing check_command'\"",
+      "$comment": "onboard.yml uses check_command (manifest-spec.md conformance)"
+    },
+    {
+      "check": "command_exit",
+      "target": "python3 -c \"import yaml; m=yaml.safe_load(open('onboard.yml')); assert 'output_file' in m.get('config',{}), 'missing output_file'\"",
+      "$comment": "onboard.yml uses output_file (manifest-spec.md conformance)"
+    },
+    {
+      "check": "command_exit",
+      "target": "python3 -c \"import yaml; m=yaml.safe_load(open('onboard.yml')); assert 'post_validation_command' in str(m.get('modes',{}).get('prod',{})), 'missing post_validation_command'\"",
+      "$comment": "onboard.yml prod mode has post_validation_command"
+    },
+    {
+      "check": "command_exit",
+      "target": "head -5 bootstrap.sh | grep -q 'onboard.yml'",
+      "$comment": "bootstrap.sh reads onboard.yml at runtime"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'bin/agd' scripts/deploy.sh",
+      "$comment": "deploy.sh delegates to agd CLI"
+    },
+    {
+      "check": "file_exists",
+      "target": "LICENSE"
+    },
+    {
+      "check": "file_exists",
+      "target": "CONTRIBUTING.md"
+    }
+  ]
+}

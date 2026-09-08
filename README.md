@@ -1,69 +1,116 @@
 # Artemis Edge ACM Demo
 
-Federated AMQ Broker messaging across RHACM-managed Single Node OpenShift (SNO) edge clusters. This repository is a **Field-Sourced Content** Helm chart for the Red Hat Demo Platform (RHDP).
+Federated AMQ Broker messaging across RHACM-managed Single Node OpenShift (SNO)
+edge clusters. This repository is a **Field-Sourced Content** Helm chart for the
+Red Hat Demo Platform (RHDP).
 
 ## What This Demo Shows
 
-- **AMQP Federation**: Edge brokers route regional messages (`messages.NY.#`, `messages.NJ.#`, `messages.CT.#`) to hub brokers with store-and-forward resilience
-- **Zero Touch Provisioning**: RHACM provisions SNO edge clusters via SiteConfig + PolicyGenerator
-- **GitOps Deployment**: ArgoCD ApplicationSet deploys edge workloads across the fleet
-- **Observability**: Prometheus + Grafana monitor all brokers with a unified AMQ dashboard
-- **OIDC Security**: Keycloak provides OIDC authentication for broker access (alice=producer, bob=consumer)
+- **AMQP Federation** — Edge brokers route regional messages to hub brokers with store-and-forward resilience
+- **Zero Touch Provisioning** — RHACM provisions SNO edge clusters via SiteConfig + PolicyGenerator
+- **GitOps Deployment** — ArgoCD ApplicationSet deploys edge workloads across the fleet
+- **Observability** — Prometheus + Grafana monitor all brokers with a unified AMQ dashboard
+- **OIDC Security** — Keycloak provides OIDC authentication for broker access
+
+## Quick Start
+
+One command goes from zero to a fully deployed demo:
+
+```bash
+git clone https://github.com/tosin2013/artemis-edge-acm-demo.git
+cd artemis-edge-acm-demo
+./bootstrap.sh
+```
+
+The bootstrap script reads [`onboard.yml`](onboard.yml) at runtime and:
+
+1. Installs prerequisites (Python 3.12, Podman, Helm, gcloud, Java 21, etc.)
+2. Clones [AgnosticD v2](https://github.com/tosin2013/agnosticd-v2) and runs `agd setup`
+3. Copies vars and scaffolds secrets files
+4. Generates TLS certificates
+5. Prompts for configuration (GUID, cloud provider, domain)
+6. Validates your environment
+7. Deploys via `agd provision` (in prod mode)
+
+### Non-Interactive Deploy
+
+```bash
+./bootstrap.sh --deploy
+```
+
+Uses all defaults from `onboard.yml` and `config.yml` — no prompts.
+
+### Dev Mode (Contributors)
+
+```bash
+./bootstrap.sh --mode dev
+```
+
+Installs extra tools (ShellCheck, yamllint) for linting and testing.
+
+### Check-Only
+
+```bash
+./bootstrap.sh --check-only
+```
+
+Runs validation checks without installing or deploying anything.
 
 ## Deployment Modes
 
 | Mode | Clusters | Description |
 |------|----------|-------------|
-| Mode 1 (Single Hub) | 1 hub + 3 SNO | Quick validation of edge-to-hub federation |
-| Mode 2 (Multi Hub) | 1 Global Hub + 2 hubs + 6 SNO | Cross-hub federation with fleet-of-fleets observability |
+| Single Hub | 1 hub + 3 SNO | Quick validation of edge-to-hub federation |
+| Multi Hub | 1 Global Hub + 2 hubs + 6 SNO | Cross-hub federation with fleet-of-fleets observability |
 
-## Quick Start
+## How It Works
 
-### Automated Setup
-
-```bash
-./bootstrap.sh
+```
+bootstrap.sh --mode prod
+  └─ reads onboard.yml
+     └─ installs prerequisites
+     └─ runs setup steps (clone agnosticd-v2, agd setup, scaffold secrets)
+     └─ prompts for config (GUID, domain, etc.)
+     └─ validates environment
+     └─ calls deploy.sh
+        └─ cd agnosticd-v2 && agd provision -g GUID -c artemis-edge-gcp -a ACCOUNT
+           └─ ansible-navigator (EE container)
+              └─ Step 001: GCP infrastructure (bastion VM)
+              └─ Step 004: Install OpenShift
+              └─ Step 005: Deploy workloads
+                 ├─ cert-manager
+                 ├─ htpasswd auth
+                 ├─ RHACM
+                 ├─ OpenShift GitOps (ArgoCD)
+                 ├─ Field Content (Artemis Edge Helm chart)
+                 └─ Showroom (lab guide)
 ```
 
-The bootstrap script checks prerequisites, configures your deployment, generates TLS certificates, and validates your environment.
-
-### Manual Setup
-
-1. **Generate TLS certificates:**
+## Lifecycle Operations
 
 ```bash
-export KC_DOMAIN=apps.hub.example.com
-export HUB01_DOMAIN=apps.hub.example.com
-./scripts/generate-tls.sh
+# Provision (default)
+./scripts/deploy.sh --guid 725j2 --account openenv-gcp
+
+# Stop cluster (save costs)
+./scripts/stop.sh --guid 725j2
+
+# Start cluster
+./scripts/start.sh --guid 725j2
+
+# Check status
+./scripts/deploy.sh --status --guid 725j2
+
+# Destroy
+./scripts/teardown.sh --guid 725j2
 ```
 
-2. **Deploy Mode 1 (Single Hub):**
+Or use `agd` directly:
 
 ```bash
-helm install artemis-edge . \
-  --values values.yaml \
-  --set global.clusterDomain=apps.hub.example.com \
-  --set keycloak.clientSecret=YOUR_SECRET
-```
-
-3. **Deploy Mode 2 (Multi Hub):**
-
-```bash
-helm install artemis-edge . \
-  --values values.yaml \
-  --values values-mode2.yaml \
-  --set global.clusterDomain=apps.hub.example.com \
-  --set keycloak.clientSecret=YOUR_SECRET
-```
-
-4. **Cloud-specific overlays:**
-
-```bash
-# GCP
-helm install artemis-edge . -f values.yaml -f values-gcp.yaml
-
-# Azure
-helm install artemis-edge . -f values.yaml -f values-azure.yaml
+cd ~/Development/agnosticd-v2
+./bin/agd provision -g 725j2 -c artemis-edge-gcp -a openenv-gcp
+./bin/agd destroy   -g 725j2 -c artemis-edge-gcp -a openenv-gcp
 ```
 
 ## Repository Structure
@@ -77,13 +124,14 @@ helm install artemis-edge . -f values.yaml -f values-azure.yaml
 ├── templates/                     # All Helm templates
 ├── ztp/                           # ZTP: SiteConfigs, PolicyGenerator, Placement
 ├── acm/                           # ACM: ApplicationSet + policies
-├── showroom/                      # Draft Showroom lab guide (Antora)
+├── showroom/                      # Showroom lab guide (Antora)
 ├── java/                          # Quarkus Camel clients (AMQP, MQTT, bridge)
-├── scripts/                       # TLS generation, setup utilities
-├── upstream-ref/                  # Original fork files for reference
-├── onboard.yml                    # Project onboarding manifest
-├── bootstrap.sh                   # Standalone setup script
-└── docs/                          # Architecture documentation
+├── agnosticd/gcp/                 # AgnosticD vars and secrets example
+├── scripts/                       # deploy.sh, start/stop/teardown, TLS gen
+├── onboard.yml                    # Onboarding manifest (single source of truth)
+├── bootstrap.sh                   # Standalone setup script (reads onboard.yml)
+├── CONTRIBUTING.md                # Contributor guidelines
+└── LICENSE                        # Apache-2.0
 ```
 
 ## Values Reference
@@ -108,26 +156,16 @@ helm install artemis-edge . -f values.yaml -f values-azure.yaml
 | alice | bosco | Producer |
 | bob | bosco | Consumer |
 
-## Showroom Lab Guide
+## Contributing
 
-The `showroom/` directory contains an Antora-based lab guide with 8 modules covering the full demo flow. Preview locally:
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, code standards,
+and the pull request workflow.
 
-```bash
-podman run --rm --name antora -v $PWD/showroom:/antora:z -p 8080:8080 -i -t \
-  ghcr.io/juliaaano/antora-viewer
-```
+## License
 
-## Java Clients
-
-The `java/` directory preserves the Quarkus Camel applications from the upstream fork:
-
-- **amqp-client**: AMQP producer/consumer
-- **mqtt-client**: MQTT5 producer/consumer
-- **amqp-bridge**: Durable subscription bridge with loop prevention
-- **artemis-extensions**: StaticHeaderPlugin for broker-side header injection
-
-Build: `cd java/amqp-client && mvn package -Dquarkus.container-image.build=true`
+[Apache-2.0](LICENSE)
 
 ## Credits
 
-Based on [joshdreagan/artemis-edge-demo](https://github.com/joshdreagan/artemis-edge-demo), extended with RHACM integration, ZTP, and Field-Sourced Content packaging.
+Based on [joshdreagan/artemis-edge-demo](https://github.com/joshdreagan/artemis-edge-demo),
+extended with RHACM integration, ZTP, and Field-Sourced Content packaging.

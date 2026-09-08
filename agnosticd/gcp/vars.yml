@@ -17,8 +17,7 @@
 # ===================================================================
 tag: main
 cloud_provider: gcp
-env_type: ocp4-cluster
-software_to_deploy: openshift4
+config: openshift-cluster
 
 # Load GCP service account JSON content from key file at runtime.
 # AgnosticD roles (open-env-gcp-add-user-to-project, infra-gcp-credentials-file)
@@ -124,7 +123,8 @@ instances:
 # ===================================================================
 # Workloads — executed in order after cluster is up
 # ===================================================================
-infra_workloads:
+# agnosticd-v2 uses 'workloads' (not 'infra_workloads')
+workloads:
   - agnosticd.core_workloads.ocp4_workload_cert_manager
   - agnosticd.core_workloads.ocp4_workload_authentication_htpasswd
   - agnosticd.core_workloads.ocp4_workload_rhacm

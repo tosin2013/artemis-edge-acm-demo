@@ -1,31 +1,34 @@
 #!/usr/bin/env bash
 set -euo pipefail
 #
-# Deploy / Destroy / Lifecycle Artemis Edge ACM Demo on GCP via AgnosticD v2
+# Deploy / Destroy / Lifecycle Artemis Edge ACM Demo via agd CLI
 #
-# Uses ansible-navigator (preferred) or ansible-playbook against AgnosticD entrypoints.
-# Supports provisioning (default), destroy, stop, start, and status actions.
+# This is the project entry point that delegates to the agd CLI from
+# tosin2013/agnosticd-v2. It reads config.yml for defaults and passes
+# execution to: ./bin/agd <action> -g <GUID> -c artemis-edge-gcp -a <ACCOUNT>
 #
 # Prerequisites:
-#   - ansible-navigator or ansible-playbook installed
-#   - AgnosticD v2 repo cloned to ~/Development/agnosticd-v2
-#   - GCP secrets populated (see agnosticd/gcp/secrets.yml.example)
-#   - GCP service account JSON key downloaded
+#   - AgnosticD v2 cloned with agd setup completed
+#   - GCP secrets populated in agnosticd-v2-secrets/
+#   - Vars file copied to agnosticd-v2-vars/artemis-edge-gcp.yml
 #
 # Usage:
 #   ./scripts/deploy.sh --guid 725j2 --account openenv-gcp
 #   ./scripts/deploy.sh --destroy --guid 725j2 --account openenv-gcp
-#   ./scripts/deploy.sh --action stop --guid 725j2 --account openenv-gcp
+#   ./scripts/deploy.sh --stop --guid 725j2 --account openenv-gcp
 #   ./scripts/deploy.sh --start --guid 725j2 --account openenv-gcp
+#   ./scripts/deploy.sh --status --guid 725j2 --account openenv-gcp
 #   ./scripts/deploy.sh  # reads GUID from config.yml or AGD_GUID env var
 #
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-VARS_FILE="${PROJECT_ROOT}/agnosticd/gcp/vars.yml"
-SECRETS_DIR="${HOME}/Development/agnosticd-v2-secrets"
-AGD_DIR="${HOME}/Development/agnosticd-v2"
-OUTPUT_DIR="${HOME}/Development/agnosticd-v2-output"
+
+# AgnosticD v2 directory (where bin/agd lives)
+AGD_ROOT="${AGD_ROOT:-${HOME}/Development/agnosticd-v2}"
+
+# Config name used by agd to find the vars file in agnosticd-v2-vars/
+AGD_CONFIG="artemis-edge-gcp"
 
 # Read GUID from config.yml if not set via env or CLI
 if [[ -z "${AGD_GUID:-}" && -f "${PROJECT_ROOT}/config.yml" ]]; then
@@ -33,7 +36,6 @@ if [[ -z "${AGD_GUID:-}" && -f "${PROJECT_ROOT}/config.yml" ]]; then
 fi
 : "${AGD_GUID:=}"
 : "${AGD_ACCOUNT:=openenv-gcp}"
-: "${AGD_TAGS:=}"
 : "${AGD_ACTION:=provision}"
 
 # Parse CLI args
@@ -41,7 +43,6 @@ while [[ $# -gt 0 ]]; do
   case $1 in
     --guid) AGD_GUID="$2"; shift 2 ;;
     --account) AGD_ACCOUNT="$2"; shift 2 ;;
-    --tags) AGD_TAGS="$2"; shift 2 ;;
     --action) AGD_ACTION="$2"; shift 2 ;;
     --destroy) AGD_ACTION="destroy"; shift ;;
     --stop) AGD_ACTION="stop"; shift ;;
@@ -53,13 +54,17 @@ while [[ $# -gt 0 ]]; do
       echo "Options:"
       echo "  --guid GUID        Deployment GUID (reads from config.yml if not set)"
       echo "  --account ACCOUNT  Secrets account name (default: openenv-gcp)"
-      echo "  --tags TAGS        Ansible tags to run (e.g. step003,step005)"
-      echo "  --action ACTION    AgnosticD action: provision, destroy, stop, start, status (default: provision)"
+      echo "  --action ACTION    AgnosticD action: provision, destroy, stop, start, status"
       echo "  --destroy          Shorthand for --action destroy"
       echo "  --stop             Shorthand for --action stop"
       echo "  --start            Shorthand for --action start"
       echo "  --status           Shorthand for --action status"
       echo "  -h, --help         Show this help message"
+      echo ""
+      echo "Examples:"
+      echo "  $0 --guid 725j2 --account openenv-gcp"
+      echo "  $0 --destroy --guid 725j2"
+      echo "  $0  # reads GUID from config.yml"
       exit 0
       ;;
     *) echo "Unknown argument: $1" >&2; echo "Use --help for usage." >&2; exit 1 ;;
@@ -72,107 +77,35 @@ if [[ -z "${AGD_GUID}" ]]; then
   exit 1
 fi
 
-# Determine the playbook based on action
+# Validate agd is available
+if [[ ! -x "${AGD_ROOT}/bin/agd" ]]; then
+  echo "ERROR: agd CLI not found at ${AGD_ROOT}/bin/agd" >&2
+  echo "Clone AgnosticD v2: git clone https://github.com/tosin2013/agnosticd-v2.git ${AGD_ROOT}" >&2
+  echo "Then run: cd ${AGD_ROOT} && ./bin/agd setup" >&2
+  exit 1
+fi
+
+# Validate action
 case "${AGD_ACTION}" in
-  provision) AGD_PLAYBOOK="ansible/main.yml" ;;
-  destroy)   AGD_PLAYBOOK="ansible/destroy.yml" ;;
-  stop)      AGD_PLAYBOOK="ansible/lifecycle.yml" ;;
-  start)     AGD_PLAYBOOK="ansible/lifecycle.yml" ;;
-  status)    AGD_PLAYBOOK="ansible/lifecycle.yml" ;;
+  provision|destroy|stop|start|status) ;;
   *) echo "ERROR: Unknown action '${AGD_ACTION}'. Use: provision, destroy, stop, start, status" >&2; exit 1 ;;
 esac
 
-SECRETS_FILE="${SECRETS_DIR}/secrets-${AGD_ACCOUNT}.yml"
-GCP_KEY_FILE=$(find "${SECRETS_DIR}" -name "gcp-key-*.json" 2>/dev/null | head -1)
-GUID_OUTPUT_DIR="${OUTPUT_DIR}/${AGD_GUID}"
-
-echo "=== Artemis Edge ACM Demo — GCP ${AGD_ACTION^} ==="
+echo "=== Artemis Edge ACM Demo — ${AGD_ACTION^} ==="
 echo "Action:      ${AGD_ACTION}"
-echo "Playbook:    ${AGD_PLAYBOOK}"
 echo "GUID:        ${AGD_GUID}"
+echo "Config:      ${AGD_CONFIG}"
 echo "Account:     ${AGD_ACCOUNT}"
-echo "Vars:        ${VARS_FILE}"
-echo "Secrets:     ${SECRETS_FILE}"
-echo "GCP Key:     ${GCP_KEY_FILE:-NOT FOUND}"
-echo "Output:      ${GUID_OUTPUT_DIR}"
-if [[ -n "${AGD_TAGS}" ]]; then
-  echo "Tags:        ${AGD_TAGS}"
-fi
+echo "AgnosticD:   ${AGD_ROOT}"
 echo ""
 
-# Validate prerequisites
-if [[ ! -f "${VARS_FILE}" ]]; then
-  echo "ERROR: Vars file not found: ${VARS_FILE}" >&2
-  exit 1
+# Activate virtualenv if it exists (agd needs ansible-navigator from the venv)
+VENV_DIR="${AGD_ROOT}/../agnosticd-v2-virtualenv"
+if [[ -d "${VENV_DIR}" ]]; then
+  source "${VENV_DIR}/bin/activate" 2>/dev/null || true
 fi
 
-if [[ ! -f "${SECRETS_FILE}" ]]; then
-  echo "ERROR: Secrets file not found: ${SECRETS_FILE}" >&2
-  echo "Copy agnosticd/gcp/secrets.yml.example to ${SECRETS_FILE} and fill in values." >&2
-  exit 1
-fi
-
-if [[ -z "${GCP_KEY_FILE}" ]]; then
-  echo "ERROR: No GCP key file found in ${SECRETS_DIR}/" >&2
-  echo "Download the service account key from GCP Console and save as gcp-key-<id>.json" >&2
-  exit 1
-fi
-
-if [[ ! -d "${AGD_DIR}/ansible" ]]; then
-  echo "ERROR: AgnosticD v2 repo not found at ${AGD_DIR}" >&2
-  echo "Clone it: git clone https://github.com/redhat-cop/agnosticd.git ${AGD_DIR}" >&2
-  exit 1
-fi
-
-# Prefer ansible-navigator with EE image (all deps included)
-# Fall back to ansible-playbook if navigator not available
-USE_NAVIGATOR=false
-if command -v ansible-navigator &>/dev/null; then
-  USE_NAVIGATOR=true
-elif ! command -v ansible-playbook &>/dev/null; then
-  echo "ERROR: Neither ansible-navigator nor ansible-playbook found." >&2
-  echo "Install: pip3 install --user 'ansible-navigator[ansible-core]'" >&2
-  exit 1
-fi
-
-mkdir -p "${GUID_OUTPUT_DIR}"
-
-echo "=== Starting ${AGD_ACTION}... ==="
-cd "${AGD_DIR}"
-
-if [[ "${USE_NAVIGATOR}" == "true" ]]; then
-  echo "Using ansible-navigator with EE image..."
-  ansible-navigator run "${AGD_PLAYBOOK}" \
-    --mode stdout \
-    --eei quay.io/agnosticd/ee-multicloud:latest \
-    --eev "${PROJECT_ROOT}:${PROJECT_ROOT}" \
-    --eev "${SECRETS_DIR}:${SECRETS_DIR}" \
-    --eev "${GUID_OUTPUT_DIR}:${GUID_OUTPUT_DIR}" \
-    -e guid="${AGD_GUID}" \
-    -e ACTION="${AGD_ACTION}" \
-    -e @"${VARS_FILE}" \
-    -e @"${SECRETS_FILE}" \
-    -e "gcp_credentials_file=${GCP_KEY_FILE}" \
-    -e "output_dir=${GUID_OUTPUT_DIR}" \
-    ${AGD_TAGS:+--tags "${AGD_TAGS}"}
-else
-  echo "Using ansible-playbook directly..."
-  ansible-playbook "${AGD_PLAYBOOK}" \
-    -e guid="${AGD_GUID}" \
-    -e ACTION="${AGD_ACTION}" \
-    -e @"${VARS_FILE}" \
-    -e @"${SECRETS_FILE}" \
-    -e "gcp_credentials_file=${GCP_KEY_FILE}" \
-    -e "output_dir=${GUID_OUTPUT_DIR}" \
-    ${AGD_TAGS:+--tags "${AGD_TAGS}"}
-fi
-
-echo ""
-echo "=== ${AGD_ACTION^} complete! ==="
-if [[ "${AGD_ACTION}" == "provision" ]]; then
-  echo "Run: ./scripts/save-deployment-info.sh ${AGD_GUID}"
-  echo "     to populate deployment-info.yml"
-elif [[ "${AGD_ACTION}" == "destroy" ]]; then
-  echo "Cluster resources for GUID '${AGD_GUID}' have been destroyed."
-  echo "Output directory preserved at: ${GUID_OUTPUT_DIR}"
-fi
+# Delegate to agd
+echo "=== Delegating to agd ${AGD_ACTION}... ==="
+cd "${AGD_ROOT}"
+exec ./bin/agd "${AGD_ACTION}" -g "${AGD_GUID}" -c "${AGD_CONFIG}" -a "${AGD_ACCOUNT}"
