@@ -10,7 +10,7 @@
 
 === 1. Verify RHACM MultiClusterHub
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc get multiclusterhub -A
 ----
@@ -19,7 +19,7 @@ The `status.phase` should be `Running`.
 
 === 2. Check ArgoCD Applications
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc get application.argoproj.io -n openshift-gitops
 ----
@@ -28,17 +28,17 @@ All applications should show `Synced` and `Healthy`.
 
 === 3. Verify Operator Subscriptions
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc get sub -n artemis
 oc get sub -n keycloak
 ----
 
-Confirm `amq-broker-rhel8` and `keycloak-operator` subscriptions exist with `CurrentCSV` set.
+Confirm `amq-broker-rhel8` and `keycloak-operator` subscriptions exist. The output shows the `PACKAGE`, `SOURCE`, and `CHANNEL` columns.
 
 === 4. Check Managed Clusters
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc get managedclusters
 ----

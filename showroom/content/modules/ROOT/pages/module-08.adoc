@@ -6,6 +6,26 @@
 * Understand the 7 monitoring panels
 * Correlate metrics with messaging activity
 
+== Prerequisites
+
+This module requires **Multicluster Observability (MCO)** to be deployed. MCO provides the Grafana instance that displays AMQ Broker metrics.
+
+Verify MCO is installed:
+
+[source,bash,role=execute]
+----
+oc get multiclusterobservability -A
+----
+
+If no resources are found, MCO has not been configured for this deployment. You can still view the ServiceMonitors in the `artemis` namespace:
+
+[source,bash,role=execute]
+----
+oc get servicemonitor -n artemis
+----
+
+NOTE: Without MCO, the Grafana dashboard described below will not be available. The broker metrics are being collected by the ServiceMonitors but are not aggregated into a central dashboard.
+
 == Steps
 
 === 1. Access Grafana

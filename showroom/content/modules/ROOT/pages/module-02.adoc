@@ -1,5 +1,14 @@
 = Module 2: Observe Spoke Cluster Provisioning
 
+ifndef::mode_multi_hub[]
+[NOTE]
+====
+This module applies to **Mode 2 (multi-hub)** deployments where Hive provisions SNO edge clusters. In Mode 1 (single-hub), all broker instances run on the hub cluster and no spoke clusters are provisioned. You can review this module for context, but the commands below will return empty results.
+
+Skip to xref:module-03.adoc[Module 3: Verify AMQ Brokers and Federation].
+====
+endif::[]
+
 == Objectives
 
 * Understand how Hive ClusterDeployment drives SNO cluster provisioning on GCP

@@ -10,7 +10,7 @@
 
 === 1. Check Hub Broker Pods
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc get pods -n artemis -l application=hub-01-broker-app
 ----
@@ -26,17 +26,19 @@ ifdef::mode_multi_hub[]
 For each edge SNO, log in and verify:
 endif::[]
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc get pods -n artemis -l ActiveMQArtemis
 ----
 
 === 3. Verify ActiveMQArtemis CR Status
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc get activemqartemis -n artemis -o wide
 ----
+
+NOTE: The `READY` column may show `False` shortly after deployment due to broker properties checksum synchronization. This is a transient condition — the brokers are functional even while `READY` is `False`. Check the `Deployed` condition in the CR status for confirmation that all pods are running.
 
 === 4. Open AMQ Console
 

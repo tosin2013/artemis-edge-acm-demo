@@ -14,10 +14,10 @@ IMPORTANT: Start the consumer *before* producing messages. Topic (multicast) sub
 
 Open a terminal and run:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc -n artemis run consumer -ti \
-  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12.3 \
+  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
   --rm=true --restart=Never -- /bin/bash
 ----
 
@@ -31,9 +31,15 @@ Inside the container:
   --destination=topic://messages.NY.test --message-count=5 --receive-timeout=60000 --verbose
 ----
 
+TIP: If `{consumer_user}`/`{consumer_password}` fails with a SASL authentication error, use `admin`/`admin` instead.
+
 Leave this consumer running and open a *second terminal* for the next step.
 
 === 2. Produce from Edge (NY Region)
+
+ifndef::mode_multi_hub[]
+NOTE: In Mode 1 (single-hub), all brokers run on the hub cluster. The spoke services are still accessible via their internal service names.
+endif::[]
 
 On the NY spoke cluster:
 

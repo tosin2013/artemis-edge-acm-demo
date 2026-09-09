@@ -6,36 +6,32 @@
 * Verify access to all demo services
 * Understand which credentials to use
 
-== Cluster Access
+== Log In to Your Cluster
 
-Your environment is a single OpenShift cluster running on GCP with RHACM, ArgoCD, AMQ Broker, and Keycloak pre-deployed.
+Start by logging in to the OpenShift cluster. Run the following command in the Showroom terminal:
 
-=== Terminal Login
+[source,bash,role=execute]
+----
+{login_command}
+----
 
-The Showroom terminal is pre-authenticated with cluster-admin access. Verify by running:
+Verify you are logged in:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc whoami
 ----
 
-You should see `system:serviceaccount:showroom:showroom-terminal`.
+You should see your username (e.g. `{user}`).
 
-If the terminal is not pre-authenticated, log in manually:
-
-[source,bash]
-----
-oc login {openshift_api_url} -u admin -p <your-admin-password>
-----
-
-TIP: Your admin password was provided in the lab provisioning email or deployment output.
+TIP: The Showroom terminal may also have cluster-admin access via a pre-configured service account. The `oc login` above ensures you are authenticated as your own user.
 
 === OpenShift Web Console
 
 Open the OpenShift web console in your browser:
 
 * URL: https://console-openshift-console.{openshift_cluster_ingress_domain}
-* Login: `admin` / `<your-admin-password>`
+* Login: `{user}` / `{password}`
 
 == Service Credentials
 
@@ -57,6 +53,8 @@ Open the OpenShift web console in your browser:
 | {grafana_url}
 | (OpenShift SSO)
 | (use OCP credentials)
+
+NOTE: Grafana requires Multicluster Observability (MCO) to be deployed. If MCO is not configured, the Grafana URL will not be available. See xref:module-08.adoc[Module 8] for details.
 
 | RHACM Console
 | https://multicloud-console.apps.{openshift_cluster_ingress_domain}
@@ -90,12 +88,12 @@ The demo uses the following namespaces:
 * `artemis` -- AMQ Broker hub and edge instances
 * `keycloak` -- Keycloak OIDC provider
 * `open-cluster-management` -- RHACM hub
-* `open-cluster-management-observability` -- MCO (Grafana, Thanos)
+* `open-cluster-management-observability` -- MCO (Grafana, Thanos) — only if MCO is deployed
 * `openshift-gitops` -- ArgoCD
 
 Verify the ArgoCD application is healthy:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc get application.argoproj.io -n openshift-gitops
 ----

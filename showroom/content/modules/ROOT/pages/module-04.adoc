@@ -39,10 +39,10 @@ mvn package -Dquarkus.container-image.build=true
 
 === 2. Deploy AMQP Producer on Edge
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc -n artemis run producer -ti \
-  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12.3 \
+  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
   --rm=true --restart=Never -- /bin/bash
 ----
 
@@ -56,3 +56,5 @@ Inside the container:
   --message-count=10 --message='hello from NY edge' \
   --destination=topic://messages.NY.test --verbose
 ----
+
+TIP: If Keycloak OIDC users (`{producer_user}`/`{producer_password}`) fail to authenticate with a SASL error, use the broker admin credentials (`admin`/`admin`) instead. The Keycloak realm import may need the user passwords to be set manually — see the deployment troubleshooting guide.

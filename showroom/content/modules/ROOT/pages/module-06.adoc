@@ -17,7 +17,7 @@ IMPORTANT: Start the consumer *before* simulating the partition so it is subscri
 [source,bash]
 ----
 oc -n artemis run consumer-m6 -ti \
-  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12.3 \
+  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
   --rm=true --restart=Never -- /opt/amq/bin/artemis consumer \
   --url=amqp://hub-01-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672 \
   --protocol=AMQP --user={consumer_user} --password={consumer_password} \
@@ -70,7 +70,7 @@ On the disconnected NY spoke, produce messages that will be stored locally:
 [source,bash]
 ----
 oc -n artemis run producer-m6 -ti \
-  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12.3 \
+  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
   --rm=true --restart=Never -- /opt/amq/bin/artemis producer \
   --url=amqp://spoke-01-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672 \
   --protocol=AMQP --user={producer_user} --password={producer_password} \
