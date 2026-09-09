@@ -154,7 +154,7 @@ ocp4_workload_authentication_htpasswd_user_password_randomized: true
 ocp4_workload_authentication_htpasswd_admin_user: admin
 
 # --- RHACM ---
-ocp4_workload_rhacm_channel: release-2.17
+ocp4_workload_rhacm_acm_channel: release-2.17
 ocp4_workload_rhacm_catalog_source: redhat-operators
 
 # --- OpenShift GitOps (ArgoCD) ---

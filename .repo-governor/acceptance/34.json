@@ -1,0 +1,16 @@
+{
+  "authority_id": "34",
+  "$comment": "Redeploy cluster on OCP 4.22: cluster version must be 4.22.x and all workloads healthy",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "oc get clusterversion version -o jsonpath='{.status.desired.version}' 2>/dev/null | grep -q '^4\\.22'",
+      "$comment": "Cluster is running OCP 4.22.x"
+    },
+    {
+      "check": "command_exit",
+      "target": "scripts/validate-deployment.sh",
+      "$comment": "All post-deploy validation checks pass"
+    }
+  ]
+}
