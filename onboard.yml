@@ -121,13 +121,17 @@ setup_steps:
     check: "test -d ${agnosticd_root}/../agnosticd-v2-virtualenv"
     action: "cd ${agnosticd_root} && PATH=\"$HOME/bin:$PATH\" ./bin/agd setup"
 
-  - name: "Copy vars to agnosticd-v2-vars"
-    check: "test -f ${agnosticd_root}/../agnosticd-v2-vars/artemis-edge-gcp.yml"
-    action: "cp agnosticd/gcp/vars.yml ${agnosticd_root}/../agnosticd-v2-vars/artemis-edge-gcp.yml"
+  - name: "Sync vars to agnosticd-v2-vars"
+    check: "diff -q agnosticd/gcp/vars.yml ${agnosticd_root}/../agnosticd-v2-vars/artemis-edge-gcp.yml 2>/dev/null"
+    action: "mkdir -p ${agnosticd_root}/../agnosticd-v2-vars && cp agnosticd/gcp/vars.yml ${agnosticd_root}/../agnosticd-v2-vars/artemis-edge-gcp.yml"
 
-  - name: "Scaffold secrets file"
-    check: "test -f ${agnosticd_root}/../agnosticd-v2-secrets/secrets-${agd_account}.yml"
-    action: "mkdir -p ${agnosticd_root}/../agnosticd-v2-secrets && cp agnosticd/gcp/secrets.yml.example ${agnosticd_root}/../agnosticd-v2-secrets/secrets-${agd_account}.yml && echo 'Edit ${agnosticd_root}/../agnosticd-v2-secrets/secrets-${agd_account}.yml with your GCP credentials'"
+  - name: "Copy GCP key to secrets"
+    check: "test -f ${agnosticd_root}/../agnosticd-v2-secrets/gcp-key-${agd_guid}.json"
+    action: "mkdir -p ${agnosticd_root}/../agnosticd-v2-secrets && cp ${gcp_key_path} ${agnosticd_root}/../agnosticd-v2-secrets/gcp-key-${agd_guid}.json"
+
+  - name: "Generate secrets from GCP key"
+    check: "python3 -c \"import yaml; s=yaml.safe_load(open('${agnosticd_root}/../agnosticd-v2-secrets/secrets-${agd_account}.yml')); assert '${agd_guid}' in s.get('base_domain','')\""
+    action: "scripts/generate-secrets.sh ${gcp_key_path} ${agd_guid} ${agd_account} ${agnosticd_root}"
 
   - name: "Generate TLS certificates"
     check: "test -f artemis/tls/hub-01-broker-keystore.jks"
@@ -187,6 +191,11 @@ config:
     - key: agnosticd_root
       prompt: "AgnosticD v2 install path"
       default: "~/Development/agnosticd-v2"
+
+    - key: gcp_key_path
+      prompt: "Path to GCP service account JSON key"
+      default: "~/gcp-service-account.json"
+      required: true
 
 # ─────────────────────────────────────────────────────────────
 # Validation Checks

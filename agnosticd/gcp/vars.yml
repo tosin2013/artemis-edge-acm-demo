@@ -94,6 +94,7 @@ ocp4_base_domain: "{{ base_domain }}"
 
 ocp4_installer_root_url: https://mirror.openshift.com/pub/openshift-v4/clients
 ocp4_installer_version: "4.22"
+host_ocp4_installer_version: "4.22"
 host_ocp4_installer_set_user_data_kubeadmin_password: true
 
 openshift_cluster_admin_service_account_enable: true

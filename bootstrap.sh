@@ -362,7 +362,7 @@ run_setup_steps() {
         prompt_text="$(manifest_get ".setup_steps[$i].prompt")"
         default_val="$(manifest_get ".setup_steps[$i].default")"
 
-        if [[ -n "$prompt_var" ]]; then
+        if [[ -n "$prompt_var" && -z "${VARS[$prompt_var]+_}" ]]; then
             prompt_for "$prompt_var" "${prompt_text:-$prompt_var}" "${default_val:-}"
             local raw="${VARS[$prompt_var]}"
             VARS["$prompt_var"]="${raw/#\~/$HOME}"
@@ -385,10 +385,30 @@ run_setup_steps() {
 
 # ─── Phase: Configuration ───────────────────────────────────────────────────
 
+load_existing_config() {
+    local output_file
+    output_file="$(manifest_get ".config.output_file")"
+    if [[ -z "$output_file" || ! -f "$output_file" ]]; then return 0; fi
+
+    info "Loading existing config from: ${output_file}"
+    while IFS= read -r line; do
+        [[ "$line" =~ ^#.*$ || -z "$line" ]] && continue
+        local key="${line%%:*}"
+        local val="${line#*: }"
+        key="$(echo "$key" | xargs)"
+        val="$(echo "$val" | xargs)"
+        if [[ -n "$key" && -n "$val" ]]; then
+            VARS["$key"]="${val/#\~/$HOME}"
+        fi
+    done < "$output_file"
+}
+
 configure() {
     local count
     count="$(manifest_len ".config.prompts")"
     if (( count == 0 )); then return 0; fi
+
+    load_existing_config
 
     echo ""
     echo -e "${BOLD}--- Configuration ---${RESET}"
@@ -547,8 +567,8 @@ main() {
         fi
     fi
 
-    run_setup_steps
     configure
+    run_setup_steps
 
     local validation_passed=true
     if ! validate; then
