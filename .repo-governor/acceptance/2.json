@@ -1,0 +1,26 @@
+{
+  "authority_id": "2",
+  "$comment": "save-deployment-info.sh correctly populates deployment-info.yml after agd provision",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'openshift_cluster_admin_password' scripts/save-deployment-info.sh",
+      "$comment": "Script reads correct admin password key from provision-user-data.yaml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'openshift_gitops_server' scripts/save-deployment-info.sh",
+      "$comment": "Script extracts GitOps server URL"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'os.path.getmtime' scripts/save-deployment-info.sh",
+      "$comment": "Script picks newest kubeconfig (not first glob match)"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'save-deployment-info' scripts/deploy.sh",
+      "$comment": "deploy.sh auto-runs save-deployment-info.sh after provision"
+    }
+  ]
+}

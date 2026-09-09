@@ -271,7 +271,8 @@ post_setup:
        cd ${agnosticd_root}
        ./bin/agd provision -g ${agd_guid} -c artemis-edge-gcp -a ${agd_account}
 
-    3. After provisioning:
+    3. After provisioning, deployment-info.yml is updated automatically.
+       To refresh manually:
        ./scripts/save-deployment-info.sh ${agd_guid}
 
     4. Destroy when finished:

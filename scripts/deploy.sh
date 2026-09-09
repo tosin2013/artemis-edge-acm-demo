@@ -120,4 +120,14 @@ fi
 # Delegate to agd
 echo "=== Delegating to agd ${AGD_ACTION}... ==="
 cd "${AGD_ROOT}"
-exec ./bin/agd "${AGD_ACTION}" -g "${AGD_GUID}" -c "${AGD_CONFIG}" -a "${AGD_ACCOUNT}"
+
+if [[ "${AGD_ACTION}" == "provision" ]]; then
+  ./bin/agd "${AGD_ACTION}" -g "${AGD_GUID}" -c "${AGD_CONFIG}" -a "${AGD_ACCOUNT}"
+  AGD_EXIT=$?
+  echo ""
+  echo "=== Saving deployment info... ==="
+  "${SCRIPT_DIR}/save-deployment-info.sh" "${AGD_GUID}" || echo "WARN: save-deployment-info.sh failed (non-fatal)"
+  exit $AGD_EXIT
+else
+  exec ./bin/agd "${AGD_ACTION}" -g "${AGD_GUID}" -c "${AGD_CONFIG}" -a "${AGD_ACCOUNT}"
+fi
