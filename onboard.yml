@@ -258,6 +258,11 @@ validation:
     required: false
     fail_message: "OpenShift GitOps not found (will be deployed by workloads)"
 
+  - name: "GCP N2 vCPU quota sufficient for spoke provisioning"
+    command: "N2_AVAIL=$(gcloud compute regions describe us-east1 --project=openenv-${agd_guid} --format='json(quotas)' 2>/dev/null | python3 -c \"import json,sys; data=json.load(sys.stdin); [print(int(q['limit']-q['usage'])) for q in data.get('quotas',[]) if q.get('metric')=='N2_CPUS']\" 2>/dev/null) && [ \"${N2_AVAIL:-0}\" -ge 16 ]"
+    required: false
+    fail_message: "Need at least 16 free N2 vCPUs in us-east1 for 2 SNO spokes (8 vCPUs each). Request a quota increase."
+
   - name: "All workloads synced"
     command: "scripts/validate-deployment.sh"
     required: false

@@ -1,48 +1,107 @@
-= Module 2: Observe Spoke Cluster Provisioning
-
-ifndef::mode_multi_hub[]
-[NOTE]
-====
-This module applies to **Mode 2 (multi-hub)** deployments where Hive provisions SNO edge clusters. In Mode 1 (single-hub), all broker instances run on the hub cluster and no spoke clusters are provisioned. You can review this module for context, but the commands below will return empty results.
-
-Skip to xref:module-03.adoc[Module 3: Verify AMQ Brokers and Federation].
-====
-endif::[]
+= Module 2: Provision and Observe Spoke Clusters
 
 == Objectives
 
-* Understand how Hive ClusterDeployment drives SNO cluster provisioning on GCP
-* Watch the provisioning pipeline in action via RHACM
-* Verify ManagedCluster resources and labels
-* Confirm RHACM policies push AMQ Broker operator to spokes
+* Create a GCP cloud provider credential in the RHACM Console
+* Provision SNO edge clusters from the hub using ACM/Hive
+* Monitor the Hive provisioning pipeline in real time
+* Verify ManagedCluster registration, labels, and RHACM policies
 
 == Background
 
 This demo uses *Hive* (via Red Hat Advanced Cluster Management) to provision SNO edge clusters on GCP. Each spoke cluster is defined as a `ClusterDeployment` CR, which triggers Hive to create a new OpenShift cluster using the GCP cloud provider.
 
-NOTE: Spoke cluster provisioning takes approximately 30-45 minutes per cluster. All three clusters provision in parallel.
+The provisioning script (`deploy-spokes.sh`) automates the entire pipeline: it extracts credentials from the hub, creates per-spoke namespaces and secrets, patches the ArgoCD application, and monitors Hive until the clusters are installed.
+
+ifndef::mode_multi_hub[]
+NOTE: In Mode 1 (single-hub), spoke clusters are provisioned on-demand as part of this exercise. If your environment does not have sufficient GCP quota (16 vCPUs for 2 SNO clusters), you can review this module for context and skip to xref:module-03.adoc[Module 3: Verify AMQ Brokers and Federation].
+endif::[]
+
+ifdef::mode_multi_hub[]
+NOTE: In Mode 2 (multi-hub), spoke clusters may already be provisioned as part of the initial deployment. Check their status before proceeding.
+endif::[]
 
 == Steps
 
-=== 1. Review ClusterDeployments
+=== 1. Create GCP Credential in RHACM Console
 
-[source,bash,role=execute]
+Open the RHACM Console and create a cloud provider credential. This stores your GCP service account, pull secret, SSH keys, and base domain in a single ACM-managed secret.
+
+[TIP]
+====
+RHACM Console URL: https://multicloud-console.{openshift_cluster_ingress_domain}
+====
+
+. Navigate to *Infrastructure -> Credentials -> Add credential*
+. Select **Google Cloud Platform** as the provider type
+. Set:
+* **Credential name**: `gcp-credentials`
+* **Namespace**: `gcp-credentials` (create new)
+. Upload your **GCP service account JSON key** (or paste its contents)
+. Enter your **Base DNS domain**: `{guid}.gcp.redhatworkshops.io`
+. Paste your **Red Hat pull secret** (from https://console.redhat.com/openshift/install/pull-secret)
+. Paste your **SSH public** and **private keys**
+. Click **Add**
+
+Verify the credential was created:
+
+[source,bash,role=execute,subs="attributes+"]
 ----
-oc get clusterdeployments -A
+oc get secret gcp-credentials -n gcp-credentials -o jsonpath='{.metadata.labels.cluster\.open-cluster-management\.io/type}'
 ----
 
-ifndef::mode_multi_hub[]
-.Expected output (Mode 1 — single-hub)
+.Expected output
 [source,text]
 ----
-No resources found
+gcp
 ----
-In Mode 1, no spoke clusters are provisioned via Hive. This is expected.
-endif::[]
-ifdef::mode_multi_hub[]
-Each `ClusterDeployment` defines one SNO cluster:
+
+=== 2. Run the Provisioning Script
+
+The script extracts credentials from the ACM secret you just created and automates the entire Hive provisioning pipeline.
+
+ifndef::mode_multi_hub[]
+[source,bash,role=execute]
+----
+./scripts/deploy-spokes.sh --clusters 2
+----
 endif::[]
 
+ifdef::mode_multi_hub[]
+[source,bash,role=execute]
+----
+./scripts/deploy-spokes.sh --clusters 3
+----
+endif::[]
+
+The script performs these steps automatically:
+
+. **Pre-flight checks** — verifies `oc` login, Hive pods, ClusterImageSet, ArgoCD app
+. **Credential extraction** — reads GCP key, pull secret, and SSH keys from the ACM credential (or bastion files)
+. **Secret creation** — creates per-spoke namespaces with `gcp-creds`, `pull-secret`, and `ssh-private-key` secrets
+. **ArgoCD patch** — enables `spokeProvisioning` in the Helm values, which creates:
+** `ClusterDeployment` CRs (triggers Hive provisioning)
+** `ManagedCluster` CRs (auto-imports clusters into RHACM)
+** `KlusterletAddonConfig` CRs (enables ACM add-ons)
+** RHACM Policies for AMQ Broker operator and monitoring
+. **Hive monitoring** — polls `ClusterDeployments` every 60 seconds until installed
+
+ifndef::mode_multi_hub[]
+[cols="1,1,1"]
+|===
+| Cluster | Region | GCP Machine Type
+
+| sno-edge-01
+| NY
+| n2-standard-8
+
+| sno-edge-02
+| NJ
+| n2-standard-8
+|===
+endif::[]
+
+ifdef::mode_multi_hub[]
 [cols="1,1,1"]
 |===
 | Cluster | Region | GCP Machine Type
@@ -59,37 +118,36 @@ endif::[]
 | CT
 | n2-standard-8
 |===
+endif::[]
 
-=== 2. Monitor Provisioning Progress
+NOTE: Spoke cluster provisioning takes approximately 30-45 minutes per cluster. All clusters provision in parallel.
 
-Watch the ClusterDeployment status:
+=== 3. Monitor Provisioning Progress
+
+While the script monitors automatically, you can also watch from a second terminal:
 
 [source,bash,role=execute]
 ----
 oc get clusterdeployments -A -o custom-columns=NAME:.metadata.name,INSTALLED:.spec.installed,PLATFORM:.spec.platform.gcp.region
 ----
 
-ifndef::mode_multi_hub[]
-.Expected output (Mode 1)
-[source,text]
-----
-NAME   INSTALLED   PLATFORM
-----
-The table header appears with no rows — no ClusterDeployments exist in Mode 1.
-endif::[]
-
-ifdef::mode_multi_hub[]
-For more detail, check the provisioning job logs:
+Or use the watch flag for continuous updates:
 
 [source,bash,role=execute]
 ----
-oc get pods -n sno-edge-01 -l hive.openshift.io/cluster-deployment-name=sno-edge-01
+oc get clusterdeployments -A -w
 ----
-endif::[]
 
-TIP: You can also monitor provisioning from the RHACM console under *Infrastructure > Clusters*.
+TIP: You can proceed to xref:module-03.adoc[Module 3: Verify AMQ Brokers and Federation] while the clusters provision. The spoke-specific AMQ brokers and federation will activate once the clusters join.
 
-=== 3. Verify ManagedCluster Labels
+You can also check status at any time:
+
+[source,bash,role=execute]
+----
+./scripts/deploy-spokes.sh --status
+----
+
+=== 4. Verify ManagedCluster Labels
 
 Once clusters are provisioned, they auto-register as ManagedClusters:
 
@@ -99,84 +157,76 @@ oc get managedcluster -o custom-columns=NAME:.metadata.name,REGION:.metadata.lab
 ----
 
 ifndef::mode_multi_hub[]
-.Expected output (Mode 1)
+.Expected output (after provisioning completes)
 [source,text]
 ----
 NAME            REGION   PROVIDER   AVAILABLE
 local-cluster   <none>   <none>     True
+sno-edge-01     NY       gcp        True
+sno-edge-02     NJ       gcp        True
 ----
-Only the `local-cluster` (the hub itself) is registered. No edge region or cloud provider labels are set.
 endif::[]
 
 ifdef::mode_multi_hub[]
-Each cluster should show its assigned region (NY, NJ, CT) and cloud provider label.
+.Expected output (after provisioning completes)
+[source,text]
+----
+NAME            REGION   PROVIDER   AVAILABLE
+local-cluster   <none>   <none>     True
+sno-edge-01     NY       gcp        True
+sno-edge-02     NJ       gcp        True
+sno-edge-03     CT       gcp        True
+----
 endif::[]
 
-=== 4. Check Placement Decisions
+Each spoke cluster shows its assigned edge region and `gcp` cloud provider label.
+
+=== 5. Check Placement Decisions
 
 [source,bash,role=execute]
 ----
 oc get placementdecisions -n ztp-policies
 ----
 
-ifndef::mode_multi_hub[]
-.Expected output (Mode 1)
-[source,text]
-----
-No resources found in ztp-policies namespace.
-----
-The ZTP policies namespace exists but has no placement decisions in single-hub mode.
-endif::[]
+The Placement API selects all clusters with label `sites: edge-sno`. Each spoke cluster is automatically targeted for RHACM policy enforcement.
 
-ifdef::mode_multi_hub[]
-The Placement API selects all clusters with label `sites: edge-sno`.
-endif::[]
-
-=== 5. Verify RHACM Policies
+=== 6. Verify RHACM Policies
 
 [source,bash,role=execute]
 ----
 oc get policy -n ztp-policies
 ----
 
-ifndef::mode_multi_hub[]
-.Expected output (Mode 1)
-[source,text]
-----
-No resources found in ztp-policies namespace.
-----
-No ZTP policies are deployed in single-hub mode — spoke cluster policy push is a Mode 2 feature.
-endif::[]
-
-ifdef::mode_multi_hub[]
 Two policies should show `Compliant`:
 
 * `policy-amq-broker-operator` -- ensures AMQ Broker operator is installed on each spoke
 * `policy-edge-monitoring` -- creates the metrics namespace on each spoke
-endif::[]
 
-=== 6. Troubleshooting
+=== 7. Troubleshooting
 
-ifdef::mode_multi_hub[]
-If a cluster is stuck provisioning:
+If a cluster is stuck provisioning, check the ClusterDeployment conditions:
 
 [source,bash,role=execute]
 ----
 oc get clusterdeployment sno-edge-01 -n sno-edge-01 -o yaml | grep -A 10 conditions
 ----
 
+Check the provisioning pod logs:
+
 [source,bash,role=execute]
 ----
 oc logs -n sno-edge-01 -l hive.openshift.io/cluster-deployment-name=sno-edge-01 --tail=50
 ----
 
-Check GCP quota — ensure n2-standard-8 vCPU quota allows 3 concurrent SNO installs (24 vCPUs).
-endif::[]
+Common issues:
 
-ifndef::mode_multi_hub[]
-In Mode 1 (single-hub), there are no spoke clusters to troubleshoot. If you expected multi-hub mode, verify that:
+* **GCP quota exceeded** — ensure n2-standard-8 vCPU quota allows concurrent SNO installs (8 vCPUs per cluster)
+* **DNS zone not found** — verify the base domain matches your GCP sandbox DNS zone
+* **Credential error** — re-check the GCP service account JSON in the RHACM credential
 
-* Your deployment was provisioned with `mode: multi-hub` in the AgnosticD vars
-* The `ClusterDeployment` CRDs were created in the hub cluster
-* Hive pods are running: `oc get pods -n hive`
-endif::[]
+To tear down spoke clusters and start over:
+
+[source,bash,role=execute]
+----
+./scripts/destroy-spokes.sh
+----
