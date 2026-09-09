@@ -57,7 +57,7 @@ Open the OpenShift web console in your browser:
 NOTE: Grafana requires Multicluster Observability (MCO) to be deployed. If MCO is not configured, the Grafana URL will not be available. See xref:module-08.adoc[Module 8] for details.
 
 | RHACM Console
-| https://multicloud-console.apps.{openshift_cluster_ingress_domain}
+| https://multicloud-console.{openshift_cluster_ingress_domain}
 | (OpenShift SSO)
 | (use OCP credentials)
 |===

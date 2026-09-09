@@ -36,5 +36,5 @@ endif::[]
 | {grafana_url}
 
 | RHACM Console
-| https://multicloud-console.apps.{openshift_cluster_ingress_domain}
+| https://multicloud-console.{openshift_cluster_ingress_domain}
 |===
