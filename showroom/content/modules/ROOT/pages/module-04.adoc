@@ -48,7 +48,7 @@ oc -n artemis run producer -ti \
 
 Inside the container:
 
-[source,bash]
+[source,bash,subs="attributes+"]
 ----
 /opt/amq/bin/artemis producer \
   --url=amqp://spoke-01-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672 \

@@ -10,7 +10,7 @@
 
 Start by logging in to the OpenShift cluster. Run the following command in the Showroom terminal:
 
-[source,bash,role=execute]
+[source,bash,role=execute,subs="attributes+"]
 ----
 {login_command}
 ----

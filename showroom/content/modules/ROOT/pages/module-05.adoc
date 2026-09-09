@@ -23,7 +23,7 @@ oc -n artemis run consumer -ti \
 
 Inside the container:
 
-[source,bash]
+[source,bash,subs="attributes+"]
 ----
 /opt/amq/bin/artemis consumer \
   --url=amqp://hub-01-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672 \
@@ -43,7 +43,7 @@ endif::[]
 
 On the NY spoke cluster:
 
-[source,bash]
+[source,bash,subs="attributes+"]
 ----
 /opt/amq/bin/artemis producer \
   --url=amqp://spoke-01-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672 \
@@ -56,7 +56,7 @@ On the NY spoke cluster:
 
 Messages sent to `messages.ALL.*` are federated to all brokers:
 
-[source,bash]
+[source,bash,subs="attributes+"]
 ----
 /opt/amq/bin/artemis producer \
   --url=amqp://spoke-02-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672 \
@@ -71,7 +71,7 @@ NOTE: The `artemis` CLI does not support `--protocol=MQTT`. Use the AMQP protoco
 
 Using AMQP to produce to the CT region address:
 
-[source,bash]
+[source,bash,subs="attributes+"]
 ----
 /opt/amq/bin/artemis producer \
   --url=amqp://spoke-03-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672 \

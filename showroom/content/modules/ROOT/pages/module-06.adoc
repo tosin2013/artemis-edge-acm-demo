@@ -14,7 +14,7 @@ Start a long-running consumer on `messages.NY.test`:
 
 IMPORTANT: Start the consumer *before* simulating the partition so it is subscribed to the topic.
 
-[source,bash]
+[source,bash,subs="attributes+"]
 ----
 oc -n artemis run consumer-m6 -ti \
   --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
@@ -67,7 +67,7 @@ You should see connection errors as the federation link fails.
 
 On the disconnected NY spoke, produce messages that will be stored locally:
 
-[source,bash]
+[source,bash,subs="attributes+"]
 ----
 oc -n artemis run producer-m6 -ti \
   --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
