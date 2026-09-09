@@ -20,6 +20,26 @@ ifndef::mode_multi_hub[]
 You are running *Mode 1: Single Hub* with 1 RHACM hub and 3 SNO edge clusters.
 endif::[]
 
+=== Getting Started
+
+Open the *Terminal 1* tab on the right and log in to your OpenShift cluster:
+
+[source,bash,role=execute,subs="attributes+"]
+----
+{login_command}
+----
+
+Verify you are logged in:
+
+[source,bash,role=execute]
+----
+oc whoami
+----
+
+You should see `{user}`. You now have read access to all cluster resources used in this demo.
+
+TIP: Your credentials are `{user}` / `{password}`. The OpenShift Web Console is available at https://console-openshift-console.{openshift_cluster_ingress_domain}[Console ↗].
+
 === Console Links
 
 [cols="1,2"]
