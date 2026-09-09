@@ -98,9 +98,7 @@ PLATFORM:.spec.platform.gcp.region 2>/dev/null || echo "  No ClusterDeployments 
   echo ""
   echo "--- ManagedClusters ---"
   oc get managedcluster -o custom-columns=\
-NAME:.metadata.name,REGION:.metadata.labels.edge-region,\
-PROVIDER:.metadata.labels.cloud-provider,\
-AVAILABLE:'.status.conditions[?(@.type=="ManagedClusterConditionAvailable")].status' 2>/dev/null
+'NAME:.metadata.name,REGION:.metadata.labels.edge-region,PROVIDER:.metadata.labels.cloud-provider,AVAILABLE:.status.conditions[?(@.type=="ManagedClusterConditionAvailable")].status' 2>/dev/null
   echo ""
   echo "--- RHACM Policies ---"
   oc get policy -n ztp-policies 2>/dev/null || echo "  No policies in ztp-policies namespace"
@@ -468,10 +466,7 @@ log_step "6/6" "Verifying ManagedClusters..."
 echo ""
 
 oc get managedcluster -o custom-columns=\
-NAME:.metadata.name,\
-REGION:.metadata.labels.edge-region,\
-PROVIDER:.metadata.labels.cloud-provider,\
-AVAILABLE:'.status.conditions[?(@.type=="ManagedClusterConditionAvailable")].status' 2>/dev/null
+'NAME:.metadata.name,REGION:.metadata.labels.edge-region,PROVIDER:.metadata.labels.cloud-provider,AVAILABLE:.status.conditions[?(@.type=="ManagedClusterConditionAvailable")].status' 2>/dev/null
 
 echo ""
 
