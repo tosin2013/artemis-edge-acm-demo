@@ -123,6 +123,7 @@ workloads:
   - agnosticd.core_workloads.ocp4_workload_rhacm
   - agnosticd.core_workloads.ocp4_workload_openshift_gitops
   - agnosticd.core_workloads.ocp4_workload_field_content
+  - ocp4_workload_rhacm_observability_gcs
   - agnosticd.core_workloads.ocp4_workload_showroom
 
 # ===================================================================

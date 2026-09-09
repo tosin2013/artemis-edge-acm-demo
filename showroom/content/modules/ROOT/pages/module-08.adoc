@@ -3,7 +3,7 @@
 
 == Objectives
 
-* Deploy Multicluster Observability (MCO) with a GCS backend
+* Verify that Multicluster Observability (MCO) is deployed and healthy
 * Explore default RHACM Grafana dashboards across hub and spoke clusters
 * Create custom AMQ Broker alerts using Thanos Ruler
 * Import a custom AMQ Broker Grafana dashboard
@@ -11,13 +11,13 @@
 
 == Background
 
-Red Hat Advanced Cluster Management includes a *Multicluster Observability* (MCO) addon that aggregates Prometheus metrics from all managed clusters into a central Thanos/Grafana stack on the hub. MCO requires S3-compatible or GCS object storage for long-term metric retention.
+Red Hat Advanced Cluster Management includes a *Multicluster Observability* (MCO) addon that aggregates Prometheus metrics from all managed clusters into a central Thanos/Grafana stack on the hub. This deployment uses **Google Cloud Storage (GCS)** as the Thanos backend for long-term metric retention.
 
-Since this deployment runs on GCP (without ODF/NooBaa), we use **Google Cloud Storage (GCS)** as the Thanos backend. The setup follows the same pattern as the https://tosin2013.github.io/rhacm-workshop/modules/03-observability.html[RHACM Workshop Observability exercise], adapted for GCS.
+MCO was deployed automatically during cluster provisioning via an AgnosticD workload role (`ocp4_workload_rhacm_observability_gcs`). In this module you will verify the deployment, explore built-in dashboards, and build custom alerting and dashboards for AMQ Broker.
 
 == Prerequisites
 
-Verify RHACM is running and MCO CRDs are available:
+Verify RHACM is running:
 
 [source,bash,role=execute]
 ----
@@ -31,175 +31,118 @@ NAME              STATUS
 multiclusterhub   Running
 ----
 
-Verify the `open-cluster-management-observability` namespace exists:
+== Steps
+
+=== 1. Verify MCO Deployment
+
+Check that the MultiClusterObservability CR is healthy:
 
 [source,bash,role=execute]
 ----
-oc get namespace open-cluster-management-observability
-----
-
-Verify ServiceMonitors are collecting AMQ Broker metrics:
-
-[source,bash,role=execute]
-----
-oc get servicemonitor -n artemis
+oc get multiclusterobservability observability -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}'
+echo ""
 ----
 
 .Expected output
 [source,text]
 ----
-NAME                              AGE
-hub-01-broker-service-monitor     ...
-spoke-01-broker-service-monitor   ...
-spoke-02-broker-service-monitor   ...
-spoke-03-broker-service-monitor   ...
+True
 ----
 
-== Steps
-
-=== 1. Deploy MCO with GCS Backend
-
-==== 1.1. Create the GCS Bucket
-
-Create a Google Cloud Storage bucket for Thanos metric retention:
-
-[source,bash,role=execute,subs="attributes+"]
-----
-gsutil mb -p openenv-{guid} -l us-east1 gs://artemis-observability-{guid}
-----
-
-Verify the bucket was created:
-
-[source,bash,role=execute,subs="attributes+"]
-----
-gsutil ls gs://artemis-observability-{guid}/
-----
-
-==== 1.2. Create the Thanos Object Storage Secret
-
-The secret tells Thanos how to connect to GCS using the GCP service account:
-
-[source,bash,role=execute,subs="attributes+"]
-----
-cat <<EOF | oc apply -f -
-apiVersion: v1
-kind: Secret
-metadata:
-  name: thanos-object-storage
-  namespace: open-cluster-management-observability
-type: Opaque
-stringData:
-  thanos.yaml: |
-    type: GCS
-    config:
-      bucket: "artemis-observability-{guid}"
-      service_account: |-
-$(sed 's/^/        /' ~/gcp-service-account.json)
-EOF
-----
-
-Verify the secret was created:
+Verify all MCO pods are running:
 
 [source,bash,role=execute]
 ----
-oc get secret thanos-object-storage -n open-cluster-management-observability
+oc get pods -n open-cluster-management-observability --no-headers | wc -l
+echo "pods total"
+oc get pods -n open-cluster-management-observability --no-headers | grep -v Running | grep -v Completed || echo "All pods healthy"
 ----
 
-==== 1.3. Copy the Cluster Pull Secret
+NOTE: A healthy MCO deployment has approximately 30-35 pods including Thanos components, Grafana replicas, alertmanager, and metrics collectors.
 
-MCO needs the cluster pull secret to pull observability images:
+Verify the GCS-backed Thanos object storage secret exists:
 
 [source,bash,role=execute]
 ----
-DOCKER_CONFIG_JSON=$(oc extract secret/pull-secret -n openshift-config --to=-)
-oc create secret generic multiclusterhub-operator-pull-secret \
-  -n open-cluster-management-observability \
-  --from-literal=.dockerconfigjson="$DOCKER_CONFIG_JSON" \
-  --type=kubernetes.io/dockerconfigjson \
-  --dry-run=client -o yaml | oc apply -f -
+oc get secret thanos-object-storage -n open-cluster-management-observability -o jsonpath='{.data.thanos\.yaml}' | base64 -d | head -3
 ----
 
-==== 1.4. Apply the MultiClusterObservability CR
-
-[source,bash,role=execute]
+.Expected output
+[source,text]
 ----
-cat <<'EOF' | oc apply -f -
-apiVersion: observability.open-cluster-management.io/v1beta2
-kind: MultiClusterObservability
-metadata:
-  name: observability
-spec:
-  observabilityAddonSpec: {}
-  storageConfig:
-    metricObjectStorage:
-      name: thanos-object-storage
-      key: thanos.yaml
-    statefulSetSize: 10Gi
-  advanced:
-    retentionConfig:
-      blockDuration: 2h
-      deleteDelay: 48h
-      retentionInLocal: 24h
-      retentionResolutionRaw: 30d
-      retentionResolution5m: 180d
-      retentionResolution1h: 365d
-EOF
-----
-
-==== 1.5. Wait for MCO Pods
-
-MCO deploys approximately 15-20 pods. Wait for them to reach `Running` state:
-
-[source,bash,role=execute]
-----
-oc get pods -n open-cluster-management-observability -w
-----
-
-TIP: This takes 3-5 minutes. Press `Ctrl+C` to stop watching once all pods show `Running`.
-
-Verify the Grafana route was created:
-
-[source,bash,role=execute]
-----
-oc get route -n open-cluster-management-observability -l app=multicluster-observability-grafana
+type: GCS
+config:
+  bucket: ...
 ----
 
 === 2. Explore Default Grafana Dashboards
 
-Navigate to the Grafana instance. You can find the URL from the RHACM console (top-right Grafana link) or directly:
+Get the Grafana URL:
 
 [source,bash,role=execute]
 ----
 echo "https://$(oc get route grafana -n open-cluster-management-observability -o jsonpath='{.spec.host}')"
 ----
 
-NOTE: Grafana uses OpenShift authentication. Log in with your cluster credentials.
+Open the URL in your browser. Grafana uses OpenShift authentication — log in with your cluster credentials.
 
-Explore the built-in dashboards:
+NOTE: Grafana uses OpenShift OAuth. Log in with `admin` / your cluster admin password, or with your `user1` credentials.
 
-* **ACM - Clusters Overview**: memory utilization, CPU, etcd database size per cluster
-* **ACM - Resource Optimization**: resource requests vs actual usage
+Explore the built-in dashboards under *Dashboards*:
 
-With your SNO spoke clusters joined, you can now compare metrics across:
+* **ACM - Clusters Overview**: memory utilization, CPU usage, and etcd database size per cluster
+* **ACM - Resource Optimization**: resource requests vs actual usage across managed clusters
+
+ifdef::mode_multi_hub[]
+With your SNO spoke clusters joined, you can compare metrics across:
 
 * `local-cluster` (the hub)
 * `sno-edge-01` (NY edge)
 * `sno-edge-02` (NJ edge)
+endif::mode_multi_hub[]
+ifndef::mode_multi_hub[]
+In single-hub mode, the `local-cluster` metrics show the hub cluster's health. Once spoke clusters are provisioned (see xref:module-02.adoc[Module 2]), their metrics will appear here automatically.
+endif::mode_multi_hub[]
 
 ==== Dashboard Exploration Tasks
 
 Using the **ACM - Clusters Overview** dashboard:
 
 . Find the maximum API server latency for `local-cluster`
-. Compare memory utilization % across all three clusters
+. Compare memory utilization % across all clusters
 . Find the etcd database size for each cluster
 . Identify which namespace consumes the most CPU on `local-cluster`
 
-=== 3. Create Custom AMQ Broker Alerts
+=== 3. Verify Metrics Collection
+
+Check that the metrics collector is running on the hub:
+
+[source,bash,role=execute]
+----
+oc get pods -n open-cluster-management-observability -l component=metrics-collector
+----
+
+ifdef::mode_multi_hub[]
+Check that endpoint-monitoring addons are enabled on spoke clusters:
+
+[source,bash,role=execute]
+----
+oc get managedclusteraddon -A -l component=addon-agent | grep observability
+----
+endif::mode_multi_hub[]
+
+Verify ServiceMonitors are collecting AMQ Broker metrics:
+
+[source,bash,role=execute]
+----
+oc get servicemonitor -n artemis 2>/dev/null || echo "ServiceMonitor resources will appear after AMQ Broker is deployed"
+----
+
+=== 4. Create Custom AMQ Broker Alerts
 
 Switch to the Grafana **Explore** page (compass icon in the left sidebar). Click the **Builder** / **Code** toggle and switch to **Code** mode so you can paste PromQL expressions.
 
-==== 3.1. Verify AMQ Broker Metrics Are Available
+==== 4.1. Verify AMQ Broker Metrics Are Available
 
 Run this query to check that AMQ Broker metrics are being collected:
 
@@ -210,7 +153,7 @@ artemis_message_count
 
 You should see results from hub brokers. If spoke clusters have AMQ Broker deployed (via RHACM policy), their metrics will also appear.
 
-==== 3.2. Deploy Custom Alert Rules
+==== 4.2. Deploy Custom Alert Rules
 
 Create a ConfigMap with custom alert rules for AMQ Broker monitoring:
 
@@ -248,7 +191,7 @@ data:
 EOF
 ----
 
-==== 3.3. Verify Alerts
+==== 4.3. Verify Alerts
 
 Wait 60 seconds for the thanos-ruler pods to pick up the new rules, then run these queries in Grafana Explore:
 
@@ -273,7 +216,7 @@ Check if any alerts are firing:
 ALERTS{alertname=~"Broker.*"}
 ----
 
-=== 4. Create Custom AMQ Broker Dashboard
+=== 5. Create Custom AMQ Broker Dashboard
 
 Apply a custom Grafana dashboard for AMQ Broker monitoring. The dashboard is deployed as a ConfigMap:
 
@@ -361,7 +304,9 @@ DASHBOARD_EOF
 
 After applying, navigate to Grafana -> *Dashboards* -> *Custom* folder. The **AMQ Broker - Artemis Edge** dashboard should appear.
 
+ifdef::mode_multi_hub[]
 Use the **Cluster** dropdown at the top to filter between `local-cluster`, `sno-edge-01`, and `sno-edge-02`.
+endif::mode_multi_hub[]
 
 The dashboard has 5 panels:
 
@@ -376,27 +321,27 @@ The dashboard has 5 panels:
 | `rate(artemis_messages_added)`, `rate(artemis_messages_acknowledged)`
 
 | Connection Count
-| `artemis_connection_count` -- watch for federation connections from spokes
+| `artemis_connection_count` — watch for federation connections from spokes
 
 | Address Memory Usage
-| `artemis_address_memory_usage` -- monitor against `globalMaxSize=1GiB`
+| `artemis_address_memory_usage` — monitor against `globalMaxSize=1GiB`
 
 | Consumer Count
 | `artemis_consumer_count` per address
 |===
 
-=== 5. Cross-Cluster Observability
+=== 6. Cross-Cluster Observability
 
-With MCO deployed and spoke clusters joined, the `endpoint-observability-operator` automatically deploys a metrics-collector on each managed cluster.
+With MCO deployed, the `endpoint-observability-operator` automatically deploys a metrics-collector on each managed cluster.
 
-Verify metrics are being collected from all clusters:
+Verify metrics are being collected from the hub:
 
 [source,bash,role=execute]
 ----
-oc get pods -n open-cluster-management-addon-observability --context $(oc config current-context) 2>/dev/null || \
-  echo "Check the RHACM console for per-cluster metrics-collector status"
+oc get pods -n open-cluster-management-observability -l component=metrics-collector
 ----
 
+ifdef::mode_multi_hub[]
 In Grafana Explore, compare broker metrics across clusters:
 
 [source,text]
@@ -406,18 +351,21 @@ artemis_connection_count
 
 Filter by specific clusters:
 
-* `+{cluster="local-cluster"}+` -- hub broker metrics
-* `+{cluster="sno-edge-01"}+` -- NY edge metrics (once AMQ Broker is deployed via policy)
-* `+{cluster="sno-edge-02"}+` -- NJ edge metrics
+* `+{cluster="local-cluster"}+` — hub broker metrics
+* `+{cluster="sno-edge-01"}+` — NY edge metrics (once AMQ Broker is deployed via policy)
+* `+{cluster="sno-edge-02"}+` — NJ edge metrics
+endif::mode_multi_hub[]
 
-=== 6. Correlate with Messaging Activity
+=== 7. Correlate with Messaging Activity
 
 . Go back to the Showroom terminal and produce 100 messages (see xref:module-05.adoc[Module 5])
 . Watch the *Queue Message Counts* panel spike for the target queue
 . Switch to *Connection Count* to see federation connections
 . Check *Address Memory Usage* to ensure you are within the 1GiB global max
 
-=== 7. Cleanup (Optional)
+=== 8. Cleanup (Optional)
+
+WARNING: Only remove MCO if you no longer need cross-cluster observability.
 
 To remove MCO and free resources:
 
@@ -430,5 +378,5 @@ To remove the GCS bucket:
 
 [source,bash,role=execute,subs="attributes+"]
 ----
-gsutil rm -r gs://artemis-observability-{guid}
+gsutil rm -r gs://acm-obs-{guid}
 ----
