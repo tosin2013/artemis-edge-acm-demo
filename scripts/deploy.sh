@@ -48,6 +48,7 @@ while [[ $# -gt 0 ]]; do
     --stop) AGD_ACTION="stop"; shift ;;
     --start) AGD_ACTION="start"; shift ;;
     --status) AGD_ACTION="status"; shift ;;
+    --validate) AGD_ACTION="validate-deployment"; shift ;;
     -h|--help)
       echo "Usage: $0 [OPTIONS]"
       echo ""
@@ -59,6 +60,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --stop             Shorthand for --action stop"
       echo "  --start            Shorthand for --action start"
       echo "  --status           Shorthand for --action status"
+      echo "  --validate         Run post-deploy validation checks"
       echo "  -h, --help         Show this help message"
       echo ""
       echo "Examples:"
@@ -88,7 +90,17 @@ fi
 # Validate action
 case "${AGD_ACTION}" in
   provision|destroy|stop|start|status) ;;
-  *) echo "ERROR: Unknown action '${AGD_ACTION}'. Use: provision, destroy, stop, start, status" >&2; exit 1 ;;
+  validate-deployment)
+    echo "=== Artemis Edge ACM Demo — Post-Deploy Validation ==="
+    KUBECONFIG_FILE="${AGD_ROOT}/../agnosticd-v2-output/${AGD_GUID}/openshift-cluster_${AGD_GUID}_kubeconfig"
+    if [[ -f "$KUBECONFIG_FILE" ]]; then
+      exec "${SCRIPT_DIR}/validate-deployment.sh" --kubeconfig "$KUBECONFIG_FILE"
+    else
+      echo "WARN: kubeconfig not found at ${KUBECONFIG_FILE}, using current KUBECONFIG"
+      exec "${SCRIPT_DIR}/validate-deployment.sh"
+    fi
+    ;;
+  *) echo "ERROR: Unknown action '${AGD_ACTION}'. Use: provision, destroy, stop, start, status, validate-deployment" >&2; exit 1 ;;
 esac
 
 echo "=== Artemis Edge ACM Demo — ${AGD_ACTION^} ==="

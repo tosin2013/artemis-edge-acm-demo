@@ -248,6 +248,11 @@ validation:
     required: false
     fail_message: "OpenShift GitOps not found (will be deployed by workloads)"
 
+  - name: "All workloads synced"
+    command: "scripts/validate-deployment.sh"
+    required: false
+    fail_message: "Post-deploy validation failed. Run: scripts/validate-deployment.sh for details"
+
 # ─────────────────────────────────────────────────────────────
 # Post-Setup Message
 # ─────────────────────────────────────────────────────────────
