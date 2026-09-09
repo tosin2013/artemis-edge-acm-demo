@@ -160,8 +160,17 @@ config:
       default: "gcp"
       choices: ["gcp", "azure"]
 
+    - key: agd_guid
+      prompt: "AgnosticD deployment GUID (your GCP sandbox ID, e.g. 725j2)"
+      required: true
+
+    - key: agd_account
+      prompt: "AgnosticD account name"
+      default: "openenv-gcp"
+
     - key: hub_domain
       prompt: "Hub cluster ingress domain"
+      default: "apps.hub.${agd_guid}.gcp.redhatworkshops.io"
       required: true
 
     - key: hub02_domain
@@ -175,14 +184,6 @@ config:
       prompt: "Keycloak broker client secret"
       required: true
       sensitive: true
-
-    - key: agd_guid
-      prompt: "AgnosticD deployment GUID (your GCP sandbox ID, e.g. 725j2)"
-      required: true
-
-    - key: agd_account
-      prompt: "AgnosticD account name"
-      default: "openenv-gcp"
 
     - key: ocp_version
       prompt: "Target OpenShift version"

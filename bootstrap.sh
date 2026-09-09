@@ -432,7 +432,9 @@ print(','.join(str(x) for x in arr)) if isinstance(arr, list) else print('')
         fi
 
         if [[ -z "${VARS[$key]+_}" ]]; then
-            prompt_for "$key" "$prompt_text" "${default_val:-}" "$choices_str" "${required:-false}"
+            local resolved_default
+            resolved_default="$(substitute_vars "${default_val:-}")"
+            prompt_for "$key" "$prompt_text" "${resolved_default}" "$choices_str" "${required:-false}"
         fi
     done
 
