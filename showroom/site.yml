@@ -5,8 +5,8 @@ site:
   start_page: artemis-edge-acm::index.adoc
 content:
   sources:
-    - url: https://github.com/tosin2013/artemis-edge-acm-demo.git
-      branches: main
+    - url: ..
+      branches: HEAD
       start_path: showroom/content
 ui:
   bundle:
