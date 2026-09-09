@@ -26,12 +26,22 @@ NOTE: Spoke cluster provisioning takes approximately 30-45 minutes per cluster. 
 
 === 1. Review ClusterDeployments
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc get clusterdeployments -A
 ----
 
+ifndef::mode_multi_hub[]
+.Expected output (Mode 1 — single-hub)
+[source,text]
+----
+No resources found
+----
+In Mode 1, no spoke clusters are provisioned via Hive. This is expected.
+endif::[]
+ifdef::mode_multi_hub[]
 Each `ClusterDeployment` defines one SNO cluster:
+endif::[]
 
 [cols="1,1,1"]
 |===
@@ -54,17 +64,28 @@ Each `ClusterDeployment` defines one SNO cluster:
 
 Watch the ClusterDeployment status:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc get clusterdeployments -A -o custom-columns=NAME:.metadata.name,INSTALLED:.spec.installed,PLATFORM:.spec.platform.gcp.region
 ----
 
+ifndef::mode_multi_hub[]
+.Expected output (Mode 1)
+[source,text]
+----
+NAME   INSTALLED   PLATFORM
+----
+The table header appears with no rows — no ClusterDeployments exist in Mode 1.
+endif::[]
+
+ifdef::mode_multi_hub[]
 For more detail, check the provisioning job logs:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc get pods -n sno-edge-01 -l hive.openshift.io/cluster-deployment-name=sno-edge-01
 ----
+endif::[]
 
 TIP: You can also monitor provisioning from the RHACM console under *Infrastructure > Clusters*.
 
@@ -72,46 +93,90 @@ TIP: You can also monitor provisioning from the RHACM console under *Infrastruct
 
 Once clusters are provisioned, they auto-register as ManagedClusters:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc get managedcluster -o custom-columns=NAME:.metadata.name,REGION:.metadata.labels.edge-region,PROVIDER:.metadata.labels.cloud-provider,AVAILABLE:.status.conditions[0].status
 ----
 
+ifndef::mode_multi_hub[]
+.Expected output (Mode 1)
+[source,text]
+----
+NAME            REGION   PROVIDER   AVAILABLE
+local-cluster   <none>   <none>     True
+----
+Only the `local-cluster` (the hub itself) is registered. No edge region or cloud provider labels are set.
+endif::[]
+
+ifdef::mode_multi_hub[]
 Each cluster should show its assigned region (NY, NJ, CT) and cloud provider label.
+endif::[]
 
 === 4. Check Placement Decisions
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc get placementdecisions -n ztp-policies
 ----
 
+ifndef::mode_multi_hub[]
+.Expected output (Mode 1)
+[source,text]
+----
+No resources found in ztp-policies namespace.
+----
+The ZTP policies namespace exists but has no placement decisions in single-hub mode.
+endif::[]
+
+ifdef::mode_multi_hub[]
 The Placement API selects all clusters with label `sites: edge-sno`.
+endif::[]
 
 === 5. Verify RHACM Policies
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc get policy -n ztp-policies
 ----
 
+ifndef::mode_multi_hub[]
+.Expected output (Mode 1)
+[source,text]
+----
+No resources found in ztp-policies namespace.
+----
+No ZTP policies are deployed in single-hub mode — spoke cluster policy push is a Mode 2 feature.
+endif::[]
+
+ifdef::mode_multi_hub[]
 Two policies should show `Compliant`:
 
 * `policy-amq-broker-operator` -- ensures AMQ Broker operator is installed on each spoke
 * `policy-edge-monitoring` -- creates the metrics namespace on each spoke
+endif::[]
 
 === 6. Troubleshooting
 
+ifdef::mode_multi_hub[]
 If a cluster is stuck provisioning:
 
-[source,bash]
+[source,bash,role=execute]
 ----
-# Check ClusterDeployment conditions
 oc get clusterdeployment sno-edge-01 -n sno-edge-01 -o yaml | grep -A 10 conditions
-
-# Check provisioning pod logs
-oc logs -n sno-edge-01 -l hive.openshift.io/cluster-deployment-name=sno-edge-01 --tail=50
-
-# Check GCP quota (common failure)
-# Ensure n2-standard-8 vCPU quota allows 3 concurrent SNO installs (24 vCPUs)
 ----
+
+[source,bash,role=execute]
+----
+oc logs -n sno-edge-01 -l hive.openshift.io/cluster-deployment-name=sno-edge-01 --tail=50
+----
+
+Check GCP quota — ensure n2-standard-8 vCPU quota allows 3 concurrent SNO installs (24 vCPUs).
+endif::[]
+
+ifndef::mode_multi_hub[]
+In Mode 1 (single-hub), there are no spoke clusters to troubleshoot. If you expected multi-hub mode, verify that:
+
+* Your deployment was provisioned with `mode: multi-hub` in the AgnosticD vars
+* The `ClusterDeployment` CRDs were created in the hub cluster
+* Hive pods are running: `oc get pods -n hive`
+endif::[]

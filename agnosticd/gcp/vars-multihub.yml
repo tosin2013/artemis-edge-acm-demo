@@ -11,7 +11,7 @@
 #   agd provision --guid <GUID> --config artemis-edge-gcp-multihub --account <ACCOUNT>
 #
 # Or using the wrapper script:
-#   ./scripts/deploy.sh --guid <GUID> --account <ACCOUNT> --config multihub
+#   ./scripts/deploy.sh --mode multi-hub --guid <GUID> --account <ACCOUNT>
 #
 # ===================================================================
 
@@ -84,6 +84,7 @@ ocp4_base_domain: "{{ base_domain }}"
 
 ocp4_installer_root_url: https://mirror.openshift.com/pub/openshift-v4/clients
 ocp4_installer_version: "4.22"
+host_ocp4_installer_version: "4.22"
 host_ocp4_installer_set_user_data_kubeadmin_password: true
 
 openshift_cluster_admin_service_account_enable: true
@@ -169,6 +170,23 @@ ocp4_workload_field_content_helm_values:
     enabled: true
     acmObservability:
       enabled: true
+  spokeProvisioning:
+    enabled: true
+    baseDomain: "{{ base_domain }}"
+    gcpProjectID: "{{ gcp_project_id }}"
+    gcpRegion: "{{ gcp_region }}"
+    clusterImageSet: "img4.22.12-x86-64-appsub"
+    sshPublicKey: "{{ lookup('file', '~/.ssh/id_rsa.pub', errors='ignore') | default('') }}"
+    networkType: "OVNKubernetes"
+    workerMachineType: "n2-standard-8"
+    masterMachineType: "n2-standard-8"
+    clusters:
+      - name: sno-edge-01
+        region: NY
+      - name: sno-edge-02
+        region: NJ
+      - name: sno-edge-03
+        region: CT
   showroom:
     enabled: false
     terminalRbac:
@@ -185,3 +203,14 @@ ocp4_workload_showroom_content_git_repo: "https://github.com/tosin2013/artemis-e
 ocp4_workload_showroom_content_git_repo_ref: main
 ocp4_workload_showroom_content_antora_playbook: showroom/site.yml
 ocp4_workload_showroom_content_title: "Artemis Edge ACM Demo — Multi Hub"
+
+# --- Showroom Mode Wiring ---
+# After provisioning, deploy.sh calls patch-showroom-mode.sh which injects
+# mode_multi_hub: "true" into the showroom-userdata ConfigMap. The Showroom
+# entrypoint merges this into antora.yml via yq, enabling ifdef::mode_multi_hub[]
+# guards in the .adoc content at Antora build time.
+#
+# Future: when AgnosticD supports injecting custom user_data variables from
+# config vars, replace the ConfigMap patch with a native variable here:
+#   agnosticd_custom_user_data:
+#     mode_multi_hub: "true"

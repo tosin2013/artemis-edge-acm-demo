@@ -14,11 +14,12 @@ set -euo pipefail
 #
 # Usage:
 #   ./scripts/deploy.sh --guid 725j2 --account openenv-gcp
+#   ./scripts/deploy.sh --mode multi-hub --guid 725j2 --account openenv-gcp
 #   ./scripts/deploy.sh --destroy --guid 725j2 --account openenv-gcp
 #   ./scripts/deploy.sh --stop --guid 725j2 --account openenv-gcp
 #   ./scripts/deploy.sh --start --guid 725j2 --account openenv-gcp
 #   ./scripts/deploy.sh --status --guid 725j2 --account openenv-gcp
-#   ./scripts/deploy.sh  # reads GUID from config.yml or AGD_GUID env var
+#   ./scripts/deploy.sh  # reads GUID and mode from config.yml or env vars
 #
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -28,7 +29,16 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 AGD_ROOT="${AGD_ROOT:-${HOME}/Development/agnosticd-v2}"
 
 # Config name used by agd to find the vars file in agnosticd-v2-vars/
+# Overridden below when --mode multi-hub is selected.
 AGD_CONFIG="artemis-edge-gcp"
+
+# Deployment mode: single-hub (default) or multi-hub
+# Read from config.yml if not set via env or CLI
+: "${DEPLOY_MODE:=}"
+if [[ -z "${DEPLOY_MODE}" && -f "${PROJECT_ROOT}/config.yml" ]]; then
+  DEPLOY_MODE=$(python3 -c "import yaml; print(yaml.safe_load(open('${PROJECT_ROOT}/config.yml')).get('mode','single-hub'))" 2>/dev/null) || true
+fi
+: "${DEPLOY_MODE:=single-hub}"
 
 # Read GUID from config.yml if not set via env or CLI
 if [[ -z "${AGD_GUID:-}" && -f "${PROJECT_ROOT}/config.yml" ]]; then
@@ -44,6 +54,7 @@ while [[ $# -gt 0 ]]; do
     --guid) AGD_GUID="$2"; shift 2 ;;
     --account) AGD_ACCOUNT="$2"; shift 2 ;;
     --action) AGD_ACTION="$2"; shift 2 ;;
+    --mode) DEPLOY_MODE="$2"; shift 2 ;;
     --destroy) AGD_ACTION="destroy"; shift ;;
     --stop) AGD_ACTION="stop"; shift ;;
     --start) AGD_ACTION="start"; shift ;;
@@ -55,6 +66,7 @@ while [[ $# -gt 0 ]]; do
       echo "Options:"
       echo "  --guid GUID        Deployment GUID (reads from config.yml if not set)"
       echo "  --account ACCOUNT  Secrets account name (default: openenv-gcp)"
+      echo "  --mode MODE        Deployment mode: single-hub (default) or multi-hub"
       echo "  --action ACTION    AgnosticD action: provision, destroy, stop, start, status"
       echo "  --destroy          Shorthand for --action destroy"
       echo "  --stop             Shorthand for --action stop"
@@ -65,8 +77,9 @@ while [[ $# -gt 0 ]]; do
       echo ""
       echo "Examples:"
       echo "  $0 --guid 725j2 --account openenv-gcp"
+      echo "  $0 --mode multi-hub --guid 725j2 --account openenv-gcp"
       echo "  $0 --destroy --guid 725j2"
-      echo "  $0  # reads GUID from config.yml"
+      echo "  $0  # reads GUID and mode from config.yml"
       exit 0
       ;;
     *) echo "Unknown argument: $1" >&2; echo "Use --help for usage." >&2; exit 1 ;;
@@ -78,6 +91,20 @@ if [[ -z "${AGD_GUID}" ]]; then
   echo "ERROR: GUID required. Use --guid <id>, set AGD_GUID, or run bootstrap.sh first." >&2
   exit 1
 fi
+
+# Resolve deployment mode → agd config name
+case "${DEPLOY_MODE}" in
+  single-hub)
+    AGD_CONFIG="artemis-edge-gcp"
+    ;;
+  multi-hub)
+    AGD_CONFIG="artemis-edge-gcp-multihub"
+    ;;
+  *)
+    echo "ERROR: Unknown mode '${DEPLOY_MODE}'. Use: single-hub, multi-hub" >&2
+    exit 1
+    ;;
+esac
 
 # Validate agd is available
 if [[ ! -x "${AGD_ROOT}/bin/agd" ]]; then
@@ -105,6 +132,7 @@ esac
 
 echo "=== Artemis Edge ACM Demo — ${AGD_ACTION^} ==="
 echo "Action:      ${AGD_ACTION}"
+echo "Mode:        ${DEPLOY_MODE}"
 echo "GUID:        ${AGD_GUID}"
 echo "Config:      ${AGD_CONFIG}"
 echo "Account:     ${AGD_ACCOUNT}"
@@ -127,6 +155,11 @@ if [[ "${AGD_ACTION}" == "provision" ]]; then
   echo ""
   echo "=== Saving deployment info... ==="
   "${SCRIPT_DIR}/save-deployment-info.sh" "${AGD_GUID}" || echo "WARN: save-deployment-info.sh failed (non-fatal)"
+  echo ""
+  echo "=== Patching Showroom for deployment mode... ==="
+  KUBECONFIG_FILE="${AGD_ROOT}/../agnosticd-v2-output/${AGD_GUID}/openshift-cluster_${AGD_GUID}_kubeconfig"
+  "${SCRIPT_DIR}/patch-showroom-mode.sh" "${AGD_GUID}" "${DEPLOY_MODE}" "${KUBECONFIG_FILE}" \
+    || echo "WARN: patch-showroom-mode.sh failed (non-fatal)"
   exit $AGD_EXIT
 else
   exec ./bin/agd "${AGD_ACTION}" -g "${AGD_GUID}" -c "${AGD_CONFIG}" -a "${AGD_ACCOUNT}"

@@ -18,3 +18,8 @@ asciidoc:
     producer_password: "bosco"
     consumer_user: "bob"
     consumer_password: "bosco"
+    # mode_multi_hub is intentionally NOT set here.
+    # In single-hub mode (default), ifdef::mode_multi_hub[] guards evaluate false.
+    # For multi-hub deployments, patch-showroom-mode.sh injects
+    # mode_multi_hub: "true" into the showroom-userdata ConfigMap,
+    # which yq merges into this file at build time.

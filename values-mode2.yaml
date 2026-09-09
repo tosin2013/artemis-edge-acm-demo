@@ -29,3 +29,21 @@ hubBrokers:
 
 globalHub:
   enabled: true
+
+spokeProvisioning:
+  enabled: true
+  baseDomain: ""
+  gcpProjectID: ""
+  gcpRegion: "us-east1"
+  clusterImageSet: "img4.22.12-x86-64-appsub"
+  sshPublicKey: ""
+  networkType: "OVNKubernetes"
+  workerMachineType: "n2-standard-8"
+  masterMachineType: "n2-standard-8"
+  clusters:
+    - name: sno-edge-01
+      region: NY
+    - name: sno-edge-02
+      region: NJ
+    - name: sno-edge-03
+      region: CT
