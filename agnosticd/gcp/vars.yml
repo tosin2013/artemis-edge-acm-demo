@@ -164,6 +164,12 @@ ocp4_workload_field_content_gitops_repo_url: "https://github.com/tosin2013/artem
 ocp4_workload_field_content_gitops_repo_revision: main
 ocp4_workload_field_content_gitops_repo_path: "."
 ocp4_workload_field_content_namespace: openshift-gitops
+# ArgoCD Application syncOptions — SkipDryRunOnMissingResource is required
+# because CRDs (ActiveMQArtemis, Keycloak) are installed by OLM Subscriptions
+# in sync-wave 1, but ArgoCD validates all resources before applying any wave.
+ocp4_workload_field_content_sync_options:
+  - CreateNamespace=true
+  - SkipDryRunOnMissingResource=true
 ocp4_workload_field_content_helm_values:
   global:
     mode: "single-hub"
