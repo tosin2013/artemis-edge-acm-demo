@@ -2,9 +2,9 @@
 
 == Objectives
 
-* Confirm hub and edge brokers are running
-* Verify AMQP federation links are connected
-* Access the AMQ Console
+* Confirm hub-01 is running
+* Confirm ACM placed AMQ brokers on JOINED SNOs
+* Verify each SNO broker's `hub-01-connection` federation is started
 
 == Steps
 
@@ -17,41 +17,74 @@ oc get pods -n artemis -l application=hub-01-broker-app
 
 The pod `hub-01-broker-ss-0` should be `Running` and `1/1 Ready`.
 
-=== 2. Check Edge Broker Pods
+=== 2. Hub still has colocated spoke-* brokers
 
-ifndef::mode_multi_hub[]
-NOTE: In Mode 1 (single-hub), all broker pods run on the hub cluster. Verify all pods with a single command:
-endif::[]
-ifdef::mode_multi_hub[]
-For each edge SNO, log in and verify:
-endif::[]
+The hub namespace also has `spoke-01` / `spoke-02` / `spoke-03` brokers. Those are **not** the ACM edge brokers. Leave them alone.
 
 [source,bash,role=execute]
 ----
 oc get pods -n artemis -l ActiveMQArtemis
 ----
 
-=== 3. Verify ActiveMQArtemis CR Status
+The exercise brokers run **on the SNOs**. You cannot list those pods as `{user}`. Use policy status instead:
 
 [source,bash,role=execute]
 ----
-oc get activemqartemis -n artemis -o wide
+oc get policy -n edge-broker-policies
 ----
 
-NOTE: The `READY` column may show `False` shortly after deployment due to broker properties checksum synchronization. This is a transient condition — the brokers are functional even while `READY` is `False`. Check the `Deployed` condition in the CR status for confirmation that all pods are running.
+`policy-amq-broker-operator-sno`, `policy-amq-broker-spoke-01`, and `policy-amq-broker-spoke-02` should be `Compliant`.
 
-=== 4. Open AMQ Console
+=== 3. Verify hub-01 ActiveMQArtemis and AMQPS
 
-Navigate to the AMQ Console:
+[source,bash,role=execute]
+----
+oc get activemqartemis hub-01-broker -n artemis -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}{"\n"}'
+oc get route -n artemis hub-01-broker-amqps-acceptor-0-svc-rte
+----
+
+The AMQPS Route is how SNO brokers reach hub-01 (TLS passthrough on port 443). In-cluster clients still use `amqp://hub-01-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672`.
+
+=== 4. Open the Hub AMQ Console
+
+Navigate to the hub AMQ Console:
 
 * Hub: {amq_console_url}
 * Login: `admin` / `admin`
 
-In the console, navigate to *Connections* to verify federation links from the spoke brokers.
+Open *Connections*. You should see AMQP sessions from edge brokers (UUID Client IDs, not cluster names). Hub-colocated `spoke-*` and SNO brokers can both appear.
 
-=== 5. Verify Federation Connections
+.Hub AMQ Console — Connections
+image::hub-amq-console-connections.png[Hub AMQ Console Connections tab with AMQP rows. UUID Client IDs are edge brokers; the 169.254.0.5 row is not a spoke.,link=self,window=blank,width=800]
 
-Each edge broker should show active connections:
+* **Client ID** is the remote broker's node UUID, not `spoke-01` or `sno-edge-01`.
+* Protocol `AMQP` marks a federation session.
+* The row whose **Remote Address** is `169.254.0.5` is not a spoke. Ignore it.
 
-* `hub-01-connection` with `autostart=true`
-* `hub-02-connection` with `autostart=false` (failover)
+Optionally open *Sessions*.
+
+.Hub AMQ Console — Sessions
+image::hub-amq-console-sessions.png[Hub AMQ Console Sessions tab. Session rows link back to the same AMQP connections; IDs are UUIDs, not cluster names.,link=self,window=blank,width=800]
+
+IMPORTANT: This table does *not* show the configured name `hub-01-connection`. That name lives on each *SNO* broker.
+
+=== 5. Verify `hub-01-connection` on the NY SNO broker
+
+The NY broker console is on sno-edge-01 (not the hub ingress domain):
+
+* URL: http://spoke-01-broker-wconsj-0-svc-rte-artemis.apps.sno-edge-01.{guid}.gcp.redhatworkshops.io
+* Login: `admin` / `admin`
+
+[source,bash,role=execute,subs="attributes+"]
+----
+curl -sS -u admin:admin \
+  'http://spoke-01-broker-wconsj-0-svc-rte-artemis.apps.sno-edge-01.{guid}.gcp.redhatworkshops.io/console/jolokia/exec/org.apache.activemq.artemis:broker=%22amq-broker%22/listBrokerConnections'
+----
+
+.Expected output (JSON `value` field)
+[source,json]
+----
+[{"name":"hub-01-connection","protocol":"AMQP","started":true}]
+----
+
+`hub-01-connection` with `started: true` is the SNO→hub federation link. Repeat against sno-edge-02 (`spoke-02-broker`, `apps.sno-edge-02.{guid}.gcp.redhatworkshops.io`) if you want NJ as well.

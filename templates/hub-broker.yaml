@@ -30,6 +30,26 @@ spec:
         - "{{ .name }}-broker-bp"
   acceptors:
     {{- include "artemis-edge.brokerAcceptors" $ | nindent 4 }}
+    {{- /* KCS 7107078: second acceptor for TLS+expose; do not mix plain/TLS on one port. */}}
+    {{- if and $.Values.spokeProvisioning.enabled (not $.Values.tls.enabled) (eq .name "hub-01") }}
+    - name: amqps-acceptor
+      protocols: amqp
+      port: 5671
+      sslEnabled: true
+      sslSecret: amqps-acceptor-ptls
+      needClientAuth: false
+      expose: true
+    {{- end }}
+  {{- if and $.Values.spokeProvisioning.enabled (not $.Values.tls.enabled) (eq .name "hub-01") }}
+  brokerProperties:
+    - "acceptorConfigurations.amqps-acceptor.params.sslAutoReload=true"
+  resourceTemplates:
+    - selector:
+        kind: Service
+        name: {{ .name }}-broker-amqps-acceptor-0-svc
+      annotations:
+        service.beta.openshift.io/serving-cert-secret-name: amqps-acceptor-ptls
+  {{- end }}
   console:
     expose: false
 {{- end }}

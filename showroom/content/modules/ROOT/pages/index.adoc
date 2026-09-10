@@ -8,8 +8,8 @@ This demo showcases a federated AMQ Broker messaging architecture deployed acros
 === Architecture
 
 * *Hub Cluster* -- RHACM hub running ArgoCD, Keycloak OIDC, hub AMQ Brokers, Prometheus, and Grafana
-* *Edge Clusters* -- 3 SNO clusters (NY, NJ, CT regions), each running an edge AMQ Broker with federation connectors to the hub
-* *Messaging* -- AMQP federation with TLS, regional address routing, and automatic reconnection
+* *Edge Clusters* -- SNO clusters (NY, NJ, and optionally CT). RHACM Governance (`edge-broker-policies`) installs the AMQ Broker operator and one `ActiveMQArtemis` per region after join
+* *Messaging* -- AMQP federation from each SNO broker to hub-01 (`messages.NY.#`, `messages.NJ.#`, `messages.ALL.#`) over an AMQPS Route
 
 === Deployment Mode
 
