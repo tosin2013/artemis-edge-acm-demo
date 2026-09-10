@@ -1,0 +1,218 @@
+{{- /*
+Option C (#48): AMQ on SNOs via ACM ConfigurationPolicy only.
+ApplicationSet artemis-edge-workloads stays unbound (ztp-policies has no
+ManagedClusterSetBinding). Binding ztp-policies would also generate spoke
+ArgoCD apps from the full hub chart.
+
+Hub spoke-* brokers are unchanged. SNO brokers are local (no hub AMQP
+route when tls.enabled is false, so federation URIs are omitted here).
+*/ -}}
+{{- if .Values.spokeProvisioning.enabled }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: edge-broker-policies
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+---
+apiVersion: cluster.open-cluster-management.io/v1beta2
+kind: ManagedClusterSetBinding
+metadata:
+  name: default
+  namespace: edge-broker-policies
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  clusterSet: default
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: policy-amq-broker-operator-sno
+  namespace: edge-broker-policies
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  remediationAction: enforce
+  disabled: false
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: amq-broker-operator-sno
+        spec:
+          remediationAction: enforce
+          severity: high
+          object-templates:
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: v1
+                kind: Namespace
+                metadata:
+                  name: {{ .Values.global.namespace }}
+                  labels:
+                    demo.redhat.com/application: "artemis-edge-acm"
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: operators.coreos.com/v1
+                kind: OperatorGroup
+                metadata:
+                  name: amq-broker-og
+                  namespace: {{ .Values.global.namespace }}
+                spec:
+                  targetNamespaces:
+                    - {{ .Values.global.namespace }}
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: operators.coreos.com/v1alpha1
+                kind: Subscription
+                metadata:
+                  name: amq-broker-rhel8
+                  namespace: {{ .Values.global.namespace }}
+                spec:
+                  channel: {{ .Values.amqBrokerOperator.channel | quote }}
+                  installPlanApproval: Automatic
+                  name: amq-broker-rhel8
+                  source: {{ .Values.amqBrokerOperator.source }}
+                  sourceNamespace: openshift-marketplace
+---
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: policy-amq-broker-operator-sno-placement
+  namespace: edge-broker-policies
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  predicates:
+    - requiredClusterSelector:
+        labelSelector:
+          matchLabels:
+            sites: "edge-sno"
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: policy-amq-broker-operator-sno-binding
+  namespace: edge-broker-policies
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+placementRef:
+  name: policy-amq-broker-operator-sno-placement
+  apiGroup: cluster.open-cluster-management.io
+  kind: Placement
+subjects:
+  - name: policy-amq-broker-operator-sno
+    apiGroup: policy.open-cluster-management.io
+    kind: Policy
+{{- $defaults := .Values.edgeBrokerDefaults }}
+{{- range .Values.edgeBrokers }}
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: policy-amq-broker-{{ .name }}
+  namespace: edge-broker-policies
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  labels:
+    {{- include "artemis-edge.labels" $ | nindent 4 }}
+    edge-region: {{ .region | quote }}
+spec:
+  remediationAction: enforce
+  disabled: false
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: amq-broker-{{ .name }}
+        spec:
+          remediationAction: enforce
+          severity: medium
+          object-templates:
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: broker.amq.io/v1beta1
+                kind: ActiveMQArtemis
+                metadata:
+                  name: {{ .name }}-broker
+                  namespace: {{ $.Values.global.namespace }}
+                  labels:
+                    demo.redhat.com/application: "artemis-edge-acm"
+                    edge-region: {{ .region | quote }}
+                spec:
+                  adminUser: {{ $defaults.adminUser | quote }}
+                  adminPassword: {{ $defaults.adminPassword | quote }}
+                  deploymentPlan:
+                    size: {{ $defaults.replicas }}
+                    persistenceEnabled: {{ $defaults.persistenceEnabled }}
+                    journalType: nio
+                    enableMetricsPlugin: true
+                    resources:
+                      limits:
+                        cpu: {{ $defaults.resources.limits.cpu | quote }}
+                        memory: {{ $defaults.resources.limits.memory | quote }}
+                      requests:
+                        cpu: {{ $defaults.resources.requests.cpu | quote }}
+                        memory: {{ $defaults.resources.requests.memory | quote }}
+                  acceptors:
+                    - name: core-acceptor
+                      protocols: core
+                      port: 61616
+                    - name: amqp-acceptor
+                      protocols: amqp
+                      port: 5672
+                    - name: mqtt-acceptor
+                      protocols: mqtt
+                      port: 1833
+                  console:
+                    expose: false
+---
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: policy-amq-broker-{{ .name }}-placement
+  namespace: edge-broker-policies
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  labels:
+    {{- include "artemis-edge.labels" $ | nindent 4 }}
+spec:
+  predicates:
+    - requiredClusterSelector:
+        labelSelector:
+          matchLabels:
+            sites: "edge-sno"
+            edge-region: {{ .region | quote }}
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: policy-amq-broker-{{ .name }}-binding
+  namespace: edge-broker-policies
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  labels:
+    {{- include "artemis-edge.labels" $ | nindent 4 }}
+placementRef:
+  name: policy-amq-broker-{{ .name }}-placement
+  apiGroup: cluster.open-cluster-management.io
+  kind: Placement
+subjects:
+  - name: policy-amq-broker-{{ .name }}
+    apiGroup: policy.open-cluster-management.io
+    kind: Policy
+{{- end }}
+{{- end }}

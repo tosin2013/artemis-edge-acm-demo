@@ -155,12 +155,10 @@ subjects:
 ---
 {{- /*
 Mode 1 ApplicationSet does not generate spoke apps (Placement has no
-ManagedClusterSetBinding in ztp-policies). Student producer RBAC is a
-ConfigurationPolicy so ACM can apply it after SNOs join without deploying
-the full hub Helm chart onto the edge.
-A ClusterSetBinding in this namespace would also activate AMQ-on-SNO
-policies; that is out of scope for workshop producer RBAC. Bind
-workshop-policies only.
+ManagedClusterSetBinding in ztp-policies). Do not bind ztp-policies: that
+would also deploy the full hub Helm chart onto SNOs via ApplicationSet.
+AMQ on SNOs is ConfigurationPolicy in edge-broker-policies (#48 option C).
+Student producer RBAC stays in workshop-policies.
 */ -}}
 apiVersion: v1
 kind: Namespace
