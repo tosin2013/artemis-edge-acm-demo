@@ -69,6 +69,10 @@ spec:
               value: /home/lab-user
             - name: MAVEN_USER_HOME
               value: /home/lab-user/.m2
+            - name: JAVA_TOOL_OPTIONS
+              value: -Duser.home=/home/lab-user
+            - name: MAVEN_OPTS
+              value: -Dmaven.repo.local=/home/lab-user/.m2/repository
 ---
 apiVersion: v1
 kind: Service

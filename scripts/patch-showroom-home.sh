@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 #
-# Point the Showroom terminal HOME at the writable PVC (/home/lab-user).
-# The RHDP terminal image defaults HOME=/data, which is not mounted, so Maven
-# fails with LocalRepositoryNotAccessibleException.
+# Point the Showroom terminal (and Maven) at the writable PVC (/home/lab-user).
+# The RHDP terminal image sets passwd home to /data, which is not mounted.
+# OpenJDK user.home comes from passwd, not $HOME, so Maven still uses /data/.m2
+# unless JAVA_TOOL_OPTIONS / MAVEN_OPTS override it.
 #
 # Usage:
 #   ./scripts/patch-showroom-home.sh <GUID> [KUBECONFIG]
@@ -17,8 +18,10 @@ fi
 
 HOME_DIR="/home/lab-user"
 MAVEN_HOME="${HOME_DIR}/.m2"
+JAVA_TOOL_OPTIONS="-Duser.home=${HOME_DIR}"
+MAVEN_OPTS="-Dmaven.repo.local=${MAVEN_HOME}/repository"
 
-echo "=== Patching Showroom terminal HOME ==="
+echo "=== Patching Showroom terminal HOME / Maven repo ==="
 
 SHOWROOM_NAMESPACES=$(oc get namespaces -o name 2>/dev/null \
   | grep "showroom-${GUID}" \
@@ -46,20 +49,14 @@ for NS in ${SHOWROOM_NAMESPACES}; do
       continue
     fi
 
-    CURRENT_HOME=$(oc get deploy "${DEPLOY}" -n "${NS}" \
-      -o jsonpath='{range .spec.template.spec.containers[?(@.name=="terminal")].env[?(@.name=="HOME")]}{.value}{end}' 2>/dev/null || true)
-
-    if [[ "${CURRENT_HOME}" == "${HOME_DIR}" ]]; then
-      echo "  ${DEPLOY}: HOME already ${HOME_DIR}"
-      continue
-    fi
-
-    echo "  ${DEPLOY}: set HOME=${HOME_DIR} MAVEN_USER_HOME=${MAVEN_HOME}"
+    echo "  ${DEPLOY}: set HOME=${HOME_DIR} JAVA_TOOL_OPTIONS MAVEN_OPTS"
     oc set env "deploy/${DEPLOY}" -n "${NS}" -c terminal --overwrite \
       "HOME=${HOME_DIR}" \
-      "MAVEN_USER_HOME=${MAVEN_HOME}"
+      "MAVEN_USER_HOME=${MAVEN_HOME}" \
+      "JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS}" \
+      "MAVEN_OPTS=${MAVEN_OPTS}"
   done
   echo "  Done: ${NS}"
 done
 
-echo "=== Showroom terminal HOME patch complete ==="
+echo "=== Showroom terminal HOME / Maven repo patch complete ==="

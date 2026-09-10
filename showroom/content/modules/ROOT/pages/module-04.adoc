@@ -62,13 +62,14 @@ git clone https://github.com/tosin2013/artemis-edge-acm-demo.git
 cd artemis-edge-acm-demo
 ----
 
-Point Maven at the writable home directory (see Module 0), then compile. Do not use `-Dquarkus.container-image.build=true` unless this terminal has podman or Docker.
+Point Maven at the writable PVC (see Module 0). `export HOME` alone is not enough: Java `user.home` is `/data`. Do not use `-Dquarkus.container-image.build=true` unless this terminal has podman or Docker.
 
 [source,bash]
 ----
 export HOME=/home/lab-user
-export MAVEN_USER_HOME=/home/lab-user/.m2
-mkdir -p "$MAVEN_USER_HOME"
+export JAVA_TOOL_OPTIONS="-Duser.home=/home/lab-user"
+export MAVEN_OPTS="-Dmaven.repo.local=/home/lab-user/.m2/repository"
+mkdir -p /home/lab-user/.m2
 cd java/amqp-client
 mvn package -DskipTests
 cd ../mqtt-client
