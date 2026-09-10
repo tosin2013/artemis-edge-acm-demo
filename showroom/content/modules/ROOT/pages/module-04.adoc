@@ -2,10 +2,13 @@
 
 == Objectives
 
-* Understand the 4 Java applications in the demo
-* Build and deploy them to the clusters
+* See how messages move between the ACM hub and edge brokers
+* Produce test messages on the hub (Mode 1: spoke brokers run on the hub)
+* Optionally clone and compile the Java clients (not required for the ACM path)
 
 == Application Overview
+
+The demo includes four Java applications. You do **not** need to build or deploy them to complete this module. The required exercise uses the AMQ Broker image already on the cluster.
 
 === amqp-client (Quarkus Camel AMQP)
 
@@ -23,21 +26,9 @@ A durable subscription bridge between source and target brokers. Stamps a `Pedig
 
 A broker-side plugin that injects configurable headers via the `beforeSend` hook. Deployed into the broker's classpath.
 
-== Build and Deploy
+== Produce messages on the hub (required)
 
-=== 1. Build Container Images
-
-[source,bash]
-----
-cd java/amqp-client
-mvn package -Dquarkus.container-image.build=true
-cd ../mqtt-client
-mvn package -Dquarkus.container-image.build=true
-cd ../amqp-bridge
-mvn package -Dquarkus.container-image.build=true
-----
-
-=== 2. Deploy AMQP Producer on Edge
+This is the path that demonstrates ACM hub and spoke messaging. Run it as `{user}` after xref:module-00.adoc[Module 0] login.
 
 [source,bash,role=execute]
 ----
@@ -58,3 +49,30 @@ Inside the container:
 ----
 
 TIP: If Keycloak OIDC users (`{producer_user}`/`{producer_password}`) fail to authenticate with a SASL error, use the broker admin credentials (`admin`/`admin`) instead. The Keycloak realm import may need the user passwords to be set manually — see the deployment troubleshooting guide.
+
+== Build the Java clients (optional)
+
+Skip this section unless you want to compile the sample clients. It is not required to understand hub and spoke federation.
+
+If you did not clone the repo in Module 0:
+
+[source,bash]
+----
+git clone https://github.com/tosin2013/artemis-edge-acm-demo.git
+cd artemis-edge-acm-demo
+----
+
+Point Maven at the writable home directory (see Module 0), then compile. Do not use `-Dquarkus.container-image.build=true` unless this terminal has podman or Docker.
+
+[source,bash]
+----
+export HOME=/home/lab-user
+export MAVEN_USER_HOME=/home/lab-user/.m2
+mkdir -p "$MAVEN_USER_HOME"
+cd java/amqp-client
+mvn package -DskipTests
+cd ../mqtt-client
+mvn package -DskipTests
+cd ../amqp-bridge
+mvn package -DskipTests
+----

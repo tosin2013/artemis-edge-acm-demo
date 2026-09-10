@@ -1,0 +1,22 @@
+{
+  "$comment": "Showroom terminal HOME (#44): Maven must use the writable PVC /home/lab-user, not /data.",
+  "authority_id": "44",
+  "criteria": [
+    {
+      "check": "file_exists",
+      "target": "scripts/patch-showroom-home.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'export HOME=/home/lab-user' showroom/content/modules/ROOT/pages/module-00.adoc && grep -q 'MAVEN_USER_HOME=/home/lab-user/.m2' showroom/content/modules/ROOT/pages/module-00.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'name: HOME' templates/showroom.yaml && grep -q 'value: /home/lab-user' templates/showroom.yaml && grep -q 'MAVEN_USER_HOME' templates/showroom.yaml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'patch-showroom-home.sh' scripts/deploy.sh"
+    }
+  ]
+}

@@ -64,6 +64,11 @@ spec:
           image: {{ .Values.showroom.terminalImage | quote }}
           ports:
             - containerPort: 7681
+          env:
+            - name: HOME
+              value: /home/lab-user
+            - name: MAVEN_USER_HOME
+              value: /home/lab-user/.m2
 ---
 apiVersion: v1
 kind: Service

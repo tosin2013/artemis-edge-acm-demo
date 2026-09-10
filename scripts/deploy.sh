@@ -160,6 +160,10 @@ if [[ "${AGD_ACTION}" == "provision" ]]; then
   KUBECONFIG_FILE="${AGD_ROOT}/../agnosticd-v2-output/${AGD_GUID}/openshift-cluster_${AGD_GUID}_kubeconfig"
   "${SCRIPT_DIR}/patch-showroom-mode.sh" "${AGD_GUID}" "${DEPLOY_MODE}" "${KUBECONFIG_FILE}" \
     || echo "WARN: patch-showroom-mode.sh failed (non-fatal)"
+  echo ""
+  echo "=== Patching Showroom terminal HOME for Maven... ==="
+  "${SCRIPT_DIR}/patch-showroom-home.sh" "${AGD_GUID}" "${KUBECONFIG_FILE}" \
+    || echo "WARN: patch-showroom-home.sh failed (non-fatal)"
   exit $AGD_EXIT
 else
   exec ./bin/agd "${AGD_ACTION}" -g "${AGD_GUID}" -c "${AGD_CONFIG}" -a "${AGD_ACCOUNT}"
