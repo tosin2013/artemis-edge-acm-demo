@@ -79,15 +79,14 @@ metadata:
     argocd.argoproj.io/sync-wave: "4"
   labels:
     {{- include "artemis-edge.labels" . | nindent 4 }}
-spec:
-  placementRef:
-    name: policy-amq-broker-placement
-    apiGroup: cluster.open-cluster-management.io
-    kind: Placement
-  subjects:
-    - name: policy-amq-broker-operator
-      apiGroup: policy.open-cluster-management.io
-      kind: Policy
+placementRef:
+  name: policy-amq-broker-placement
+  apiGroup: cluster.open-cluster-management.io
+  kind: Placement
+subjects:
+  - name: policy-amq-broker-operator
+    apiGroup: policy.open-cluster-management.io
+    kind: Policy
 ---
 apiVersion: policy.open-cluster-management.io/v1
 kind: Policy
@@ -145,15 +144,14 @@ metadata:
     argocd.argoproj.io/sync-wave: "4"
   labels:
     {{- include "artemis-edge.labels" . | nindent 4 }}
-spec:
-  placementRef:
-    name: policy-edge-monitoring-placement
-    apiGroup: cluster.open-cluster-management.io
-    kind: Placement
-  subjects:
-    - name: policy-edge-monitoring
-      apiGroup: policy.open-cluster-management.io
-      kind: Policy
+placementRef:
+  name: policy-edge-monitoring-placement
+  apiGroup: cluster.open-cluster-management.io
+  kind: Placement
+subjects:
+  - name: policy-edge-monitoring
+    apiGroup: policy.open-cluster-management.io
+    kind: Policy
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet

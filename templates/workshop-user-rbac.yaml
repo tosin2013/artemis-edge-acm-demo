@@ -1,0 +1,49 @@
+{{- /*
+Workshop user RBAC — grants read access to APIs that cluster-reader misses.
+Deployed in sync-wave 5 so RBAC CRDs are guaranteed present.
+*/ -}}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: workshop-observability-reader
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+rules:
+  - apiGroups:
+      - observability.open-cluster-management.io
+    resources:
+      - multiclusterobservabilities
+      - observabilityaddon
+    verbs: ["get", "list", "watch"]
+  - apiGroups:
+      - monitoring.coreos.com
+    resources:
+      - servicemonitors
+      - prometheusrules
+      - podmonitors
+      - alertmanagers
+      - prometheuses
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: workshop-users-observability-reader
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: workshop-observability-reader
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: user1
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: user2

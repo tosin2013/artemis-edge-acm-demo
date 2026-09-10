@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 #
-# Patch the Showroom user_data ConfigMap to inject the deployment mode.
+# Patch the Showroom user_data ConfigMap to inject deployment attributes.
 #
-# In multi-hub mode, this adds mode_multi_hub: "true" to the user_data
-# so Antora's ifdef::mode_multi_hub[] guards activate at build time.
-# In single-hub mode (the default), mode_multi_hub is absent and the
-# ifndef guards render Mode 1 content.
+# Always: injects openshift_api_url if missing (the Showroom workload role
+#         doesn't emit it from agnosticd_user_info).
+# Multi-hub: also injects mode_multi_hub: "true" so Antora's
+#            ifdef::mode_multi_hub[] guards activate at build time.
 #
 # Usage:
 #   ./scripts/patch-showroom-mode.sh <GUID> <MODE> [KUBECONFIG]
@@ -19,17 +19,25 @@ set -euo pipefail
 
 GUID="${1:?Usage: $0 <GUID> <MODE> [KUBECONFIG]}"
 MODE="${2:?Usage: $0 <GUID> <MODE> [KUBECONFIG]}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [[ -n "${3:-}" ]]; then
   export KUBECONFIG="$3"
 fi
 
-if [[ "${MODE}" != "multi-hub" ]]; then
-  echo "Mode is '${MODE}' — no Showroom patch needed (single-hub is the default)."
-  exit 0
+# Derive the OpenShift API URL from deployment-info or kubeconfig
+OPENSHIFT_API_URL="${OPENSHIFT_API_URL:-}"
+if [[ -z "${OPENSHIFT_API_URL}" ]]; then
+  DEPLOY_INFO="${SCRIPT_DIR}/../deployment-info.yml"
+  if [[ -f "${DEPLOY_INFO}" ]]; then
+    OPENSHIFT_API_URL=$(python3 -c "import yaml; print(yaml.safe_load(open('${DEPLOY_INFO}')).get('openshift_api_url',''))" 2>/dev/null || true)
+  fi
+fi
+if [[ -z "${OPENSHIFT_API_URL}" ]]; then
+  OPENSHIFT_API_URL=$(oc whoami --show-server 2>/dev/null || true)
 fi
 
-echo "=== Patching Showroom for multi-hub mode ==="
+echo "=== Patching Showroom ConfigMap ==="
 
 SHOWROOM_NAMESPACES=$(oc get namespaces -o name 2>/dev/null \
   | grep "showroom-${GUID}" \
@@ -52,12 +60,26 @@ for NS in ${SHOWROOM_NAMESPACES}; do
   CURRENT_DATA=$(oc get configmap showroom-userdata -n "${NS}" \
     -o jsonpath='{.data.user_data\.yml}' 2>/dev/null)
 
-  if echo "${CURRENT_DATA}" | grep -q 'mode_multi_hub'; then
-    echo "  mode_multi_hub already present. Skipping patch."
-  else
-    PATCHED_DATA="${CURRENT_DATA}
-\"mode_multi_hub\": \"true\""
+  NEEDS_PATCH=false
+  PATCHED_DATA="${CURRENT_DATA}"
 
+  # Always inject openshift_api_url if missing
+  if [[ -n "${OPENSHIFT_API_URL}" ]] && ! echo "${PATCHED_DATA}" | grep -q 'openshift_api_url'; then
+    PATCHED_DATA="${PATCHED_DATA}
+\"openshift_api_url\": \"${OPENSHIFT_API_URL}\""
+    NEEDS_PATCH=true
+    echo "  + openshift_api_url"
+  fi
+
+  # Inject mode_multi_hub for multi-hub mode
+  if [[ "${MODE}" == "multi-hub" ]] && ! echo "${PATCHED_DATA}" | grep -q 'mode_multi_hub'; then
+    PATCHED_DATA="${PATCHED_DATA}
+\"mode_multi_hub\": \"true\""
+    NEEDS_PATCH=true
+    echo "  + mode_multi_hub"
+  fi
+
+  if [[ "${NEEDS_PATCH}" == "true" ]]; then
     oc create configmap showroom-userdata \
       --from-literal="user_data.yml=${PATCHED_DATA}" \
       -n "${NS}" --dry-run=client -o yaml \
@@ -72,8 +94,10 @@ for NS in ${SHOWROOM_NAMESPACES}; do
     oc wait --for=condition=Ready pod -l app.kubernetes.io/part-of=showroom \
       -n "${NS}" --timeout=120s 2>/dev/null || \
       echo "  WARN: Pod readiness wait timed out — check manually."
+  else
+    echo "  No patch needed."
   fi
   echo "  Done: ${NS}"
 done
 
-echo "=== Showroom multi-hub mode patch complete ==="
+echo "=== Showroom ConfigMap patch complete ==="
