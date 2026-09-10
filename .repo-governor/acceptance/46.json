@@ -1,0 +1,26 @@
+{
+  "$comment": "Showroom Maven (#46): Java user.home is /data from passwd; HOME/MAVEN_USER_HOME are not enough. JVM/Maven must use /home/lab-user.",
+  "authority_id": "46",
+  "criteria": [
+    {
+      "check": "file_exists",
+      "target": "scripts/patch-showroom-home.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'JAVA_TOOL_OPTIONS' scripts/patch-showroom-home.sh && grep -q 'maven.repo.local' scripts/patch-showroom-home.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'JAVA_TOOL_OPTIONS' templates/showroom.yaml && grep -q 'maven.repo.local' templates/showroom.yaml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'JAVA_TOOL_OPTIONS' showroom/content/modules/ROOT/pages/module-00.adoc && grep -q 'maven.repo.local' showroom/content/modules/ROOT/pages/module-00.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'JAVA_TOOL_OPTIONS' showroom/content/modules/ROOT/pages/module-04.adoc && grep -q 'maven.repo.local' showroom/content/modules/ROOT/pages/module-04.adoc"
+    }
+  ]
+}
