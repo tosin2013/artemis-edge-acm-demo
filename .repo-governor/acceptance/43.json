@@ -1,0 +1,22 @@
+{
+  "$comment": "Module 4 (#43): required path is oc run; Java clone/mvn is optional. Required steps must not cd java/ from ~.",
+  "authority_id": "43",
+  "criteria": [
+    {
+      "check": "file_exists",
+      "target": "showroom/content/modules/ROOT/pages/module-04.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'Build the Java clients (optional)' showroom/content/modules/ROOT/pages/module-04.adoc && grep -q 'git clone https://github.com/tosin2013/artemis-edge-acm-demo.git' showroom/content/modules/ROOT/pages/module-04.adoc && grep -q 'mvn package -DskipTests' showroom/content/modules/ROOT/pages/module-04.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'role=execute' showroom/content/modules/ROOT/pages/module-04.adoc && grep -q 'oc -n artemis run producer' showroom/content/modules/ROOT/pages/module-04.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'git clone https://github.com/tosin2013/artemis-edge-acm-demo.git' showroom/content/modules/ROOT/pages/module-00.adoc"
+    }
+  ]
+}
