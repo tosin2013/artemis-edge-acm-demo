@@ -1,11 +1,8 @@
 {{- /*
-Option C (#48): AMQ on SNOs via ACM ConfigurationPolicy only.
-ApplicationSet artemis-edge-workloads stays unbound (ztp-policies has no
-ManagedClusterSetBinding). Binding ztp-policies would also generate spoke
-ArgoCD apps from the full hub chart.
-
-Hub spoke-* brokers are unchanged. SNO brokers are local (no hub AMQP
-route when tls.enabled is false, so federation URIs are omitted here).
+#48 option C + #51: AMQ on SNOs via isolated ACM policies, with SNO→hub
+AMQP federation over hub-01 AMQPS (serving cert -ptls). ApplicationSet
+artemis-edge-workloads stays unbound (do not bind ztp-policies).
+Hub spoke-* brokers are unchanged. SNO path uses admin/admin (no JAAS copy).
 */ -}}
 {{- if .Values.spokeProvisioning.enabled }}
 apiVersion: v1
@@ -142,7 +139,7 @@ spec:
           remediationAction: enforce
           severity: medium
           object-templates:
-            - complianceType: musthave
+            - complianceType: mustonlyhave
               objectDefinition:
                 apiVersion: broker.amq.io/v1beta1
                 kind: ActiveMQArtemis
@@ -177,8 +174,23 @@ spec:
                     - name: mqtt-acceptor
                       protocols: mqtt
                       port: 1833
+                    - name: amqps-acceptor
+                      protocols: amqp
+                      port: 5671
+                      sslEnabled: true
+                      sslSecret: amqps-acceptor-ptls
+                      needClientAuth: false
+                      expose: true
+                  brokerProperties:
+                    {{- include "artemis-edge.snoFederationBrokerProperties" (dict "spoke" . "Values" $.Values) | nindent 20 }}
+                  resourceTemplates:
+                    - selector:
+                        kind: Service
+                        name: {{ .name }}-broker-amqps-acceptor-0-svc
+                      annotations:
+                        service.beta.openshift.io/serving-cert-secret-name: amqps-acceptor-ptls
                   console:
-                    expose: false
+                    expose: true
 ---
 apiVersion: cluster.open-cluster-management.io/v1beta1
 kind: Placement
@@ -215,4 +227,81 @@ subjects:
     apiGroup: policy.open-cluster-management.io
     kind: Policy
 {{- end }}
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: policy-block-spoke-01-federation
+  namespace: edge-broker-policies
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+    edge-region: "NY"
+spec:
+  remediationAction: enforce
+  disabled: true
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: block-spoke-01-federation
+        spec:
+          remediationAction: enforce
+          severity: low
+          object-templates:
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: networking.k8s.io/v1
+                kind: NetworkPolicy
+                metadata:
+                  name: block-spoke-01-federation
+                  namespace: {{ .Values.global.namespace }}
+                spec:
+                  podSelector:
+                    matchLabels:
+                      ActiveMQArtemis: spoke-01-broker
+                  policyTypes:
+                    - Egress
+                  egress:
+                    - to:
+                        - podSelector:
+                            matchLabels:
+                              ActiveMQArtemis: spoke-01-broker
+---
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: policy-block-spoke-01-federation-placement
+  namespace: edge-broker-policies
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  predicates:
+    - requiredClusterSelector:
+        labelSelector:
+          matchLabels:
+            sites: "edge-sno"
+            edge-region: "NY"
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: policy-block-spoke-01-federation-binding
+  namespace: edge-broker-policies
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+placementRef:
+  name: policy-block-spoke-01-federation-placement
+  apiGroup: cluster.open-cluster-management.io
+  kind: Placement
+subjects:
+  - name: policy-block-spoke-01-federation
+    apiGroup: policy.open-cluster-management.io
+    kind: Policy
 {{- end }}
