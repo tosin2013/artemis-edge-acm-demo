@@ -1,0 +1,14 @@
+{
+  "$comment": "Module 4 printed alice/bosco (#47): JAAS PropertiesLoginModule workshop users so AMQP PLAIN succeeds without Keycloak DirectAccessGrants.",
+  "authority_id": "47",
+  "criteria": [
+    {
+      "check": "file_exists",
+      "target": "templates/oidc-jaas-config.yaml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'workshop-users.properties' templates/oidc-jaas-config.yaml && grep -q 'alice = bosco' templates/oidc-jaas-config.yaml && grep -q 'producer = alice' templates/oidc-jaas-config.yaml"
+    }
+  ]
+}
