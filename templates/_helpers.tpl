@@ -119,3 +119,18 @@ Backward-compatible wrapper: hub brokers use the shared "broker-tls-secret".
 {{- define "artemis-edge.brokerAcceptors" -}}
 {{- include "artemis-edge.brokerAcceptorsWithSecret" (dict "Values" .Values "tlsSecretName" "broker-tls-secret") -}}
 {{- end }}
+
+{{/*
+RoleBinding/ClusterRoleBinding subjects for workshop users.
+*/ -}}
+{{- define "artemis-edge.workshopUserSubjects" -}}
+{{- $users := list "user1" "user2" }}
+{{- if and .Values.workshop .Values.workshop.users }}
+{{- $users = .Values.workshop.users }}
+{{- end }}
+{{- range $users -}}
+- apiGroup: rbac.authorization.k8s.io
+  kind: User
+  name: {{ . }}
+{{ end -}}
+{{- end }}

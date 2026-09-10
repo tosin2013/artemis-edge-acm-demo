@@ -84,6 +84,11 @@ showroom:
   terminalImage: "quay.io/rhpds/openshift-showroom-terminal-ocp:latest"
   terminalRbac: []
 
+workshop:
+  users:
+    - user1
+    - user2
+
 externalSecrets:
   enabled: false
   gcpProjectID: ""
