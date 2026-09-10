@@ -153,6 +153,131 @@ subjects:
     apiGroup: policy.open-cluster-management.io
     kind: Policy
 ---
+{{- /*
+Mode 1 ApplicationSet does not generate spoke apps (Placement has no
+ManagedClusterSetBinding in ztp-policies). Student producer RBAC is a
+ConfigurationPolicy so ACM can apply it after SNOs join without deploying
+the full hub Helm chart onto the edge.
+A ClusterSetBinding in this namespace would also activate AMQ-on-SNO
+policies; that is out of scope for workshop producer RBAC. Bind
+workshop-policies only.
+*/ -}}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: workshop-policies
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+---
+apiVersion: cluster.open-cluster-management.io/v1beta2
+kind: ManagedClusterSetBinding
+metadata:
+  name: default
+  namespace: workshop-policies
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  clusterSet: default
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: policy-workshop-artemis-producer
+  namespace: workshop-policies
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  remediationAction: enforce
+  disabled: false
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: workshop-artemis-producer-rbac
+        spec:
+          remediationAction: enforce
+          severity: medium
+          object-templates:
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: v1
+                kind: Namespace
+                metadata:
+                  name: {{ .Values.global.namespace }}
+                  labels:
+                    demo.redhat.com/application: "artemis-edge-acm"
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: rbac.authorization.k8s.io/v1
+                kind: Role
+                metadata:
+                  name: workshop-artemis-producer
+                  namespace: {{ .Values.global.namespace }}
+                rules:
+                  - apiGroups: [""]
+                    resources: ["pods"]
+                    verbs: ["create", "get", "list", "watch", "delete"]
+                  - apiGroups: [""]
+                    resources: ["pods/exec", "pods/attach"]
+                    verbs: ["create"]
+                  - apiGroups: [""]
+                    resources: ["pods/log"]
+                    verbs: ["get"]
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: rbac.authorization.k8s.io/v1
+                kind: RoleBinding
+                metadata:
+                  name: workshop-artemis-producer
+                  namespace: {{ .Values.global.namespace }}
+                roleRef:
+                  apiGroup: rbac.authorization.k8s.io
+                  kind: Role
+                  name: workshop-artemis-producer
+                subjects:
+                  {{- include "artemis-edge.workshopUserSubjects" . | nindent 18 }}
+---
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: policy-workshop-artemis-producer-placement
+  namespace: workshop-policies
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  predicates:
+    - requiredClusterSelector:
+        labelSelector:
+          matchLabels:
+            sites: "edge-sno"
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: policy-workshop-artemis-producer-binding
+  namespace: workshop-policies
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+placementRef:
+  name: policy-workshop-artemis-producer-placement
+  apiGroup: cluster.open-cluster-management.io
+  kind: Placement
+subjects:
+  - name: policy-workshop-artemis-producer
+    apiGroup: policy.open-cluster-management.io
+    kind: Policy
+---
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
