@@ -26,6 +26,25 @@ You should see your username (e.g. `{user}`).
 
 TIP: The Showroom terminal may also have cluster-admin access via a pre-configured service account. The `oc login` above ensures you are authenticated as your own user.
 
+== Terminal home directory
+
+The Showroom terminal image defaults `HOME` to `/data`, which is not mounted. Your writable PVC is `/home/lab-user`. Point Maven at that path before any `mvn` commands (optional Java build in xref:module-04.adoc[Module 4]):
+
+[source,bash,role=execute]
+----
+export HOME=/home/lab-user
+export MAVEN_USER_HOME=/home/lab-user/.m2
+mkdir -p "$MAVEN_USER_HOME"
+----
+
+Optional: clone the demo repository if you want to inspect or compile the Java clients later. This is not required for the ACM hub and spoke exercises.
+
+[source,bash]
+----
+git clone https://github.com/tosin2013/artemis-edge-acm-demo.git
+cd artemis-edge-acm-demo
+----
+
 === OpenShift Web Console
 
 Open the OpenShift web console in your browser:
