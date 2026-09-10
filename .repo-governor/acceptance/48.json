@@ -1,0 +1,30 @@
+{
+  "$comment": "Option C (#48): AMQ on SNOs via isolated ACM policies. ApplicationSet and ztp-policies stay unbound. Hub spoke brokers unchanged. No SNO-to-hub AMQP federation (no hub AMQP route when tls is off).",
+  "authority_id": "48",
+  "covers": {
+    "declared": "Isolated edge-broker-policies: ManagedClusterSetBinding, AMQ operator ConfigurationPolicy, one ActiveMQArtemis policy per edgeBrokers region. ApplicationSet remains unbound.",
+    "uncovered": "SNO-to-hub AMQP federation and Module 3-5 retargeting (hub in-cluster producer URL stays). Binding ztp-policies / ApplicationSet children is option A/B/D, not C."
+  },
+  "criteria": [
+    {
+      "check": "file_exists",
+      "target": "templates/edge-broker-policies.yaml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'name: edge-broker-policies' templates/edge-broker-policies.yaml && grep -q 'kind: ManagedClusterSetBinding' templates/edge-broker-policies.yaml && grep -q 'policy-amq-broker-operator-sno' templates/edge-broker-policies.yaml && grep -q 'kind: ActiveMQArtemis' templates/edge-broker-policies.yaml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'edge-broker-policies' templates/spoke-rhacm-policies.yaml && grep -q 'Do not bind ztp-policies' templates/spoke-rhacm-policies.yaml"
+    },
+    {
+      "check": "command_exit",
+      "target": "helm template test . --set global.clusterDomain=ci-test.example.com --set spokeProvisioning.enabled=true 2>/dev/null | grep -q 'name: policy-amq-broker-operator-sno' && helm template test . --set global.clusterDomain=ci-test.example.com --set spokeProvisioning.enabled=true 2>/dev/null | grep -q 'name: policy-amq-broker-spoke-01'"
+    },
+    {
+      "check": "command_exit",
+      "target": "! helm template test . --set global.clusterDomain=ci-test.example.com 2>/dev/null | grep -q 'name: policy-amq-broker-operator-sno'"
+    }
+  ]
+}
