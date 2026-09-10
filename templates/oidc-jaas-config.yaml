@@ -7,6 +7,12 @@ metadata:
     {{- include "artemis-edge.labels" . | nindent 4 }}
 type: Opaque
 stringData:
+  workshop-users.properties: |
+    alice = bosco
+    bob = bosco
+  workshop-roles.properties: |
+    producer = alice
+    consumer = bob
   login.config: |
     console {
       org.apache.activemq.artemis.spi.core.security.jaas.PropertiesLoginModule sufficient
@@ -17,6 +23,12 @@ stringData:
     };
 
     activemq {
+      org.apache.activemq.artemis.spi.core.security.jaas.PropertiesLoginModule sufficient
+        org.apache.activemq.jaas.properties.user="workshop-users.properties"
+        org.apache.activemq.jaas.properties.role="workshop-roles.properties"
+        baseDir="/amq/extra/secrets/oidc-jaas-config"
+      ;
+
       org.apache.activemq.artemis.spi.core.security.jaas.PropertiesLoginModule sufficient
         org.apache.activemq.jaas.properties.user="artemis-users.properties"
         org.apache.activemq.jaas.properties.role="artemis-roles.properties"
