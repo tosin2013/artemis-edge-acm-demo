@@ -3,8 +3,18 @@
   "authority_id": "48",
   "covers": {
     "declared": "Isolated edge-broker-policies: ManagedClusterSetBinding, AMQ operator ConfigurationPolicy, one ActiveMQArtemis policy per edgeBrokers region. ApplicationSet remains unbound.",
-    "uncovered": "SNO-to-hub AMQP federation and Module 3-5 retargeting (hub in-cluster producer URL stays). Binding ztp-policies / ApplicationSet children is option A/B/D, not C."
+    "uncovered": "SNO-to-hub AMQP federation and Module 3-5 retargeting (hub in-cluster producer URL stays). Binding ztp-policies / ApplicationSet children is option A/B/D, not C.",
+    "split_to": ["51"],
+    "split_note": "Federation and module retargeting are #51."
   },
+  "amendments": [
+    {
+      "cites": ["tosin2013/artemis-edge-acm-demo#51"],
+      "effect": "corrected",
+      "date": "2026-09-10",
+      "reason": "Named split_to #51 so this bar can complete; uncovered SNO federation is a separate authority."
+    }
+  ],
   "criteria": [
     {
       "check": "file_exists",

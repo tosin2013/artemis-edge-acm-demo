@@ -2,13 +2,13 @@
 
 == Objectives
 
-* See how messages move between the ACM hub and edge brokers
-* Produce test messages on the hub (Mode 1: spoke brokers run on the hub)
-* Optionally clone and compile the Java clients (not required for the ACM path)
+* See how messages move from an ACM-managed SNO broker to hub-01
+* Produce test messages on the **NY SNO** (AMQPS Route), not the hub-colocated `spoke-01` service
+* Optionally clone and compile the Java clients (not required)
 
 == Application Overview
 
-The demo includes four Java applications. You do **not** need to build or deploy them to complete this module. The required exercise uses the AMQ Broker image already on the cluster.
+The demo includes four Java applications. You do **not** need to build or deploy them to complete this module. The required exercise uses the AMQ Broker image already on the hub, connecting out to the SNO AMQPS Route.
 
 === amqp-client (Quarkus Camel AMQP)
 
@@ -26,9 +26,9 @@ A durable subscription bridge between source and target brokers. Stamps a `Pedig
 
 A broker-side plugin that injects configurable headers via the `beforeSend` hook. Deployed into the broker's classpath.
 
-== Produce messages on the hub (required)
+== Produce on the NY SNO (required)
 
-This is the path that demonstrates ACM hub and spoke messaging. Run it as `{user}` after xref:module-00.adoc[Module 0] login.
+This is the ACM edge path: `{user}` runs a producer *pod on the hub* whose AMQP URL is the **sno-edge-01** AMQPS Route. OpenShift Routes require TLS (SNI). The SNO broker authenticates `admin` / `admin` (workshop JAAS users are on the hub, not the SNO).
 
 [source,bash,role=execute]
 ----
@@ -42,13 +42,13 @@ Inside the container:
 [source,bash,subs="attributes+"]
 ----
 /opt/amq/bin/artemis producer \
-  --url=amqp://spoke-01-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672 \
-  --protocol=AMQP --user={producer_user} --password={producer_password} \
-  --message-count=10 --message='hello from NY edge' \
+  --url='amqps://spoke-01-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-01.{guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
+  --protocol=AMQP --user=admin --password=admin \
+  --message-count=10 --message='hello from NY SNO' \
   --destination=topic://messages.NY.test --verbose
 ----
 
-TIP: If Keycloak OIDC users (`{producer_user}`/`{producer_password}`) fail to authenticate with a SASL error, use the broker admin credentials (`admin`/`admin`) instead. The Keycloak realm import may need the user passwords to be set manually — see the deployment troubleshooting guide.
+Do **not** use `amqp://spoke-01-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672`. That service is the hub-colocated broker, not the SNO.
 
 == Build the Java clients (optional)
 

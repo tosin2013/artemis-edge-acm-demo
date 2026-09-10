@@ -1,0 +1,38 @@
+{
+  "$comment": "SNO→hub AMQP federation (#51). Hub-01 AMQPS Route when spokeProvisioning.enabled (serving cert -ptls; do not flip global tls.enabled). Isolated edge-broker-policies ActiveMQArtemis uses mustonlyhave, spec.brokerProperties address federation, exposed AMQPS. Modules 1–6 retarget to SNO Routes. ApplicationSet / ztp-policies stay unbound. Hub spoke-* CRs stay.",
+  "authority_id": "51",
+  "criteria": [
+    {
+      "check": "file_exists",
+      "target": "templates/edge-broker-policies.yaml"
+    },
+    {
+      "check": "command_exit",
+      "target": "helm template test . --set global.clusterDomain=ci-test.example.com --set spokeProvisioning.enabled=true 2>/dev/null | grep -q 'name: amqps-acceptor' && helm template test . --set global.clusterDomain=ci-test.example.com --set spokeProvisioning.enabled=true 2>/dev/null | grep -q 'sslSecret: amqps-acceptor-ptls'"
+    },
+    {
+      "check": "command_exit",
+      "target": "helm template test . --set global.clusterDomain=ci-test.example.com --set spokeProvisioning.enabled=true 2>/dev/null | grep -q 'trustAll=true' && helm template test . --set global.clusterDomain=ci-test.example.com --set spokeProvisioning.enabled=true 2>/dev/null | grep -q 'useTopologyForLoadBalancing=false'"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'mustonlyhave' templates/edge-broker-policies.yaml && grep -q 'sslEnabled: true' templates/edge-broker-policies.yaml && grep -q 'amqps-acceptor-ptls' templates/edge-broker-policies.yaml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'edge-broker-policies' showroom/content/modules/ROOT/pages/module-02.adoc && grep -q 'policy-amq-broker-operator-sno' showroom/content/modules/ROOT/pages/module-02.adoc && grep -q 'NoManagedClusterSetBindings' showroom/content/modules/ROOT/pages/module-02.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'amqps-acceptor-0-svc-rte' showroom/content/modules/ROOT/pages/module-04.adoc && grep -q 'sslEnabled=true' showroom/content/modules/ROOT/pages/module-04.adoc && grep -q 'hub-01-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local' showroom/content/modules/ROOT/pages/module-05.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'policy-block-spoke-01-federation' templates/edge-broker-policies.yaml && grep -q 'policy-block-spoke-01-federation' showroom/content/modules/ROOT/pages/module-06.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'Do not bind ztp-policies' templates/spoke-rhacm-policies.yaml && ! helm template test . --set global.clusterDomain=ci-test.example.com 2>/dev/null | grep -q 'amqps-acceptor-ptls'"
+    }
+  ]
+}
