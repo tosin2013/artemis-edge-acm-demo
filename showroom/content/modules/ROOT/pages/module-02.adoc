@@ -1,24 +1,23 @@
-= Module 2: Provision and Observe Spoke Clusters
+= Module 2: Provision SNOs and Observe ACM Edge Brokers
 
 == Objectives
 
-* Create a GCP cloud provider credential in the RHACM Console
-* Provision SNO edge clusters from the hub using ACM/Hive
-* Monitor the Hive provisioning pipeline in real time
-* Verify ManagedCluster registration, labels, and RHACM policies
+* Confirm SNO edge clusters are JOINED (provision with Hive only if they are missing)
+* See RHACM Governance install AMQ on those SNOs (`edge-broker-policies`)
+* Confirm `ztp-policies` stays unbound (no ApplicationSet children)
 
 == Background
 
-This demo uses *Hive* (via Red Hat Advanced Cluster Management) to provision SNO edge clusters on GCP. Each spoke cluster is defined as a `ClusterDeployment` CR, which triggers Hive to create a new OpenShift cluster using the GCP cloud provider.
+Hive (via RHACM) can provision SNO edge clusters on GCP. After a cluster joins with labels `sites: edge-sno` and `edge-region: NY|NJ|CT`, ACM ConfigurationPolicies in namespace `edge-broker-policies` install the AMQ Broker operator and one `ActiveMQArtemis` per region. Those SNO brokers federate to hub-01 over AMQPS.
 
-The provisioning script (`deploy-spokes.sh`) automates the entire pipeline: it extracts credentials from the hub, creates per-spoke namespaces and secrets, patches the ArgoCD application, and monitors Hive until the clusters are installed.
+The ApplicationSet `artemis-edge-workloads` in `ztp-policies` is *intentionally unbound*. Binding it would sync the full hub Helm chart to every SNO.
 
 ifndef::mode_multi_hub[]
-NOTE: In Mode 1 (single-hub), spoke clusters are provisioned on-demand as part of this exercise. If your environment does not have sufficient GCP quota (16 vCPUs for 2 SNO clusters), you can review this module for context and skip to xref:module-03.adoc[Module 3: Verify AMQ Brokers and Federation].
+NOTE: Many Mode 1 environments already have `sno-edge-01` (NY) and `sno-edge-02` (NJ). If `oc get managedcluster` shows them JOINED, *do not* re-run `deploy-spokes.sh`. Skip to step 4.
 endif::[]
 
 ifdef::mode_multi_hub[]
-NOTE: In Mode 2 (multi-hub), spoke clusters may already be provisioned as part of the initial deployment. Check their status before proceeding.
+NOTE: In Mode 2, spoke clusters may already be provisioned. Check their status before running the script.
 endif::[]
 
 == Steps
@@ -83,7 +82,7 @@ The script performs these steps automatically:
 ** `ClusterDeployment` CRs (triggers Hive provisioning)
 ** `ManagedCluster` CRs (auto-imports clusters into RHACM)
 ** `KlusterletAddonConfig` CRs (enables ACM add-ons)
-** RHACM Policies for AMQ Broker operator and monitoring
+** RHACM Policies in `edge-broker-policies` (AMQ operator + per-region broker + federation)
 . **Hive monitoring** — polls `ClusterDeployments` every 60 seconds until installed
 
 ifndef::mode_multi_hub[]
@@ -181,26 +180,74 @@ endif::[]
 
 Each spoke cluster shows its assigned edge region and `gcp` cloud provider label.
 
-=== 5. Check Placement Decisions
+=== 5. Check Placement Decisions (edge-broker-policies)
+
+AMQ on SNOs is selected by Placement in **`edge-broker-policies`**, not `ztp-policies`.
 
 [source,bash,role=execute]
 ----
-oc get placementdecisions -n ztp-policies
+oc get placement -n edge-broker-policies
 ----
 
-The Placement API selects all clusters with label `sites: edge-sno`. Each spoke cluster is automatically targeted for RHACM policy enforcement.
+.Expected output
+[source,text]
+----
+NAME                                       SUCCEEDED   REASON                    SELECTEDCLUSTERS
+policy-amq-broker-operator-sno-placement   True        AllDecisionsScheduled     2
+policy-amq-broker-spoke-01-placement       True        AllDecisionsScheduled     1
+policy-amq-broker-spoke-02-placement       True        AllDecisionsScheduled     1
+policy-amq-broker-spoke-03-placement       False       NoManagedClusterMatched
+----
 
-=== 6. Verify RHACM Policies
+`spoke-03` (CT) stays unmatched unless a third SNO exists.
+
+Confirm `ztp-policies` is **not** bound:
 
 [source,bash,role=execute]
 ----
-oc get policy -n ztp-policies
+oc get placement -n ztp-policies
 ----
 
-Two policies should show `Compliant`:
+Those Placements show `NoManagedClusterSetBindings`. That is **expected**. Do not create a `ManagedClusterSetBinding` in `ztp-policies`.
 
-* `policy-amq-broker-operator` -- ensures AMQ Broker operator is installed on each spoke
-* `policy-edge-monitoring` -- creates the metrics namespace on each spoke
+=== 6. Verify RHACM Policies (AMQ on SNOs)
+
+Open the RHACM Console → *Governance* → *Policies*, or run:
+
+[source,bash,role=execute]
+----
+oc get policy -n edge-broker-policies
+----
+
+.Expected output
+[source,text]
+----
+NAME                             REMEDIATION ACTION   COMPLIANCE STATE
+policy-amq-broker-operator-sno   enforce              Compliant
+policy-amq-broker-spoke-01       enforce              Compliant
+policy-amq-broker-spoke-02       enforce              Compliant
+policy-amq-broker-spoke-03       enforce
+policy-block-spoke-01-federation  enforce
+----
+
+* `policy-amq-broker-operator-sno` — Namespace, OperatorGroup, and AMQ Broker Subscription on every `sites: edge-sno` cluster
+* `policy-amq-broker-spoke-01` / `spoke-02` — one `ActiveMQArtemis` per region, with AMQP federation to hub-01
+* `policy-block-spoke-01-federation` — stays **disabled** until xref:module-06.adoc[Module 6]
+
+See which clusters each broker policy hit:
+
+[source,bash,role=execute]
+----
+oc get policy policy-amq-broker-spoke-01 -n edge-broker-policies -o jsonpath='{range .status.status[*]}{.clustername} {.compliant}{"\n"}{end}'
+----
+
+.Expected output
+[source,text]
+----
+sno-edge-01 Compliant
+----
+
+You cannot `oc login` to the SNOs as `{user}`. Policy status on the hub is how you confirm AMQ landed on the edge.
 
 === 7. Troubleshooting
 

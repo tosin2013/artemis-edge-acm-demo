@@ -31,7 +31,7 @@ open-cluster-management   multiclusterhub   Running   167m   2.17.1           2.
 oc get application.argoproj.io -n openshift-gitops
 ----
 
-All applications should show `Synced` and `Healthy`.
+All applications should show `Synced`. `field-content` may remain `Progressing` (ApplicationSet with no children). Do not bind `ztp-policies` to "fix" that.
 
 .Expected output
 [source,text]
@@ -67,18 +67,20 @@ keycloak-operator   keycloak-operator   community-operators   fast
 oc get managedclusters
 ----
 
-ifndef::mode_multi_hub[]
-NOTE: In Mode 1 (single-hub), you will only see `local-cluster`. Edge SNO clusters are provisioned in Module 2 for multi-cluster deployments.
+You always see `local-cluster` (the hub). If SNOs were provisioned (this catalog item, or xref:module-02.adoc[Module 2]), you also see `sno-edge-01` and `sno-edge-02` with `JOINED=True` and `AVAILABLE=True`.
 
-.Expected output
+ifndef::mode_multi_hub[]
+.Expected output (Mode 1 after SNOs join)
 [source,text]
 ----
-NAME            HUB ACCEPTED   MANAGED CLUSTER URLS                                           JOINED   AVAILABLE   AGE
-local-cluster   true           https://api.hub.<guid>.gcp.redhatworkshops.io:6443   True     True        ...
+NAME            HUB ACCEPTED   MANAGED CLUSTER URLS                                           JOINED   AVAILABLE
+local-cluster   true           https://api.hub.<guid>.gcp.redhatworkshops.io:6443        True     True
+sno-edge-01     true           https://api.sno-edge-01.<guid>.gcp.redhatworkshops.io:6443 True     True
+sno-edge-02     true           https://api.sno-edge-02.<guid>.gcp.redhatworkshops.io:6443 True     True
 ----
 endif::[]
 ifdef::mode_multi_hub[]
-You should see 3 SNO edge clusters (or 6 in Mode 2) with `ManagedClusterConditionAvailable=True`.
+You should see 3 SNO edge clusters (or 6 in Mode 2) with `JOINED=True` and `AVAILABLE=True`.
 endif::[]
 
-TIP: All four checks passing confirms the hub cluster is healthy and ready for the messaging modules. If any step shows unexpected output, verify the ArgoCD `field-content` application is `Synced` and `Healthy` before proceeding.
+TIP: `field-content` in ArgoCD may stay `Progressing` because ApplicationSet `artemis-edge-workloads` has no child apps. That is expected — AMQ on SNOs is delivered by ACM policies in `edge-broker-policies`, not by ArgoCD apps on the spokes.

@@ -121,6 +121,33 @@ Backward-compatible wrapper: hub brokers use the shared "broker-tls-secret".
 {{- end }}
 
 {{/*
+SNO edge brokerProperties: address federation to hub-01 AMQPS Route (KCS 7104022/7042028).
+Call with: include "artemis-edge.snoFederationBrokerProperties" (dict "spoke" . "Values" $.Values)
+*/}}
+{{- define "artemis-edge.snoFederationBrokerProperties" -}}
+{{- $spoke := .spoke -}}
+{{- $v := .Values -}}
+{{- $hub := (index $v.hubBrokers 0).name -}}
+{{- $uri := printf "tcp://%s-broker-amqps-acceptor-0-svc-rte-%s.%s:443?sslEnabled=true&trustAll=true&verifyHost=false&useTopologyForLoadBalancing=false" $hub $v.global.namespace $v.global.clusterDomain -}}
+- {{ printf "acceptorConfigurations.amqps-acceptor.params.sslAutoReload=true" | quote }}
+- {{ printf "AMQPConnections.%s-connection.autostart=true" $hub | quote }}
+- {{ printf "AMQPConnections.%s-connection.uri=%s" $hub $uri | quote }}
+- {{ printf "AMQPConnections.%s-connection.user=%s" $hub $v.edgeBrokerDefaults.adminUser | quote }}
+- {{ printf "AMQPConnections.%s-connection.password=%s" $hub $v.edgeBrokerDefaults.adminPassword | quote }}
+- {{ printf "AMQPConnections.%s-connection.retryInterval=5000" $hub | quote }}
+- {{ printf "AMQPConnections.%s-connection.reconnectAttempts=-1" $hub | quote }}
+- {{ printf "AMQPConnections.%s-connection.federations.%s-federation.type=FEDERATION" $hub $spoke.name | quote }}
+- {{ printf "AMQPConnections.%s-connection.federations.%s-federation.localAddressPolicies.local-policy.autoDelete=true" $hub $spoke.name | quote }}
+- {{ printf "AMQPConnections.%s-connection.federations.%s-federation.localAddressPolicies.local-policy.autoDeleteDelay=0" $hub $spoke.name | quote }}
+- {{ printf "AMQPConnections.%s-connection.federations.%s-federation.localAddressPolicies.local-policy.autoDeleteMessageCount=1000" $hub $spoke.name | quote }}
+- {{ printf "AMQPConnections.%s-connection.federations.%s-federation.localAddressPolicies.local-policy.includes.all.addressMatch=messages.ALL.#" $hub $spoke.name | quote }}
+- {{ printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy.autoDelete=true" $hub $spoke.name | quote }}
+- {{ printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy.autoDeleteDelay=0" $hub $spoke.name | quote }}
+- {{ printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy.autoDeleteMessageCount=1000" $hub $spoke.name | quote }}
+- {{ printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy.includes.region.addressMatch=messages.%s.#" $hub $spoke.name $spoke.region | quote }}
+{{- end }}
+
+{{/*
 RoleBinding/ClusterRoleBinding subjects for workshop users.
 */ -}}
 {{- define "artemis-edge.workshopUserSubjects" -}}

@@ -2,9 +2,9 @@
 
 == Objectives
 
-* Send messages from edge brokers using regional addresses
-* Consume messages at the hub
-* Observe federation routing in action
+* Send messages from SNO edge brokers using regional addresses
+* Consume those messages at hub-01 (federation)
+* Confirm hub-colocated `spoke-*` URLs are not this exercise
 
 == Steps
 
@@ -35,49 +35,40 @@ TIP: If `{consumer_user}`/`{consumer_password}` fails with a SASL authentication
 
 Leave this consumer running and open a *second terminal* for the next step.
 
-=== 2. Produce from Edge (NY Region)
+=== 2. Produce from the NY SNO
 
-ifndef::mode_multi_hub[]
-NOTE: In Mode 1 (single-hub), all brokers run on the hub cluster. The spoke services are still accessible via their internal service names.
-endif::[]
-
-On the NY spoke cluster:
+Use the sno-edge-01 AMQPS Route. SNO brokers use `admin` / `admin`.
 
 [source,bash,subs="attributes+"]
 ----
-/opt/amq/bin/artemis producer \
-  --url=amqp://spoke-01-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672 \
-  --protocol=AMQP --user={producer_user} --password={producer_password} \
-  --message-count=5 --message='hello from NY' \
+oc -n artemis run producer-ny -ti \
+  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
+  --rm=true --restart=Never -- /opt/amq/bin/artemis producer \
+  --url='amqps://spoke-01-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-01.{guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
+  --protocol=AMQP --user=admin --password=admin \
+  --message-count=5 --message='hello from NY SNO' \
   --destination=topic://messages.NY.test --verbose
 ----
 
-=== 3. Try the ALL Address
+The hub consumer should receive the five `messages.NY.test` messages.
 
-Messages sent to `messages.ALL.*` are federated to all brokers:
-
-[source,bash,subs="attributes+"]
-----
-/opt/amq/bin/artemis producer \
-  --url=amqp://spoke-02-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672 \
-  --protocol=AMQP --user={producer_user} --password={producer_password} \
-  --message-count=5 --message='broadcast from NJ' \
-  --destination=topic://messages.ALL.broadcast --verbose
-----
-
-=== 4. Try MQTT from Edge
-
-NOTE: The `artemis` CLI does not support `--protocol=MQTT`. Use the AMQP protocol to send a message that lands on the MQTT address, or use an external MQTT client like `mosquitto_pub`.
-
-Using AMQP to produce to the CT region address:
+=== 3. Produce from the NJ SNO
 
 [source,bash,subs="attributes+"]
 ----
-/opt/amq/bin/artemis producer \
-  --url=amqp://spoke-03-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672 \
-  --protocol=AMQP --user={producer_user} --password={producer_password} \
-  --message-count=5 --message='message from CT' \
-  --destination=topic://messages.CT.test --verbose
+oc -n artemis run producer-nj -ti \
+  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
+  --rm=true --restart=Never -- /opt/amq/bin/artemis producer \
+  --url='amqps://spoke-02-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-02.{guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
+  --protocol=AMQP --user=admin --password=admin \
+  --message-count=5 --message='hello from NJ SNO' \
+  --destination=topic://messages.NJ.test --verbose
 ----
 
-TIP: To test native MQTT, deploy a pod with `mosquitto-clients` and use `mosquitto_pub -h spoke-03-broker-mqtt-acceptor-0-svc.artemis.svc.cluster.local -p 1833 -t messages/CT/mqtt -m "MQTT from CT" -u {producer_user} -P {producer_password}`.
+Start a hub consumer on `topic://messages.NJ.test` first if you want to see these arrive. The SNO remote address policy *pushes* `messages.{region}.#` to hub-01. `messages.ALL.#` is pulled from the hub onto the SNO, not the reverse.
+
+=== 4. CT region
+
+This catalog item often has no `sno-edge-03`. `policy-amq-broker-spoke-03` stays unmatched. Skip CT unless Module 2 showed a CT SNO.
+
+NOTE: The `artemis` CLI does not support `--protocol=MQTT`. Native MQTT would target the SNO MQTT acceptor, which is not exposed on a Route in this demo.
