@@ -1,0 +1,26 @@
+{
+  "$comment": "GitOps student producer RBAC (#41): Helm Role in artemis plus ACM ConfigurationPolicy after spoke join. Live user1 oc auth can-i is verified on the deployed hub, not in this bar (cluster-specific kubeconfig).",
+  "authority_id": "41",
+  "criteria": [
+    {
+      "check": "file_exists",
+      "target": "templates/workshop-user-rbac.yaml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'name: workshop-artemis-producer' templates/workshop-user-rbac.yaml && grep -q 'pods/exec' templates/workshop-user-rbac.yaml && grep -q 'kind: ClusterRole' templates/workshop-user-rbac.yaml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'name: policy-workshop-artemis-producer' templates/spoke-rhacm-policies.yaml && grep -q 'kind: ManagedClusterSetBinding' templates/spoke-rhacm-policies.yaml"
+    },
+    {
+      "check": "command_exit",
+      "target": "helm template test . --set global.clusterDomain=ci-test.example.com 2>/dev/null | grep -q 'name: workshop-artemis-producer'"
+    },
+    {
+      "check": "command_exit",
+      "target": "helm template test . --set global.clusterDomain=ci-test.example.com --set spokeProvisioning.enabled=true 2>/dev/null | grep -q 'name: policy-workshop-artemis-producer'"
+    }
+  ]
+}
