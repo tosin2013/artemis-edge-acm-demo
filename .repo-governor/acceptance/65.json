@@ -1,0 +1,14 @@
+{
+  "$comment": "AMQ Grafana legends must include cluster (#65). Keep broker/queue/address fields. Does not expand the metrics allowlist (Queue Sizes / Address Message Counts No data is a separate discovery). Does not continue #62/#63/#64. Does not change the Module 8 five-panel student list.",
+  "authority_id": "65",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "test $(grep -c 'legendFormat' templates/acm-amq-dashboard.yaml) -eq $(grep 'legendFormat' templates/acm-amq-dashboard.yaml | grep -c 'cluster{{ \"}}\" }}')"
+    },
+    {
+      "check": "command_exit",
+      "target": "test $(grep -c 'legendFormat' showroom/content/modules/ROOT/pages/module-08.adoc) -eq $(grep 'legendFormat' showroom/content/modules/ROOT/pages/module-08.adoc | grep -c '{{cluster}}')"
+    }
+  ]
+}

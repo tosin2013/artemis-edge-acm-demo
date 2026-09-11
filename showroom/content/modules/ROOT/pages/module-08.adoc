@@ -88,10 +88,16 @@ Open the URL in your browser. Grafana uses OpenShift authentication — log in w
 
 NOTE: Grafana uses OpenShift OAuth. Log in with `admin` / your cluster admin password, or with your `user1` credentials.
 
+.Grafana after OpenShift SSO — Dashboards list
+image::grafana-dashboards-sso.png[Grafana Dashboards page after OpenShift login. ACM and Platform-MCOA folders are listed; Custom holds the AMQ Broker dashboard.,link=self,window=blank,width=800]
+
 Explore the built-in dashboards under *Dashboards*:
 
 * **ACM - Clusters Overview**: memory utilization, CPU usage, and etcd database size per cluster
 * **ACM - Resource Optimization**: resource requests vs actual usage across managed clusters
+
+.ACM - Clusters Overview (hub plus both SNO edge clusters)
+image::grafana-clusters-overview.png[ACM Clusters Overview dashboard showing local-cluster, sno-edge-01, and sno-edge-02 API-server and resource panels.,link=self,window=blank,width=800]
 
 ifdef::mode_multi_hub[]
 With your SNO spoke clusters joined, you can compare metrics across:
@@ -151,7 +157,12 @@ Run this query to check that AMQ Broker metrics are being collected:
 artemis_message_count
 ----
 
-You should see results from hub brokers. If spoke clusters have AMQ Broker deployed (via RHACM policy), their metrics will also appear.
+You should see results from hub brokers (`cluster="local-cluster"`) and SNO brokers (`cluster="sno-edge-01"` / `sno-edge-02`). Helm ships ConfigMap `observability-metrics-custom-allowlist` in `open-cluster-management-observability` with both `metrics_list.yaml` and `uwl_metrics_list.yaml` — hub AMQ is scraped by user-workload Prometheus, so the UWL list is required or Explore stays empty.
+
+SNO AMQ ServiceMonitors are also user-workload: the default spoke metrics-collector federates platform Prometheus (`prometheus-k8s`), which does not scrape the `artemis` namespace. Policy `policy-sno-uwl-amq-metrics` sets `enableUserWorkload: true` on each SNO (merged into `openshift-monitoring/cluster-monitoring-config` so ACM alert-forwarding is preserved) and creates a spoke `observability-metrics-custom-allowlist` in `artemis`. That starts `uwl-metrics-collector` so SNO `artemis_*` series reach Thanos and appear in the AMQ dashboard cluster dropdown.
+
+.Grafana Explore — `artemis_message_count`
+image::grafana-explore-artemis-message-count.png[Grafana Explore query artemis_message_count. Hub series use cluster=local-cluster; after policy-sno-uwl-amq-metrics, sno-edge-01 and sno-edge-02 also appear in Thanos and in the AMQ dashboard cluster dropdown.,link=self,window=blank,width=800]
 
 ==== 4.2. Deploy Custom Alert Rules
 
@@ -244,7 +255,7 @@ data:
           "title": "Queue Message Counts",
           "type": "timeseries",
           "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
-          "targets": [{"expr": "artemis_message_count{cluster=~\"$cluster\"}", "legendFormat": "{{broker}} / {{queue}}"}],
+          "targets": [{"expr": "artemis_message_count{cluster=~\"$cluster\"}", "legendFormat": "{{cluster}} / {{broker}} / {{queue}}"}],
           "datasource": {"type": "prometheus", "uid": "Observatorium"}
         },
         {
@@ -252,8 +263,8 @@ data:
           "type": "timeseries",
           "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
           "targets": [
-            {"expr": "rate(artemis_messages_added{cluster=~\"$cluster\"}[5m])", "legendFormat": "added: {{broker}}"},
-            {"expr": "rate(artemis_messages_acknowledged{cluster=~\"$cluster\"}[5m])", "legendFormat": "acked: {{broker}}"}
+            {"expr": "rate(artemis_messages_added{cluster=~\"$cluster\"}[5m])", "legendFormat": "added: {{cluster}} / {{broker}}"},
+            {"expr": "rate(artemis_messages_acknowledged{cluster=~\"$cluster\"}[5m])", "legendFormat": "acked: {{cluster}} / {{broker}}"}
           ],
           "datasource": {"type": "prometheus", "uid": "Observatorium"}
         },
@@ -261,14 +272,14 @@ data:
           "title": "Connection Count",
           "type": "timeseries",
           "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
-          "targets": [{"expr": "artemis_connection_count{cluster=~\"$cluster\"}", "legendFormat": "{{broker}}"}],
+          "targets": [{"expr": "artemis_connection_count{cluster=~\"$cluster\"}", "legendFormat": "{{cluster}} / {{broker}}"}],
           "datasource": {"type": "prometheus", "uid": "Observatorium"}
         },
         {
           "title": "Address Memory Usage",
           "type": "timeseries",
           "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
-          "targets": [{"expr": "artemis_address_memory_usage{cluster=~\"$cluster\"}", "legendFormat": "{{broker}}"}],
+          "targets": [{"expr": "artemis_address_memory_usage{cluster=~\"$cluster\"}", "legendFormat": "{{cluster}} / {{broker}}"}],
           "datasource": {"type": "prometheus", "uid": "Observatorium"},
           "fieldConfig": {"defaults": {"unit": "bytes"}}
         },
@@ -276,7 +287,7 @@ data:
           "title": "Consumer Count",
           "type": "timeseries",
           "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16},
-          "targets": [{"expr": "artemis_consumer_count{cluster=~\"$cluster\"}", "legendFormat": "{{broker}} / {{address}}"}],
+          "targets": [{"expr": "artemis_consumer_count{cluster=~\"$cluster\"}", "legendFormat": "{{cluster}} / {{broker}} / {{address}}"}],
           "datasource": {"type": "prometheus", "uid": "Observatorium"}
         }
       ],
@@ -302,10 +313,21 @@ data:
 DASHBOARD_EOF
 ----
 
-After applying, navigate to Grafana -> *Dashboards* -> *Custom* folder. The **AMQ Broker - Artemis Edge** dashboard should appear.
+After applying, navigate to Grafana -> *Dashboards* -> *Custom* folder. The **AMQ Broker - Artemis Edge** dashboard should appear. The Helm chart may already have deployed this dashboard; the apply below is idempotent if the ConfigMap name matches. Each series legend includes `cluster` so hub (`local-cluster`) and SNO brokers are distinguishable when multiple clusters are selected.
+
+Use the **Cluster** dropdown at the top to filter one node at a time. The screenshots below are the same dashboard with that filter set to the hub, then each SNO — that is how you tell which node the series come from.
+
+.Custom Grafana dashboard — AMQ Broker - Artemis Edge (cluster filter: `local-cluster`)
+image::grafana-amq-broker-dashboard.png[AMQ Broker - Artemis Edge dashboard with cluster filter local-cluster.,link=self,window=blank,width=800]
+
+.Same dashboard — cluster filter `sno-edge-01`
+image::grafana-amq-broker-sno-edge-01.png[AMQ Broker - Artemis Edge dashboard with cluster filter sno-edge-01.,link=self,window=blank,width=800]
+
+.Same dashboard — cluster filter `sno-edge-02`
+image::grafana-amq-broker-sno-edge-02.png[AMQ Broker - Artemis Edge dashboard with cluster filter sno-edge-02.,link=self,window=blank,width=800]
 
 ifdef::mode_multi_hub[]
-Use the **Cluster** dropdown at the top to filter between `local-cluster`, `sno-edge-01`, and `sno-edge-02`.
+The dropdown values are `local-cluster`, `sno-edge-01`, and `sno-edge-02`.
 endif::mode_multi_hub[]
 
 The dashboard has 5 panels:

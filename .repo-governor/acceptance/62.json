@@ -1,0 +1,18 @@
+{
+  "$comment": "Show Helm-generated ACM policies in CLI and Governance UI (#62). Fix ACM console URL; Module 2 screenshots and PolicyGenerator xref. Do not apply ztp/policygenerator/.",
+  "authority_id": "62",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "! grep -q 'multicloud-console\\.' showroom/content/modules/ROOT/pages/module-00.adoc showroom/content/modules/ROOT/pages/module-02.adoc showroom/content/modules/ROOT/pages/index.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'image::' showroom/content/modules/ROOT/pages/module-02.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'xref:policygenerator-at-scale.adoc' showroom/content/modules/ROOT/pages/module-02.adoc"
+    }
+  ]
+}

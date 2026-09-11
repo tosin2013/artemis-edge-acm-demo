@@ -65,9 +65,9 @@ data:
             "tooltip": { "mode": "multi", "sort": "none" }
           },
           "targets": [
-            { "datasource": { "type": "prometheus" }, "expr": "artemis_message_count{cluster=~\"$cluster\"}", "legendFormat": "Total ({{ "{{" }}broker{{ "}}" }} - {{ "{{" }}address{{ "}}" }}::{{ "{{" }}queue{{ "}}" }})", "refId": "A" },
-            { "datasource": { "type": "prometheus" }, "expr": "artemis_delivering_message_count{cluster=~\"$cluster\"}", "legendFormat": "Delivering ({{ "{{" }}broker{{ "}}" }} - {{ "{{" }}address{{ "}}" }}::{{ "{{" }}queue{{ "}}" }})", "refId": "C" },
-            { "datasource": { "type": "prometheus" }, "expr": "artemis_scheduled_message_count{cluster=~\"$cluster\"}", "legendFormat": "Scheduled ({{ "{{" }}broker{{ "}}" }} - {{ "{{" }}address{{ "}}" }}::{{ "{{" }}queue{{ "}}" }})", "refId": "D" }
+            { "datasource": { "type": "prometheus" }, "expr": "artemis_message_count{cluster=~\"$cluster\"}", "legendFormat": "Total ({{ "{{" }}cluster{{ "}}" }} / {{ "{{" }}broker{{ "}}" }} / {{ "{{" }}address{{ "}}" }}::{{ "{{" }}queue{{ "}}" }})", "refId": "A" },
+            { "datasource": { "type": "prometheus" }, "expr": "artemis_delivering_message_count{cluster=~\"$cluster\"}", "legendFormat": "Delivering ({{ "{{" }}cluster{{ "}}" }} / {{ "{{" }}broker{{ "}}" }} / {{ "{{" }}address{{ "}}" }}::{{ "{{" }}queue{{ "}}" }})", "refId": "C" },
+            { "datasource": { "type": "prometheus" }, "expr": "artemis_scheduled_message_count{cluster=~\"$cluster\"}", "legendFormat": "Scheduled ({{ "{{" }}cluster{{ "}}" }} / {{ "{{" }}broker{{ "}}" }} / {{ "{{" }}address{{ "}}" }}::{{ "{{" }}queue{{ "}}" }})", "refId": "D" }
           ],
           "title": "Queue Message Counts",
           "type": "timeseries"
@@ -84,8 +84,8 @@ data:
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
           "id": 14,
           "targets": [
-            { "datasource": { "type": "prometheus" }, "expr": "artemis_messages_acknowledged{cluster=~\"$cluster\"}", "legendFormat": "Acked ({{ "{{" }}broker{{ "}}" }} - {{ "{{" }}address{{ "}}" }}::{{ "{{" }}queue{{ "}}" }})", "refId": "A" },
-            { "datasource": { "type": "prometheus" }, "expr": "artemis_messages_added{cluster=~\"$cluster\"}", "legendFormat": "Added ({{ "{{" }}broker{{ "}}" }} - {{ "{{" }}address{{ "}}" }}::{{ "{{" }}queue{{ "}}" }})", "refId": "B" }
+            { "datasource": { "type": "prometheus" }, "expr": "artemis_messages_acknowledged{cluster=~\"$cluster\"}", "legendFormat": "Acked ({{ "{{" }}cluster{{ "}}" }} / {{ "{{" }}broker{{ "}}" }} / {{ "{{" }}address{{ "}}" }}::{{ "{{" }}queue{{ "}}" }})", "refId": "A" },
+            { "datasource": { "type": "prometheus" }, "expr": "artemis_messages_added{cluster=~\"$cluster\"}", "legendFormat": "Added ({{ "{{" }}cluster{{ "}}" }} / {{ "{{" }}broker{{ "}}" }} / {{ "{{" }}address{{ "}}" }}::{{ "{{" }}queue{{ "}}" }})", "refId": "B" }
           ],
           "title": "Messages Added & Acked",
           "type": "timeseries"
@@ -103,7 +103,7 @@ data:
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
           "id": 8,
           "targets": [
-            { "datasource": { "type": "prometheus" }, "expr": "artemis_connection_count{cluster=~\"$cluster\"}", "legendFormat": "{{ "{{" }}broker{{ "}}" }}", "refId": "A" }
+            { "datasource": { "type": "prometheus" }, "expr": "artemis_connection_count{cluster=~\"$cluster\"}", "legendFormat": "{{ "{{" }}cluster{{ "}}" }} / {{ "{{" }}broker{{ "}}" }}", "refId": "A" }
           ],
           "title": "Connection Count",
           "type": "timeseries"
@@ -120,8 +120,8 @@ data:
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
           "id": 12,
           "targets": [
-            { "datasource": { "type": "prometheus" }, "expr": "artemis_delivering_persistent_size{cluster=~\"$cluster\"}", "legendFormat": "Delivering ({{ "{{" }}broker{{ "}}" }} - {{ "{{" }}address{{ "}}" }}::{{ "{{" }}queue{{ "}}" }})", "refId": "B" },
-            { "datasource": { "type": "prometheus" }, "expr": "artemis_persistent_size{cluster=~\"$cluster\"}", "legendFormat": "Total ({{ "{{" }}broker{{ "}}" }} - {{ "{{" }}address{{ "}}" }}::{{ "{{" }}queue{{ "}}" }})", "refId": "D" }
+            { "datasource": { "type": "prometheus" }, "expr": "artemis_delivering_persistent_size{cluster=~\"$cluster\"}", "legendFormat": "Delivering ({{ "{{" }}cluster{{ "}}" }} / {{ "{{" }}broker{{ "}}" }} / {{ "{{" }}address{{ "}}" }}::{{ "{{" }}queue{{ "}}" }})", "refId": "B" },
+            { "datasource": { "type": "prometheus" }, "expr": "artemis_persistent_size{cluster=~\"$cluster\"}", "legendFormat": "Total ({{ "{{" }}cluster{{ "}}" }} / {{ "{{" }}broker{{ "}}" }} / {{ "{{" }}address{{ "}}" }}::{{ "{{" }}queue{{ "}}" }})", "refId": "D" }
           ],
           "title": "Queue Sizes",
           "type": "timeseries"
@@ -138,8 +138,8 @@ data:
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
           "id": 10,
           "targets": [
-            { "datasource": { "type": "prometheus" }, "expr": "artemis_unrouted_message_count{cluster=~\"$cluster\"}", "legendFormat": "Unrouted ({{ "{{" }}broker{{ "}}" }} - {{ "{{" }}address{{ "}}" }})", "refId": "A" },
-            { "datasource": { "type": "prometheus" }, "expr": "artemis_routed_message_count{cluster=~\"$cluster\"}", "legendFormat": "Routed ({{ "{{" }}broker{{ "}}" }} - {{ "{{" }}address{{ "}}" }})", "refId": "B" }
+            { "datasource": { "type": "prometheus" }, "expr": "artemis_unrouted_message_count{cluster=~\"$cluster\"}", "legendFormat": "Unrouted ({{ "{{" }}cluster{{ "}}" }} / {{ "{{" }}broker{{ "}}" }} / {{ "{{" }}address{{ "}}" }})", "refId": "A" },
+            { "datasource": { "type": "prometheus" }, "expr": "artemis_routed_message_count{cluster=~\"$cluster\"}", "legendFormat": "Routed ({{ "{{" }}cluster{{ "}}" }} / {{ "{{" }}broker{{ "}}" }} / {{ "{{" }}address{{ "}}" }})", "refId": "B" }
           ],
           "title": "Address Message Counts",
           "type": "timeseries"
@@ -156,7 +156,7 @@ data:
           "gridPos": { "h": 9, "w": 12, "x": 0, "y": 32 },
           "id": 6,
           "targets": [
-            { "datasource": { "type": "prometheus" }, "expr": "artemis_address_memory_usage{cluster=~\"$cluster\"}", "legendFormat": "{{ "{{" }}broker{{ "}}" }}", "refId": "A" }
+            { "datasource": { "type": "prometheus" }, "expr": "artemis_address_memory_usage{cluster=~\"$cluster\"}", "legendFormat": "{{ "{{" }}cluster{{ "}}" }} / {{ "{{" }}broker{{ "}}" }}", "refId": "A" }
           ],
           "title": "Address Memory Usage",
           "type": "timeseries"
@@ -173,7 +173,7 @@ data:
           "gridPos": { "h": 9, "w": 12, "x": 12, "y": 32 },
           "id": 2,
           "targets": [
-            { "datasource": { "type": "prometheus" }, "expr": "artemis_consumer_count{cluster=~\"$cluster\"}", "legendFormat": "{{ "{{" }}broker{{ "}}" }} - {{ "{{" }}address{{ "}}" }}::{{ "{{" }}queue{{ "}}" }}", "refId": "A" }
+            { "datasource": { "type": "prometheus" }, "expr": "artemis_consumer_count{cluster=~\"$cluster\"}", "legendFormat": "{{ "{{" }}cluster{{ "}}" }} / {{ "{{" }}broker{{ "}}" }} / {{ "{{" }}address{{ "}}" }}::{{ "{{" }}queue{{ "}}" }}", "refId": "A" }
           ],
           "title": "Consumer Count",
           "type": "timeseries"

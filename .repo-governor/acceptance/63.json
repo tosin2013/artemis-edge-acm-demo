@@ -1,0 +1,18 @@
+{
+  "$comment": "Collect artemis_* in MCO and add Module 8 Grafana screenshots (#63). Helm custom allowlist plus Showroom images. Do not delete MCO.",
+  "authority_id": "63",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'observability-metrics-custom-allowlist' templates/*.yaml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'artemis_message_count' templates/*.yaml"
+    },
+    {
+      "check": "command_exit",
+      "target": "test $(grep -c 'image::' showroom/content/modules/ROOT/pages/module-08.adoc) -ge 3"
+    }
+  ]
+}

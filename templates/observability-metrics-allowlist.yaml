@@ -1,0 +1,26 @@
+{{- if and .Values.monitoring.enabled (index .Values.monitoring "acmObservability" | default dict).enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: observability-metrics-custom-allowlist
+  namespace: open-cluster-management-observability
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+data:
+  metrics_list.yaml: |
+    names:
+      - artemis_message_count
+      - artemis_messages_added
+      - artemis_messages_acknowledged
+      - artemis_connection_count
+      - artemis_address_memory_usage
+      - artemis_consumer_count
+  uwl_metrics_list.yaml: |
+    names:
+      - artemis_message_count
+      - artemis_messages_added
+      - artemis_messages_acknowledged
+      - artemis_connection_count
+      - artemis_address_memory_usage
+      - artemis_consumer_count
+{{- end }}
