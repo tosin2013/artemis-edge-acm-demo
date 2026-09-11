@@ -1,0 +1,18 @@
+{
+  "$comment": "Incremental migration path from AMQ-on-RHEL to AMQ-on-SNO (#58). New appendix page. No lab step changes.",
+  "authority_id": "58",
+  "criteria": [
+    {
+      "check": "file_exists",
+      "target": "showroom/content/modules/ROOT/pages/migration-path.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'xref:migration-path.adoc' showroom/content/modules/ROOT/nav.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'AMQ-on-RHEL' showroom/content/modules/ROOT/pages/migration-path.adoc && grep -q 'parallel deployment' showroom/content/modules/ROOT/pages/migration-path.adoc && grep -q 'decommission' showroom/content/modules/ROOT/pages/migration-path.adoc"
+    }
+  ]
+}

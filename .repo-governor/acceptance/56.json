@@ -1,0 +1,14 @@
+{
+  "$comment": "Bare-metal SNO hardware requirements and Assisted Installer reference (#56). Content in references.adoc and module-02.adoc. No lab step changes.",
+  "authority_id": "56",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'Assisted Installer' showroom/content/modules/ROOT/pages/module-02.adoc && grep -q 'bare-metal' showroom/content/modules/ROOT/pages/module-02.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'preparing-to-install-sno' showroom/content/modules/ROOT/pages/references.adoc && grep -q 'assisted_installer' showroom/content/modules/ROOT/pages/references.adoc"
+    }
+  ]
+}
