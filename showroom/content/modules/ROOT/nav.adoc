@@ -12,3 +12,4 @@
 * xref:scale-considerations.adoc[Scale and Production Considerations]
 * xref:migration-path.adoc[Migration Path: AMQ-on-RHEL to AMQ-on-SNO]
 * xref:policygenerator-at-scale.adoc[PolicyGenerator at Scale]
+* xref:pre-demo-guide.adoc[Pre-Demo Qualification Guide]

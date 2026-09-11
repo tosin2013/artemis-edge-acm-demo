@@ -1,0 +1,18 @@
+{
+  "$comment": "Pre-demo qualification guide — top 5 enterprise edge customer concerns (#61). New page. No lab step changes.",
+  "authority_id": "61",
+  "criteria": [
+    {
+      "check": "file_exists",
+      "target": "showroom/content/modules/ROOT/pages/pre-demo-guide.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'xref:pre-demo-guide.adoc' showroom/content/modules/ROOT/nav.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'qualification checklist' showroom/content/modules/ROOT/pages/pre-demo-guide.adoc && grep -q 'Concern 1' showroom/content/modules/ROOT/pages/pre-demo-guide.adoc && grep -q 'Concern 5' showroom/content/modules/ROOT/pages/pre-demo-guide.adoc"
+    }
+  ]
+}
