@@ -60,6 +60,52 @@ These are official Red Hat articles and product docs that explain the AMQ and AC
 | On-premises SNO provisioning via USB, Redfish virtual media, or iPXE. The bare-metal alternative to the Hive-on-GCP provisioning used in this lab.
 |===
 
+== RHACM scale and sizing
+
+[cols="1,2"]
+|===
+| Resource | Why it is in this lab
+
+| https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes/2.17/html/install/installing-acm-overview[Cluster sizing and performance (ACM 2.17)]
+| Hub sizing formulas and 3,500-cluster scale test results. Answers "does this scale beyond 3 clusters?" — see xref:scale-considerations.adoc[Scale and Production Considerations] for a summary.
+
+| https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes/2.15/html/multicluster_global_hub/multicluster-global-hub[Multicluster Global Hub (ACM 2.15)]
+| Fleet-of-fleets architecture for >2,000 clusters. Explains when Mode 2 (regional hubs managed by a global hub) is required.
+|===
+
+== Disconnected and resilience
+
+[cols="1,2"]
+|===
+| Resource | Why it is in this lab
+
+| https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes/2.16/html/troubleshooting/troubleshooting[Troubleshooting Klusterlet degraded conditions (ACM 2.16)]
+| Klusterlet behavior when the hub is unreachable. Existing workloads continue running; policies already applied remain enforced. Answers "what happens during WAN loss?" — see xref:module-06.adoc[Module 6] for the simulation.
+|===
+
+== Observability at scale
+
+[cols="1,2"]
+|===
+| Resource | Why it is in this lab
+
+| https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes/2.17/html/observability/observing-environments-intro[MCO Observability (ACM 2.17)]
+| Multicluster Observability (Thanos + Grafana) aggregates Prometheus metrics from managed clusters. The `observability-metrics-custom-allowlist` ConfigMap controls which custom metrics are collected, preventing cardinality explosion at fleet scale.
+|===
+
+== Policy parameterization
+
+[cols="1,2"]
+|===
+| Resource | Why it is in this lab
+
+| https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes/2.17/html/governance/policy-deployment#policy-generator[PolicyGenerator reference (ACM 2.17)]
+| Kustomize-based policy generation for fleet-scale deployments. Eliminates per-site policy definitions using `fromClusterClaim` hub-side templating. See xref:policygenerator-at-scale.adoc[PolicyGenerator at Scale] for a walkthrough of the scaffold in this repo.
+
+| https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes/2.17/html/governance/policy-deployment#hub-side-templating[Hub-side templating (ACM 2.17)]
+| `{{ fromClusterClaim }}` and `{{ fromConfigMap }}` syntax for injecting per-cluster values into policy templates without maintaining a static site list.
+|===
+
 == RHACM Governance
 
 [cols="1,2"]

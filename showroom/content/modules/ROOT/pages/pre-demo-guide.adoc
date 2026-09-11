@@ -1,0 +1,119 @@
+= Pre-Demo Qualification Guide
+
+This page helps facilitators prepare the Artemis Edge ACM demo for enterprise customers. The five concerns below recur across virtually every enterprise edge evaluation regardless of industry vertical.
+
+This is facilitator guidance, not a lab exercise. Read it *before* running the demo for a customer.
+
+== Enterprise edge customer concern matrix
+
+=== Concern 1: Scale evidence (N > 3)
+
+**The question:** "Does RHACM scale beyond your 3-cluster demo to my hundreds/thousands of sites?"
+
+[cols="1,1,2"]
+|===
+| Vertical | Typical scale | Why they ask
+
+| Retail (stores) | 500–5,000 sites | POS, inventory, cold-chain telemetry per store
+| Manufacturing (plants) | 50–500 sites | SCADA/MES integration per facility
+| Logistics (warehouses) | 100–1,000 sites | Sort/scan telemetry per DC
+| Energy (substations) | 1,000–10,000 sites | Grid telemetry per substation
+| Telecom (cell sites) | 10,000+ sites | RAN/vDU workloads per site
+|===
+
+**What the demo shows:** 3 SNO clusters on GCP. +
+**What the customer needs:** Reference to RHACM tested scale (3,500 SNOs on 3-node bare-metal hub), Mode 1 vs Mode 2 decision criteria, hub sizing formulas. +
+**Pre-demo action:** Ask the customer their target site count. If >1,000, prepare Global Hub (Mode 2) talking points. If >2,500, flag that Mode 2 is likely required. +
+**Workshop reference:** xref:scale-considerations.adoc[Scale and Production Considerations]
+
+=== Concern 2: Policy parameterization for N-site fleet
+
+**The question:** "Do I need N individual policies for N sites, or can I template one policy with per-site variables?"
+
+[cols="1,1,2"]
+|===
+| Pattern | Who asks | Why
+
+| Same base config, per-site address namespace | Retail, logistics | `messages.STORE-{id}.#` varies by site
+| Same operator, different resource limits | Manufacturing | High-throughput plants get more CPU/memory
+| Same federation topology, different upstream URIs | All | Each site federates to its regional hub
+|===
+
+**What the demo shows:** Helm `range .Values.edgeBrokers` generates per-spoke policies. Looks like N policies for N sites. +
+**What the customer needs:** PolicyGenerator + Kustomize as the production pattern. Hub-side policy templates with `{{ fromClusterClaim }}` for per-cluster variables. +
+**Pre-demo action:** Ask what varies between sites. If only address namespace and hub URI, PolicyGenerator covers it. If complex per-site configs, discuss GitOps per-cluster overlays. +
+**Workshop reference:** xref:policygenerator-at-scale.adoc[PolicyGenerator at Scale]
+
+=== Concern 3: Hardware requirements for physical servers
+
+**The question:** "Your demo runs on cloud VMs. What hardware do I need at my physical sites?"
+
+[cols="1,2"]
+|===
+| Hardware concern | Answer
+
+| Minimum SNO | 8 vCPU / 16 GB RAM / 120 GB SSD (OCP 4.22 docs). 4 vCPU is absolute minimum but leaves no headroom.
+| SNO + AMQ Broker (practical) | 8 vCPU / 32 GB RAM / 120 GB SSD (matches demo `n2-standard-8`)
+| BMC requirement | Redfish-capable BMC required for virtual media provisioning. Not all commodity servers have this.
+| Provisioning method | Assisted Installer (USB, Redfish, iPXE) — NOT Hive on GCP
+|===
+
+**What the demo shows:** GCP `n2-standard-8` instances provisioned via Hive. +
+**What the customer needs:** Bare-metal minimums, Assisted Installer reference, BMC requirement. +
+**Pre-demo action:** Ask what servers the customer has at edge sites (make, model, CPU, RAM, BMC capability). If no BMC, discuss USB-based installation. +
+**Workshop reference:** xref:module-02.adoc[Module 2] (hardware note) and xref:references.adoc[References] (SNO hardware section)
+
+=== Concern 4: Disconnected operation guarantees
+
+**The question:** "When my site loses WAN connectivity, does everything break?"
+
+[cols="1,2,2"]
+|===
+| Scenario | What happens | Customer concern
+
+| Hub unreachable | Klusterlet enters degraded state but existing workloads continue running. Policies already applied remain enforced. | "Can my broker still accept messages?" → Yes.
+| Federation link down | AMQ Broker queues messages in local journal (`reconnectAttempts=-1`). Auto-forwards when link restores. | "Do I lose messages?" → No, store-and-forward.
+| Extended disconnect (days) | SNO operates autonomously. No new policy updates from hub. Compliance status goes stale on hub. | "Can my site run independently?" → Yes, for existing config.
+|===
+
+**What the demo shows:** NetworkPolicy partition simulation (Module 6) — blocks pod egress, not real WAN loss. +
+**What the customer needs:** Explicit assurance that klusterlet + broker continue operating during hub unreachability. +
+**Pre-demo action:** Ask about WAN reliability. If intermittent (overnight batch, routing failures), emphasize store-and-forward and klusterlet autonomy. If air-gapped, that is a different conversation (disconnected registry, etc.). +
+**Workshop reference:** xref:module-06.adoc[Module 6] (disconnected behavior note)
+
+=== Concern 5: Enterprise identity integration (AD/LDAP, not Keycloak)
+
+**The question:** "We use Active Directory. Do we need Keycloak?"
+
+[cols="1,1,2"]
+|===
+| IdP | Status in demo | Production path
+
+| Keycloak (OIDC) | Shown in lab | Works but adds a component customers may not want
+| Active Directory (LDAP) | Not shown | AMQ Broker `LDAPLoginModule` supports direct AD authentication — documented in AMQ 7.12 with explicit Microsoft AD example
+| Kerberos/GSSAPI | Not shown | AMQ Broker supports `Krb5LoginModule` + `LDAPLoginModule` chain
+|===
+
+**What the demo shows:** Keycloak realm `artemis-keycloak` with OIDC clients. +
+**What the customer needs:** Assurance that Keycloak is optional. The same JAAS `login.config` mechanism supports `LDAPLoginModule` for direct AD auth, pushed via ACM ConfigurationPolicy. +
+**Pre-demo action:** Ask about IdP early. If AD/LDAP, preface the Keycloak sections with "this lab uses Keycloak for convenience; production deployments typically use LDAPLoginModule directly against your existing directory." +
+**Workshop reference:** xref:references.adoc[References] (Broker authentication section)
+
+== Pre-demo qualification checklist
+
+Before running the demo for an enterprise customer, gather:
+
+[cols="1,3,2"]
+|===
+| # | Question | Why it matters
+
+| 1 | **Site count:** _____ | Determines Mode 1 vs Mode 2 guidance
+| 2 | **Edge hardware specs:** CPU / RAM / storage / BMC make+model | Determines SNO feasibility
+| 3 | **WAN connectivity pattern:** Always-on / intermittent / air-gapped | Determines disconnected talking points
+| 4 | **Identity provider:** AD/LDAP / Okta / Keycloak / other | Determines auth discussion
+| 5 | **Current messaging:** AMQ / Kafka / RabbitMQ / other | Determines migration path discussion
+| 6 | **What varies between sites:** Address namespace only / full config / nothing | Determines parameterization discussion
+| 7 | **Existing Red Hat products:** RHEL / OpenShift / AMQ / RHACM | Determines starting point
+|===
+
+TIP: If the customer already runs AMQ Broker on RHEL, see xref:migration-path.adoc[Migration Path: AMQ-on-RHEL to AMQ-on-SNO] for the incremental migration pattern.

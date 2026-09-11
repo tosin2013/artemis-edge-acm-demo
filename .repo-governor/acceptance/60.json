@@ -1,0 +1,18 @@
+{
+  "$comment": "Extend references page with scale, disconnected, observability, and PolicyGenerator doc links (#60). No lab step changes.",
+  "authority_id": "60",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'Cluster sizing and performance' showroom/content/modules/ROOT/pages/references.adoc && grep -q 'multicluster-global-hub' showroom/content/modules/ROOT/pages/references.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'Klusterlet' showroom/content/modules/ROOT/pages/references.adoc && grep -q 'observing-environments-intro' showroom/content/modules/ROOT/pages/references.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'policy-generator' showroom/content/modules/ROOT/pages/references.adoc && grep -q 'hub-side-templating' showroom/content/modules/ROOT/pages/references.adoc"
+    }
+  ]
+}
