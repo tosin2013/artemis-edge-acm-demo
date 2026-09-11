@@ -8,3 +8,5 @@
 * xref:module-06.adoc[6. Store-and-Forward Resilience]
 * xref:module-07.adoc[7. Global Hub (Mode 2)]
 * xref:module-08.adoc[8. Grafana Metrics]
+* xref:references.adoc[References]
+* xref:scale-considerations.adoc[Scale and Production Considerations]

@@ -1,0 +1,22 @@
+{
+  "$comment": "Scale and Production Considerations page (#54). Appendix after References. Links and guidance only; no lab step changes.",
+  "authority_id": "54",
+  "criteria": [
+    {
+      "check": "file_exists",
+      "target": "showroom/content/modules/ROOT/pages/scale-considerations.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'xref:scale-considerations.adoc' showroom/content/modules/ROOT/nav.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'installing-acm-overview' showroom/content/modules/ROOT/pages/scale-considerations.adoc && grep -q 'PolicyGenerator' showroom/content/modules/ROOT/pages/scale-considerations.adoc && grep -q 'multicluster_global_hub' showroom/content/modules/ROOT/pages/scale-considerations.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'observability-metrics-custom-allowlist' showroom/content/modules/ROOT/pages/scale-considerations.adoc && grep -q 'hub sizing' showroom/content/modules/ROOT/pages/scale-considerations.adoc"
+    }
+  ]
+}

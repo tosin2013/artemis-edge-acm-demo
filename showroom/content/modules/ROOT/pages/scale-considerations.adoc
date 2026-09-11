@@ -1,0 +1,148 @@
+= Scale and Production Considerations
+
+This page addresses common questions from enterprise customers evaluating the RHACM + AMQ Broker pattern at fleet scale. The lab demonstrates the architecture with 2–3 SNO clusters; the guidance below covers what changes when scaling to hundreds or thousands of managed sites.
+
+These are not extra lab steps.
+
+== RHACM hub sizing at scale
+
+Red Hat Advanced Cluster Management 2.17 has been tested managing *3,500 single-node OpenShift clusters* from a three-node bare-metal hub. The test configuration used 112 CPU cores and 512 GiB RAM per control-plane node.
+
+The maximum number of managed clusters varies based on the number of policies, applications, add-ons, and reconciliation workloads. Approximate hub sizing formulas from the documentation:
+
+* *CPU:* ~50m base + ~0.05m per managed cluster
+* *Memory:* ~1000Mi base + ~10Mi per managed cluster
+
+These are component-level estimates. Actual hub sizing depends on how many ManifestWorks, policies, and add-ons are active per cluster.
+
+[cols="1,2"]
+|===
+| Resource | Why it matters
+
+| https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes/2.17/html/install/installing-acm-overview[RHACM 2.17 Cluster sizing and performance]
+| Hub sizing formulas, 3,500-cluster scale test results, and the hardware used in the reference testbed.
+
+| https://docs.redhat.com/en/documentation/openshift_container_platform/4.17/html/edge_computing/ztp-preparing-the-hub-cluster[Preparing the hub cluster for GitOps ZTP (OCP 4.17)]
+| Factors affecting hub capacity: resource allocation, storage IOPS, network latency, managed cluster complexity, number of policies, and monitoring workloads.
+|===
+
+== Mode 1 vs Mode 2 — when do you need Global Hub?
+
+This lab runs *Mode 1* (single hub). In Mode 1 a single RHACM hub manages all edge clusters directly.
+
+*Mode 2* (Multicluster Global Hub) adds a layer above regional hubs. Each regional hub manages a subset of edge clusters, and the Global Hub aggregates compliance, inventory, and policy status across all hubs.
+
+*Decision criteria:*
+
+* Below ~2,000 managed clusters: a single hub (Mode 1) is typically sufficient with appropriate hardware.
+* Above ~2,000 managed clusters or with geographically distributed management needs: evaluate Mode 2 to distribute the management load across regional hubs.
+* If compliance reporting must span multiple independent hub clusters: Mode 2 provides a unified view.
+
+Mode 2 is available in this demo when deployed with `--mode multi-hub` (see xref:module-07.adoc[Module 7: Global Hub]).
+
+[cols="1,2"]
+|===
+| Resource | Why it matters
+
+| https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes/2.15/html/multicluster_global_hub/multicluster-global-hub[Multicluster Global Hub (ACM 2.15)]
+| Architecture, installation, importing managed hub clusters, and Grafana dashboards for fleet-of-fleets observability.
+|===
+
+== Policy parameterization at scale
+
+This demo uses Helm `range .Values.edgeBrokers` to generate one ACM Policy + Placement per edge broker entry. Each Policy targets a cluster by its `edge-region` label. This approach works well for a small number of regions but requires an explicit entry in `values.yaml` for each site.
+
+For fleet-scale deployments (hundreds or thousands of sites), RHACM provides the *PolicyGenerator* — a Kustomize generator plug-in that builds ACM policies from standard Kubernetes manifests. PolicyGenerator eliminates the need for per-site YAML by combining:
+
+* A single `PolicyGenerator` manifest defining policy defaults and placement selectors
+* Base Kubernetes manifests (Namespace, Subscription, ActiveMQArtemis CR)
+* Kustomize overlays for per-region or per-site variable substitution
+
+This demo includes a PolicyGenerator scaffold at `ztp/policygenerator/` that is not used in the lab exercises but demonstrates the production pattern.
+
+For per-cluster variable injection, RHACM policy templates support functions like `{{ fromClusterClaim }}` and `{{ fromConfigMap }}` that resolve values from the managed cluster at policy evaluation time. This means a single policy template can render site-specific broker configurations (such as `messages.STORE-{id}.#` address patterns) without maintaining N separate policy objects.
+
+[cols="1,2"]
+|===
+| Resource | Why it matters
+
+| https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes/2.16/html/governance/policy-deployment[PolicyGenerator (ACM 2.16 Governance)]
+| PolicyGenerator configuration reference, Kustomize integration, and examples of generating policies from manifests.
+|===
+
+== Observability at scale
+
+Module 8 deploys Multicluster Observability (MCO) with a GCS-backed Thanos instance. At fleet scale, metric cardinality and storage costs become significant considerations.
+
+*Controlling metric cardinality:*
+
+MCO collects a default set of metrics from each managed cluster. You can extend or restrict collection using two ConfigMaps in the `open-cluster-management-observability` namespace:
+
+* `observability-metrics-allowlist` — the default metrics (read-only, cannot be modified)
+* `observability-metrics-custom-allowlist` — add custom metrics or define collection rules
+
+To add AMQ Broker metrics (`artemis_*`) to the custom allowlist:
+
+[source,yaml]
+----
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: observability-metrics-custom-allowlist
+  namespace: open-cluster-management-observability
+data:
+  metrics_list.yaml: |
+    names:
+      - artemis_message_count
+      - artemis_messages_added
+      - artemis_messages_acknowledged
+      - artemis_connection_count
+      - artemis_address_memory_usage
+      - artemis_consumer_count
+----
+
+*Collection rules* can be defined to collect certain metrics only when conditions are met (e.g., high CPU or memory usage), reducing baseline cardinality. MCO includes a built-in `SNOResourceUsage` rule group for single-node OpenShift clusters.
+
+*Scrape intervals:* The default Prometheus scrape interval is 30 seconds (configurable between 5s and 5m via the Cluster Monitoring Operator `scrapeInterval` setting). At 1,800 clusters scraping 6 AMQ metrics every 30 seconds, plan for approximately 360 time series per scrape cycle from the broker workload alone, plus the default platform metrics per cluster.
+
+[cols="1,2"]
+|===
+| Resource | Why it matters
+
+| https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes/2.17/html/observability/observing-environments-intro[MCO Observability (ACM 2.17)]
+| Custom metrics allowlist, collection rules, scrape configuration, and Thanos storage architecture.
+|===
+
+== SNO bare-metal hardware requirements
+
+This lab provisions SNOs on GCP using `n2-standard-8` instances (8 vCPU, 32 GB RAM). For on-premises bare-metal deployments, the OpenShift 4.22 documentation specifies the following SNO minimums:
+
+[cols="1,1,1,1"]
+|===
+| Profile | CPU | Memory | Storage
+
+| Minimum (OCP 4.22)
+| 4 vCPU
+| 16 GB RAM
+| 120 GB
+
+| Recommended (SNO + AMQ Broker)
+| 8 vCPU
+| 32 GB RAM
+| 120 GB SSD
+|===
+
+NOTE: Running SNO at 4 vCPU leaves minimal headroom for workloads. For SNO running the AMQ Broker operator plus a broker instance, 8 vCPU / 32 GB RAM is the practical floor — matching the GCP instance type used in this lab.
+
+Bare-metal SNO provisioning uses the *Assisted Installer* (not Hive, which is used in this lab for GCP). The Assisted Installer supports USB boot, Redfish virtual media, and iPXE. A Baseboard Management Controller (BMC) with Redfish support is required for virtual media provisioning.
+
+[cols="1,2"]
+|===
+| Resource | Why it matters
+
+| https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html/installing_on_a_single_node/preparing-to-install-sno[OCP 4.22: Preparing to install SNO]
+| Minimum hardware requirements, supported platforms, BMC requirements, and CPU architecture support.
+
+| https://docs.redhat.com/en/documentation/assisted_installer_for_openshift_container_platform/2026/html-single/installing_openshift_container_platform_with_the_assisted_installer/index[Assisted Installer for OCP]
+| On-premises SNO provisioning via USB, Redfish, or iPXE — the bare-metal alternative to Hive on GCP.
+|===
