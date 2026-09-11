@@ -36,7 +36,7 @@ Open the RHACM Console and create a cloud provider credential. This stores your 
 
 [TIP]
 ====
-RHACM Console URL: https://multicloud-console.{openshift_cluster_ingress_domain}
+RHACM Console URL: {rhacm_console_url}
 ====
 
 . Navigate to *Infrastructure -> Credentials -> Add credential*
@@ -220,7 +220,9 @@ Those Placements show `NoManagedClusterSetBindings`. That is **expected**. Do no
 
 === 6. Verify RHACM Policies (AMQ on SNOs)
 
-Open the RHACM Console → *Governance* → *Policies*, or run:
+These Policy objects were *not* written by hand. The hub Helm chart (`templates/edge-broker-policies.yaml`, synced by ArgoCD `field-content`) rendered one Policy + Placement per `edgeBrokers[]` entry. Inspect the live objects in the CLI or in ACM Governance. For hundreds of sites you would not grow `values.yaml` — use xref:policygenerator-at-scale.adoc[PolicyGenerator] with cluster labels and `fromClusterClaim` instead. Do not apply `ztp/policygenerator/` in this lab; it would collide with the Helm policies already on the hub.
+
+Open ACM in the OpenShift console (the old `multicloud-console` host is not used on this catalog item). Go to *Governance* → *Policies*, or open {rhacm_governance_url}[Governance ↗], or run:
 
 [source,bash,role=execute]
 ----
@@ -237,6 +239,12 @@ policy-amq-broker-spoke-02       enforce              Compliant
 policy-amq-broker-spoke-03       enforce
 policy-block-spoke-01-federation  enforce
 ----
+
+.RHACM Governance — Helm-generated edge broker policies
+image::rhacm-governance-policies.png[RHACM Governance Policies table in the OpenShift console. policy-amq-broker-operator-sno, spoke-01, and spoke-02 show Compliant; spoke-03 is unmatched without a CT SNO.,link=self,window=blank,width=800]
+
+.RHACM Placement — selected clusters for the NY broker policy
+image::rhacm-placement-spoke-01.png[Placement policy-amq-broker-spoke-01-placement with AllDecisionsScheduled and sno-edge-01 selected.,link=self,window=blank,width=800]
 
 * `policy-amq-broker-operator-sno` — Namespace, OperatorGroup, and AMQ Broker Subscription on every `sites: edge-sno` cluster
 * `policy-amq-broker-spoke-01` / `spoke-02` — one `ActiveMQArtemis` per region, with AMQP federation to hub-01

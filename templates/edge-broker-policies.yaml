@@ -113,6 +113,118 @@ subjects:
   - name: policy-amq-broker-operator-sno
     apiGroup: policy.open-cluster-management.io
     kind: Policy
+{{- if and .Values.monitoring.enabled (index .Values.monitoring "acmObservability" | default dict).enabled }}
+---
+# SNO AMQ ServiceMonitors live in the artemis namespace (UWL Prometheus).
+# The default metrics-collector federates prometheus-k8s only, so SNO artemis_*
+# never reaches Thanos until user-workload monitoring is on and
+# uwl-metrics-collector starts. Merge enableUserWorkload into the existing
+# cluster-monitoring-config (ACM already injects alert-forwarding there).
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: policy-sno-uwl-amq-metrics
+  namespace: edge-broker-policies
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  remediationAction: enforce
+  disabled: false
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: sno-enable-user-workload
+        spec:
+          remediationAction: enforce
+          severity: medium
+          object-templates-raw: |
+{{ `            {{- $cmo := (lookup "v1" "ConfigMap" "openshift-monitoring" "cluster-monitoring-config") }}
+            {{- $cy := dict }}
+            {{- if and $cmo $cmo.data }}
+              {{- $raw := index $cmo.data "config.yaml" }}
+              {{- if $raw }}
+                {{- $cy = $raw | fromYaml }}
+              {{- end }}
+            {{- end }}
+            {{- if not $cy }}
+              {{- $cy = dict }}
+            {{- end }}
+            {{- $_ := set $cy "enableUserWorkload" true }}
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: v1
+                kind: ConfigMap
+                metadata:
+                  name: cluster-monitoring-config
+                  namespace: openshift-monitoring
+                data:
+                  config.yaml: |
+                    {{ $cy | toYaml | autoindent }}
+` }}
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: sno-uwl-amq-allowlist
+        spec:
+          remediationAction: enforce
+          severity: medium
+          object-templates:
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: v1
+                kind: ConfigMap
+                metadata:
+                  name: observability-metrics-custom-allowlist
+                  namespace: {{ .Values.global.namespace }}
+                data:
+                  uwl_metrics_list.yaml: |
+                    names:
+                      - artemis_message_count
+                      - artemis_messages_added
+                      - artemis_messages_acknowledged
+                      - artemis_connection_count
+                      - artemis_address_memory_usage
+                      - artemis_consumer_count
+---
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: policy-sno-uwl-amq-metrics-placement
+  namespace: edge-broker-policies
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  predicates:
+    - requiredClusterSelector:
+        labelSelector:
+          matchLabels:
+            sites: "edge-sno"
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: policy-sno-uwl-amq-metrics-binding
+  namespace: edge-broker-policies
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+placementRef:
+  name: policy-sno-uwl-amq-metrics-placement
+  apiGroup: cluster.open-cluster-management.io
+  kind: Placement
+subjects:
+  - name: policy-sno-uwl-amq-metrics
+    apiGroup: policy.open-cluster-management.io
+    kind: Policy
+{{- end }}
 {{- $defaults := .Values.edgeBrokerDefaults }}
 {{- range .Values.edgeBrokers }}
 ---
@@ -191,6 +303,73 @@ spec:
                         service.beta.openshift.io/serving-cert-secret-name: amqps-acceptor-ptls
                   console:
                     expose: true
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: v1
+                kind: Secret
+                metadata:
+                  name: {{ .name }}-broker-auth
+                  namespace: {{ $.Values.global.namespace }}
+                type: Opaque
+                stringData:
+                  user: {{ $defaults.adminUser | quote }}
+                  password: {{ $defaults.adminPassword | quote }}
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: v1
+                kind: Service
+                metadata:
+                  name: {{ .name }}-broker-prometheus-0-svc
+                  namespace: {{ $.Values.global.namespace }}
+                  labels:
+                    ActiveMQArtemis: {{ .name }}-broker
+                    application: {{ .name }}-broker-app
+                    application-type: artemis
+                    service-type: prometheus
+                    edge-region: {{ .region | quote }}
+                spec:
+                  ports:
+                    - name: metrics
+                      protocol: TCP
+                      port: 8161
+                      targetPort: 8161
+                  type: ClusterIP
+                  selector:
+                    ActiveMQArtemis: {{ .name }}-broker
+                    application: {{ .name }}-broker-app
+                    statefulset.kubernetes.io/pod-name: {{ .name }}-broker-ss-0
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: monitoring.coreos.com/v1
+                kind: ServiceMonitor
+                metadata:
+                  name: {{ .name }}-broker-service-monitor
+                  namespace: {{ $.Values.global.namespace }}
+                  labels:
+                    ActiveMQArtemis: {{ .name }}-broker
+                    application: {{ .name }}-broker-app
+                    application-type: artemis
+                spec:
+                  jobLabel: ActiveMQArtemis
+                  selector:
+                    matchLabels:
+                      application: {{ .name }}-broker-app
+                      application-type: artemis
+                      service-type: prometheus
+                  namespaceSelector:
+                    matchNames:
+                      - {{ $.Values.global.namespace }}
+                  endpoints:
+                    - port: metrics
+                      scheme: http
+                      followRedirects: true
+                      basicAuth:
+                        password:
+                          name: {{ .name }}-broker-auth
+                          key: password
+                        username:
+                          name: {{ .name }}-broker-auth
+                          key: user
 ---
 apiVersion: cluster.open-cluster-management.io/v1beta1
 kind: Placement

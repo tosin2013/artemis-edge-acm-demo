@@ -81,6 +81,8 @@ MCO collects a default set of metrics from each managed cluster. You can extend 
 * `observability-metrics-allowlist` — the default metrics (read-only, cannot be modified)
 * `observability-metrics-custom-allowlist` — add custom metrics or define collection rules
 
+Hub AMQ is scraped by user-workload Prometheus, so the hub ConfigMap must include `uwl_metrics_list.yaml` as well as `metrics_list.yaml`. SNO AMQ uses the same UWL path: Policy `policy-sno-uwl-amq-metrics` sets `enableUserWorkload: true` on managed SNOs and places a spoke allowlist in the `artemis` namespace so `uwl-metrics-collector` can federate `artemis_*` into Thanos.
+
 To add AMQ Broker metrics (`artemis_*`) to the custom allowlist:
 
 [source,yaml]

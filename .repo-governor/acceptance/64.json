@@ -1,0 +1,18 @@
+{
+  "$comment": "Enable SNO UWL AMQ metrics so Grafana AMQ dashboard lists sno-edge clusters (#64). Helm policy for enableUserWorkload plus spoke-side UWL allowlist; Module 8 documents the path. Live Thanos series are verified during implementation, not this bar (do not fake Grafana). Do not continue #62/#63.",
+  "authority_id": "64",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'enableUserWorkload' templates/*.yaml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'observability-metrics-custom-allowlist' templates/edge-broker-policies.yaml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'enableUserWorkload' showroom/content/modules/ROOT/pages/module-08.adoc"
+    }
+  ]
+}

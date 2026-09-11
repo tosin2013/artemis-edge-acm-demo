@@ -14,6 +14,8 @@ asciidoc:
     amq_console_url: "https://hub-01-broker-wconsj-0-svc-rte-artemis.{openshift_cluster_ingress_domain}"
     keycloak_url: "https://keycloak-ingress-keycloak.{openshift_cluster_ingress_domain}"
     grafana_url: "https://grafana-open-cluster-management-observability.{openshift_cluster_ingress_domain}"
+    rhacm_console_url: "https://console-openshift-console.{openshift_cluster_ingress_domain}/multicloud/home/overview"
+    rhacm_governance_url: "https://console-openshift-console.{openshift_cluster_ingress_domain}/multicloud/governance/policies"
     producer_user: "alice"
     producer_password: "bosco"
     consumer_user: "bob"

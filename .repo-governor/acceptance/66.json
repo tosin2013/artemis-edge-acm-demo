@@ -1,0 +1,14 @@
+{
+  "$comment": "Module 8 AMQ dashboard shots per cluster filter (#66). Keep grafana-amq-broker-dashboard.png. Do not expand the metrics allowlist. Do not continue #62/#63/#64/#65. Do not claim legends already include cluster names.",
+  "authority_id": "66",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'grafana-amq-broker-sno-edge-01.png' showroom/content/modules/ROOT/pages/module-08.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'grafana-amq-broker-sno-edge-02.png' showroom/content/modules/ROOT/pages/module-08.adoc"
+    }
+  ]
+}

@@ -56,5 +56,5 @@ TIP: Your credentials are `{user}` / `{password}`. The OpenShift Web Console is 
 | {grafana_url}
 
 | RHACM Console
-| https://multicloud-console.{openshift_cluster_ingress_domain}
+| {rhacm_console_url}
 |===
