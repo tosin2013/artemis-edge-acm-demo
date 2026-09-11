@@ -1,0 +1,61 @@
+= References
+
+These are official Red Hat articles and product docs that explain the AMQ and ACM choices in this workshop. They are not extra lab steps.
+
+== AMQ Broker on OpenShift
+
+[cols="1,2"]
+|===
+| Resource | Why it is in this lab
+
+| https://access.redhat.com/solutions/7104022[KCS 7104022]
+| External clients on an OpenShift Route must use TLS (SNI). That is why students produce with `amqps://` on the SNO AMQPS Route, not in-cluster `amqp://` on the hub-colocated `spoke-*` service.
+
+| https://docs.redhat.com/en/documentation/red_hat_amq_broker/7.12/html-single/deploying_amq_broker_on_openshift/index#con-br-connecting-broker-external-clients_broker-ocp[Connecting to the broker from outside OpenShift (AMQ Broker 7.12)]
+| Product documentation for exposed acceptors, Routes, and client URLs (`amqps://`, not `https://`).
+
+| https://access.redhat.com/solutions/7107078[KCS 7107078]
+| You cannot mix plain and TLS traffic on one acceptor. Hub-01 keeps in-cluster AMQP on port 5672 and adds a second AMQPS acceptor (port 5671, `expose: true`) for SNO federation.
+
+| https://docs.redhat.com/en/documentation/red_hat_amq_broker/7.12/html-single/deploying_amq_broker_on_openshift/index#proc-br-configuring-acceptors_broker-ocp[Configuring acceptors (AMQ Broker 7.12)]
+| How Operator-based `ActiveMQArtemis` acceptors, `sslEnabled`, `sslSecret`, and `expose` work.
+
+| https://access.redhat.com/solutions/7131244[KCS 7131244]
+| AMQ acceptors cannot use edge termination. The hub AMQPS Route is passthrough.
+
+| https://access.redhat.com/solutions/6706441[KCS 6706441]
+| AMQP clients that follow broker topology through an OpenShift Route can land on the wrong host. Federation and producer URLs set `useTopologyForLoadBalancing=false`.
+|===
+
+== Address federation
+
+[cols="1,2"]
+|===
+| Resource | Why it is in this lab
+
+| https://docs.redhat.com/en/documentation/red_hat_amq_broker/7.12/html/configuring_amq_broker/bridging-brokers-configuring[Bridging brokers (AMQ Broker 7.12)]
+| Address federation (`AMQPConnections.*` in `brokerProperties`) is how each SNO broker forwards regional addresses such as `messages.NY.test` to hub-01 and pulls `messages.ALL` from the hub.
+|===
+
+== Broker authentication
+
+[cols="1,2"]
+|===
+| Resource | Why it is in this lab
+
+| https://docs.redhat.com/en/documentation/red_hat_amq_broker/7.12/html/configuring_amq_broker/assembly-br-securing-brokers_configuring[Securing brokers — LDAP integration (AMQ Broker 7.12)]
+| The lab uses Keycloak OIDC via `DirectAccessGrantsLoginModule` for convenience. Production deployments with Active Directory or LDAP can replace this with `LDAPLoginModule` in the same JAAS `login.config` chain — no Keycloak required. The AMQ 7.12 docs include a Microsoft Active Directory example.
+|===
+
+== RHACM Governance
+
+[cols="1,2"]
+|===
+| Resource | Why it is in this lab
+
+| https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes/2.17/html/governance/governance[Governance (ACM 2.17)]
+| Policies, placements, and compliance are how AMQ is installed on JOINED SNOs (`edge-broker-policies`).
+
+| https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes/2.17/html/governance/policy-deployment[Policy deployment (ACM 2.17)]
+| ConfigurationPolicy `mustonlyhave` / `musthave` and enforce remediation. Do not bind `ztp-policies` to create ApplicationSet children on the SNOs.
+|===

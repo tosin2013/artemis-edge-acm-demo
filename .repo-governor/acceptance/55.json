@@ -1,0 +1,14 @@
+{
+  "$comment": "AD/LDAP alternative to Keycloak (#55). Add LDAP reference link and production note. No lab step changes.",
+  "authority_id": "55",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'assembly-br-securing-brokers_configuring' showroom/content/modules/ROOT/pages/references.adoc && grep -q 'LDAPLoginModule' showroom/content/modules/ROOT/pages/references.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'Active Directory' showroom/content/modules/ROOT/pages/module-00.adoc && grep -q 'LDAPLoginModule' showroom/content/modules/ROOT/pages/module-00.adoc"
+    }
+  ]
+}
