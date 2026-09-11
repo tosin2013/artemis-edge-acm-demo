@@ -1,0 +1,97 @@
+= Migration Path: AMQ-on-RHEL to AMQ-on-SNO
+
+This page describes an incremental migration pattern for customers who already run AMQ Broker on bare RHEL and want to move to the RHACM-managed SNO model demonstrated in this lab.
+
+This is guidance, not a lab exercise. Production migration planning should involve Red Hat consulting for site-specific details.
+
+== Why migrate?
+
+The RHACM + SNO model replaces per-site Ansible playbooks and SSH access with declarative, compliance-enforced policy management from a central hub. The AMQ Broker configuration (the `ActiveMQArtemis` CR and `brokerProperties`) is identical — the management plane changes, not the messaging layer.
+
+Benefits over AMQ-on-RHEL:
+
+* *Config drift prevention* — ACM enforce-mode policies re-apply correct config if it changes on a managed cluster
+* *New site onboarding* — Label the cluster and the policy fires automatically (minutes, not engineer-days)
+* *Fleet visibility* — MCO aggregates AMQ metrics you cannot currently see centrally
+* *Consistent lifecycle* — OpenShift manages OS updates, operator upgrades, and certificate rotation
+
+== Three-phase migration pattern
+
+The migration is incremental — site by site or wave by wave. No site goes offline during the transition.
+
+=== Phase 1: parallel deployment (per site)
+
+. Install SNO on a separate physical server at the site (or as a VM on the existing server if resources allow). See xref:scale-considerations.adoc[Scale and Production Considerations] for hardware requirements.
+. The SNO joins the RHACM hub. ACM policies deploy the AMQ Broker operator and `ActiveMQArtemis` CR automatically.
+. Configure the SNO broker with the same address federation as the existing RHEL broker — the `brokerProperties` in the `ActiveMQArtemis` CR match what you have in `broker.xml` today.
+. Both brokers federate to the hub. The SNO broker runs in "shadow" mode alongside the existing RHEL broker.
+. Validate: confirm federation is active (Jolokia `listBrokerConnections`), confirm messages flow through the SNO broker to the hub, confirm ACM policy compliance shows `Compliant`.
+
+=== Phase 2: traffic cutover (per site)
+
+. Redirect local producers (POS, inventory, telemetry) to the SNO broker's AMQPS endpoint. This is typically a DNS or service discovery change, not an application code change.
+. Verify message flow through the SNO broker to the hub using the Grafana dashboard (see xref:module-08.adoc[Module 8]).
+. Drain remaining messages from the RHEL broker's journal. Wait until `artemis_message_count` reaches zero on the old broker.
+
+=== Phase 3: decommission (per site)
+
+. Shut down the RHEL AMQ Broker process.
+. Remove the RHEL server from the site (or repurpose it).
+. Update DNS and service discovery to point exclusively to the SNO broker.
+. Confirm the site is fully operational on the SNO broker for 1–2 weeks before proceeding to the next wave.
+
+== Rolling deployment strategy
+
+* *Wave size:* Migrate 10–50 sites per wave, starting with the lowest-risk region.
+* *Rollback:* Keep the RHEL broker available for 1–2 weeks after cutover. If issues arise, redirect producers back to the RHEL broker — no data loss because both brokers federate to the same hub.
+* *Monitoring:* Use the MCO Grafana dashboard to compare `artemis_message_count` and `artemis_connection_count` between the old and new brokers during the transition.
+* *Validation gate:* Before starting the next wave, confirm zero messages on decommissioned RHEL brokers and `Compliant` ACM policy status on all migrated SNOs.
+
+== What stays the same
+
+[cols="1,2"]
+|===
+| Component | Migration impact
+
+| AMQ Broker version
+| Same — AMQ Broker 7.12 on both RHEL and SNO (Operator-managed on SNO)
+
+| Broker configuration
+| Same — `brokerProperties` in the `ActiveMQArtemis` CR maps directly to `broker.xml` settings
+
+| Federation topology
+| Same — AMQP federation with `reconnectAttempts=-1`, same address match patterns
+
+| Client protocol
+| Same — AMQP/AMQPS, same connection URLs (only hostname changes)
+
+| Message format
+| Same — no message transformation required
+|===
+
+== What changes
+
+[cols="1,2"]
+|===
+| Component | Migration impact
+
+| Operating system
+| RHEL → Red Hat Enterprise Linux CoreOS (RHCOS), managed by OpenShift
+
+| Broker lifecycle
+| Manual install/upgrade → Operator-managed via AMQ Broker Operator
+
+| Configuration management
+| Ansible playbooks + SSH → ACM ConfigurationPolicy in enforce mode
+
+| Monitoring
+| Per-site Jolokia queries → Centralized MCO Grafana dashboard
+
+| Provisioning
+| Manual OS install → Assisted Installer (USB/Redfish/iPXE)
+
+| Licensing
+| RHEL + AMQ subscription → OpenShift (SNO) + AMQ subscription per site
+|===
+
+NOTE: The licensing model changes. OpenShift (including SNO) is a separate Red Hat subscription from RHEL. At fleet scale, discuss licensing with your Red Hat account team before committing to a pilot.

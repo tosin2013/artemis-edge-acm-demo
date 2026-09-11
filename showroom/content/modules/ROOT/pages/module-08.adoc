@@ -380,3 +380,7 @@ To remove the GCS bucket:
 ----
 gsutil rm -r gs://acm-obs-{guid}
 ----
+
+== Next
+
+Official AMQ and ACM articles for the URLs and policies in this lab are on the xref:references.adoc[References] page.

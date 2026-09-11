@@ -1,0 +1,22 @@
+{
+  "$comment": "Workshop references page (#53). Last nav item after Module 8. Links only; no extra lab steps, Helm, or ACM policy changes.",
+  "authority_id": "53",
+  "criteria": [
+    {
+      "check": "file_exists",
+      "target": "showroom/content/modules/ROOT/pages/references.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'xref:references.adoc' showroom/content/modules/ROOT/nav.adoc && grep -q 'xref:module-08.adoc' showroom/content/modules/ROOT/nav.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q '7104022' showroom/content/modules/ROOT/pages/references.adoc && grep -q '7107078' showroom/content/modules/ROOT/pages/references.adoc && grep -q '7131244' showroom/content/modules/ROOT/pages/references.adoc && grep -q '6706441' showroom/content/modules/ROOT/pages/references.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'deploying_amq_broker_on_openshift' showroom/content/modules/ROOT/pages/references.adoc && grep -q 'bridging-brokers-configuring' showroom/content/modules/ROOT/pages/references.adoc && grep -q 'red_hat_advanced_cluster_management_for_kubernetes/2.17' showroom/content/modules/ROOT/pages/references.adoc"
+    }
+  ]
+}

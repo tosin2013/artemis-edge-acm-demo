@@ -1,0 +1,154 @@
+= PolicyGenerator: N-Site Broker Parameterization
+
+This page explains how to use the RHACM PolicyGenerator Kustomize plugin to deploy AMQ Broker configurations across hundreds or thousands of SNO edge clusters with per-site customization.
+
+This is reference content, not a lab exercise. The lab itself uses Helm-templated ConfigurationPolicies (in `edge-broker-policies`), which work well at three sites. At fleet scale (50+ sites), PolicyGenerator offers a more maintainable path.
+
+== Why PolicyGenerator at scale
+
+The lab Helm chart in `templates/edge-broker-policies.yaml` loops over `values.yaml → edgeBrokers[]` to generate one `ConfigurationPolicy` per spoke. This works, but at 1,800 sites:
+
+* *values.yaml becomes unwieldy* — 1,800 entries with region, resource limits, and TLS secrets
+* *One Helm render failure breaks the entire fleet* — a typo in one site block prevents `helm template` for all sites
+* *Per-site overrides are hard* — different resource limits, different federation targets, or different operator channels per region require complex `if/else` logic in Go templates
+
+PolicyGenerator addresses these issues by:
+
+* Generating one `Policy` per manifest path, with placement driven by *cluster labels* instead of a static list
+* Supporting per-site overrides via `fromClusterClaim` templating — the value comes from the managed cluster, not from a central list
+* Integrating with the ZTP (Zero Touch Provisioning) GitOps workflow used for large SNO fleets
+
+== Scaffold walkthrough
+
+The `ztp/policygenerator/` directory in this repository contains a working scaffold:
+
+[source,text]
+----
+ztp/policygenerator/
+├── kustomization.yaml          <1>
+├── policy-generator.yaml       <2>
+├── common/
+│   └── namespace.yaml          <3>
+└── edge-broker/
+    └── amq-broker-subscription.yaml  <4>
+----
+<1> Standard Kustomize entrypoint that references the PolicyGenerator plugin
+<2> PolicyGenerator configuration — defines which manifests become policies
+<3> Common manifests applied to every SNO (e.g., the `artemis` namespace)
+<4> AMQ Broker Subscription — installs the operator on every matched cluster
+
+=== policy-generator.yaml
+
+[source,yaml]
+----
+apiVersion: policy.open-cluster-management.io/v1
+kind: PolicyGenerator
+metadata:
+  name: edge-sno-policies
+policyDefaults:
+  namespace: ztp-policies
+  placement:
+    labelSelector:
+      sites: "edge-sno"
+  remediationAction: enforce
+  severity: high
+policies:
+  - name: edge-common-config
+    manifests:
+      - path: common/
+  - name: edge-amq-broker
+    manifests:
+      - path: edge-broker/
+----
+
+Every cluster with label `sites: edge-sno` receives both policies. No per-site enumeration.
+
+== Adding per-site broker configuration
+
+To deploy `ActiveMQArtemis` CRs with per-site region, federation targets, and resource limits, add an `edge-broker/activemq-artemis.yaml` manifest using `fromClusterClaim` hub-side templating:
+
+[source,yaml]
+----
+apiVersion: broker.amq.io/v1beta1
+kind: ActiveMQArtemis
+metadata:
+  name: '{{ fromClusterClaim "name" }}-broker'
+  namespace: artemis
+spec:
+  deploymentPlan:
+    size: 1
+    image: registry.redhat.io/amq7/amq-broker-rhel8:7.12
+    resources:
+      limits:
+        cpu: "4"
+        memory: "8Gi"
+      requests:
+        cpu: "2"
+        memory: "4Gi"
+  brokerProperties:
+    - "AMQPConnections.hub-01-connection.uri=amqps://hub-01-broker-amqps-acceptor-0-svc-rte-artemis.apps.hub.example.com:443"
+    - 'AMQPConnections.hub-01-connection.senderAddress=messages.{{ fromClusterClaim "edge-region" }}.#'
+    - "AMQPConnections.hub-01-connection.reconnectAttempts=-1"
+----
+
+Key points:
+
+* `{{ fromClusterClaim "name" }}` resolves to the cluster name at the hub (e.g., `spoke-01`). Each SNO gets a uniquely-named broker.
+* `{{ fromClusterClaim "edge-region" }}` resolves to the cluster label value (e.g., `NY`, `NJ`, `CT`). The federation sender address is parameterized per site without a static list.
+* These are *hub-side templates* — the PolicyGenerator resolves them using `ManagedCluster` metadata, not Helm values.
+
+== Comparison: Helm loop vs. PolicyGenerator
+
+[cols="1,1,1"]
+|===
+| Concern | Helm loop (this lab) | PolicyGenerator (fleet scale)
+
+| Site list
+| Explicit in `values.yaml`
+| Implicit — driven by cluster labels
+
+| Per-site customization
+| Go template conditionals
+| `fromClusterClaim` hub-side templating
+
+| Failure blast radius
+| All sites (single `helm template`)
+| Per-policy (each manifest renders independently)
+
+| GitOps integration
+| ArgoCD `Application`
+| ArgoCD with ZTP plugin or ACM GitOps
+
+| Supported scale
+| Tested to ~50 sites
+| Tested to 3,500 SNOs (ACM 2.17)
+
+| New site onboarding
+| Add entry to `values.yaml`, re-render
+| Label the cluster — policy auto-applies
+|===
+
+== Generating and applying
+
+To render the policies locally (requires the PolicyGenerator Kustomize plugin):
+
+[source,bash]
+----
+cd ztp/policygenerator
+kustomize build --enable-alpha-plugins .
+----
+
+This outputs the `Policy`, `PlacementBinding`, and `PlacementRule` resources. Apply them to the hub:
+
+[source,bash]
+----
+kustomize build --enable-alpha-plugins . | oc apply -f -
+----
+
+Or commit the scaffold to a Git repository monitored by ArgoCD for GitOps-driven delivery.
+
+== Further reading
+
+* https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes/2.17/html/governance/policy-deployment#policy-generator[PolicyGenerator reference (ACM 2.17)]
+* https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes/2.17/html/governance/policy-deployment#hub-side-templating[Hub-side templating (ACM 2.17)]
+* xref:scale-considerations.adoc[Scale and Production Considerations] for RHACM hub sizing at fleet scale

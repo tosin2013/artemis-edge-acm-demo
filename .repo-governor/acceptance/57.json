@@ -1,0 +1,14 @@
+{
+  "$comment": "Disconnected SNO behavior — klusterlet autonomy and broker resilience (#57). Content in module-06.adoc. No lab step changes.",
+  "authority_id": "57",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'klusterlet' showroom/content/modules/ROOT/pages/module-06.adoc && grep -q 'reconnectAttempts' showroom/content/modules/ROOT/pages/module-06.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'WAN' showroom/content/modules/ROOT/pages/module-06.adoc && grep -q 'autonomously' showroom/content/modules/ROOT/pages/module-06.adoc"
+    }
+  ]
+}

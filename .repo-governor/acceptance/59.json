@@ -1,0 +1,18 @@
+{
+  "$comment": "Demonstrate PolicyGenerator path for N-site parameterization (#59). Content referencing ztp/policygenerator/ scaffold. No lab step changes.",
+  "authority_id": "59",
+  "criteria": [
+    {
+      "check": "file_exists",
+      "target": "showroom/content/modules/ROOT/pages/policygenerator-at-scale.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'xref:policygenerator-at-scale.adoc' showroom/content/modules/ROOT/nav.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'ztp/policygenerator' showroom/content/modules/ROOT/pages/policygenerator-at-scale.adoc && grep -q 'fromClusterClaim' showroom/content/modules/ROOT/pages/policygenerator-at-scale.adoc"
+    }
+  ]
+}

@@ -47,6 +47,19 @@ These are official Red Hat articles and product docs that explain the AMQ and AC
 | The lab uses Keycloak OIDC via `DirectAccessGrantsLoginModule` for convenience. Production deployments with Active Directory or LDAP can replace this with `LDAPLoginModule` in the same JAAS `login.config` chain — no Keycloak required. The AMQ 7.12 docs include a Microsoft Active Directory example.
 |===
 
+== SNO hardware and provisioning
+
+[cols="1,2"]
+|===
+| Resource | Why it is in this lab
+
+| https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html/installing_on_a_single_node/preparing-to-install-sno[Preparing to install SNO (OCP 4.22)]
+| Bare-metal minimum requirements (8 vCPU / 16 GB / 120 GB), BMC requirements, and supported CPU architectures. The lab uses GCP `n2-standard-8` — this page shows the equivalent on-premises floor.
+
+| https://docs.redhat.com/en/documentation/assisted_installer_for_openshift_container_platform/2026/html-single/installing_openshift_container_platform_with_the_assisted_installer/index[Assisted Installer for OCP]
+| On-premises SNO provisioning via USB, Redfish virtual media, or iPXE. The bare-metal alternative to the Hive-on-GCP provisioning used in this lab.
+|===
+
 == RHACM Governance
 
 [cols="1,2"]

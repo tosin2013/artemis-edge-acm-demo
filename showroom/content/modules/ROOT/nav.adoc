@@ -10,3 +10,5 @@
 * xref:module-08.adoc[8. Grafana Metrics]
 * xref:references.adoc[References]
 * xref:scale-considerations.adoc[Scale and Production Considerations]
+* xref:migration-path.adoc[Migration Path: AMQ-on-RHEL to AMQ-on-SNO]
+* xref:policygenerator-at-scale.adoc[PolicyGenerator at Scale]

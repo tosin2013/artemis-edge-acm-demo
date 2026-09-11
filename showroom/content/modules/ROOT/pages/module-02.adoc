@@ -10,6 +10,14 @@
 
 Hive (via RHACM) can provision SNO edge clusters on GCP. After a cluster joins with labels `sites: edge-sno` and `edge-region: NY|NJ|CT`, ACM ConfigurationPolicies in namespace `edge-broker-policies` install the AMQ Broker operator and one `ActiveMQArtemis` per region. Those SNO brokers federate to hub-01 over AMQPS.
 
+[NOTE]
+.On-premises bare-metal provisioning
+====
+This lab provisions SNOs on GCP using `n2-standard-8` instances (8 vCPU / 32 GB RAM). For on-premises bare-metal deployments, the minimum SNO hardware is 8 vCPU / 16 GB RAM / 120 GB storage (see https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html/installing_on_a_single_node/preparing-to-install-sno[OCP 4.22 SNO requirements]). With the AMQ Broker operator and a broker instance, 8 vCPU / 32 GB RAM is the practical floor.
+
+On physical hardware, SNO provisioning uses the https://docs.redhat.com/en/documentation/assisted_installer_for_openshift_container_platform/2026/html-single/installing_openshift_container_platform_with_the_assisted_installer/index[Assisted Installer] (USB, Redfish virtual media, or iPXE) instead of Hive. A Baseboard Management Controller (BMC) with Redfish support is required for virtual media provisioning. See xref:scale-considerations.adoc[Scale and Production Considerations] for full details.
+====
+
 The ApplicationSet `artemis-edge-workloads` in `ztp-policies` is *intentionally unbound*. Binding it would sync the full hub Helm chart to every SNO.
 
 ifndef::mode_multi_hub[]

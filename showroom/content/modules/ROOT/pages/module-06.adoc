@@ -8,6 +8,21 @@
 
 `{user}` cannot apply a NetworkPolicy on the SNO. The partition is an ACM policy in `edge-broker-policies` that a cluster-admin enables. Students still produce and consume from the hub.
 
+[NOTE]
+.Real WAN disconnection vs. lab simulation
+====
+This module simulates a partition using a NetworkPolicy that blocks pod-level egress. In a real deployment, a WAN failure is broader — the entire SNO loses connectivity to the hub cluster.
+
+*What happens during real WAN loss:*
+
+* The *klusterlet agent* on the SNO enters a degraded condition but does *not* remove existing resources. Workloads already deployed — including the AMQ Broker — continue running autonomously.
+* *ACM policies already applied* remain enforced locally. The policy controller on the managed cluster continues to reconcile them. New policy changes from the hub will not propagate until connectivity restores.
+* The *AMQ Broker* continues accepting local producer connections and queuing messages in the Artemis journal. Federation auto-reconnects when WAN restores (`reconnectAttempts=-1` in the broker properties).
+* *Policy compliance status* on the hub goes stale — the hub shows the cluster as offline. This is expected behavior, not a failure.
+
+In short: losing hub connectivity does not break local operations. The SNO and its broker operate independently until the link comes back.
+====
+
 == Steps
 
 === 1. Start a Consumer on the Hub
