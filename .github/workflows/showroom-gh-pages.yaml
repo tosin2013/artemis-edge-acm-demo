@@ -35,7 +35,7 @@ jobs:
         run: npm install --no-save @antora/cli@3.1.5 @antora/site-generator@3.1.5
 
       - name: Generate site
-        run: npx antora --fetch showroom/site-gh-pages.yml
+        run: npx antora --fetch --stacktrace --to-dir build/site showroom/site-gh-pages.yml
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

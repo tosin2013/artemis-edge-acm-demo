@@ -8,8 +8,10 @@ site:
   start_page: artemis-edge-acm::index.adoc
 content:
   sources:
-    # Playbook lives in showroom/; "." would be that directory, which is not a git root.
-    - url: ..
+    # "~+" is the process cwd (the git clone). "." is the playbook directory
+    # (showroom/, not a git root). ".." is resolved from cwd, so it walks
+    # *out* of the clone on GitHub Actions.
+    - url: ~+
       branches: HEAD
       start_path: showroom/content
 ui:
