@@ -1,0 +1,36 @@
+# Antora playbook for a static GitHub Pages preview.
+# Do not use this in-cluster. Live Showroom uses site.yml (url: /showroom/repo).
+runtime:
+  cache_dir: ./.cache/antora-gh-pages
+site:
+  title: Artemis Edge ACM Demo
+  url: https://tosin2013.github.io/artemis-edge-acm-demo
+  start_page: artemis-edge-acm::index.adoc
+content:
+  sources:
+    - url: .
+      branches: HEAD
+      start_path: showroom/content
+ui:
+  bundle:
+    url: https://github.com/rhpds/rhdp_showroom_theme/releases/download/latest/ui-bundle.zip
+    snapshot: true
+output:
+  dir: build/site
+asciidoc:
+  attributes:
+    guid: example
+    user: user1
+    password: "(workshop password)"
+    login_command: "oc login --insecure-skip-tls-verify=true -u user1 -p '(workshop password)' https://api.hub.example.gcp.redhatworkshops.io:6443"
+    openshift_cluster_ingress_domain: apps.hub.example.gcp.redhatworkshops.io
+    openshift_api_url: "https://api.hub.example.gcp.redhatworkshops.io:6443"
+    amq_console_url: "https://hub-01-broker-wconsj-0-svc-rte-artemis.apps.hub.example.gcp.redhatworkshops.io"
+    keycloak_url: "https://keycloak-ingress-keycloak.apps.hub.example.gcp.redhatworkshops.io"
+    grafana_url: "https://grafana-open-cluster-management-observability.apps.hub.example.gcp.redhatworkshops.io"
+    rhacm_console_url: "https://console-openshift-console.apps.hub.example.gcp.redhatworkshops.io/multicloud/home/overview"
+    rhacm_governance_url: "https://console-openshift-console.apps.hub.example.gcp.redhatworkshops.io/multicloud/governance/policies"
+    producer_user: alice
+    producer_password: bosco
+    consumer_user: bob
+    consumer_password: bosco

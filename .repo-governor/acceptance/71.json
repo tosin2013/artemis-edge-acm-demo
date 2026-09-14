@@ -1,0 +1,14 @@
+{
+  "$comment": "GitHub Pages static Showroom preview (#71). Do not change in-cluster showroom/site.yml. Do not continue #67-#70.",
+  "authority_id": "71",
+  "criteria": [
+    {
+      "check": "file_exists",
+      "target": "showroom/site-gh-pages.yml"
+    },
+    {
+      "check": "file_exists",
+      "target": ".github/workflows/showroom-gh-pages.yaml"
+    }
+  ]
+}
