@@ -1,0 +1,14 @@
+{
+  "$comment": "Module 3 oc get expected output (#70). Honest hub Ready=False / BrokerPropertiesApplied OutOfSync. Do not fake True. Do not continue #67-#69.",
+  "authority_id": "70",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'REMEDIATION ACTION' showroom/content/modules/ROOT/pages/module-03.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'BrokerPropertiesApplied' showroom/content/modules/ROOT/pages/module-03.adoc"
+    }
+  ]
+}

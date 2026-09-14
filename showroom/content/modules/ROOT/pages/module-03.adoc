@@ -15,7 +15,17 @@
 oc get pods -n artemis -l application=hub-01-broker-app
 ----
 
-The pod `hub-01-broker-ss-0` should be `Running` and `1/1 Ready`.
+.Expected output
+[source,text]
+----
+NAME                 READY   STATUS    RESTARTS   AGE
+hub-01-broker-ss-0   1/1     Running   0          3d21h
+----
+
+AGE differs. The pod is `Running` and `1/1 Ready` even when the `ActiveMQArtemis` CR is not `Ready` (see step 3).
+
+.CLI — hub-01 broker pod (not the ACM console)
+image::m3-oc-get-hub-01-pod.png[CLI output of oc get pods for hub-01-broker-app. hub-01-broker-ss-0 is 1/1 Running.,link=self,window=blank,width=800]
 
 === 2. Hub still has colocated spoke-* brokers
 
@@ -26,14 +36,39 @@ The hub namespace also has `spoke-01` / `spoke-02` / `spoke-03` brokers. Those a
 oc get pods -n artemis -l ActiveMQArtemis
 ----
 
-The exercise brokers run **on the SNOs**. You cannot list those pods as `{user}`. Use policy status instead:
+.Expected output
+[source,text]
+----
+NAME                   READY   STATUS    RESTARTS   AGE
+hub-01-broker-ss-0     1/1     Running   0          3d21h
+spoke-01-broker-ss-0   1/1     Running   0          3d22h
+spoke-02-broker-ss-0   1/1     Running   0          3d22h
+spoke-03-broker-ss-0   1/1     Running   0          3d22h
+----
+
+`spoke-01` / `spoke-02` / `spoke-03` here are **hub-colocated**. The NY/NJ exercise brokers run **on the SNOs**. You cannot list those pods as `{user}`. Use policy status instead:
 
 [source,bash,role=execute]
 ----
 oc get policy -n edge-broker-policies
 ----
 
-`policy-amq-broker-operator-sno`, `policy-amq-broker-spoke-01`, and `policy-amq-broker-spoke-02` should be `Compliant`.
+.Expected output
+[source,text]
+----
+NAME                               REMEDIATION ACTION   COMPLIANCE STATE   AGE
+policy-amq-broker-operator-sno     enforce              Compliant          3d22h
+policy-amq-broker-spoke-01         enforce              Compliant          3d22h
+policy-amq-broker-spoke-02         enforce              Compliant          3d22h
+policy-amq-broker-spoke-03         enforce                                 3d22h
+policy-block-spoke-01-federation   enforce                                 3d21h
+policy-sno-uwl-amq-metrics         enforce              Compliant          2d21h
+----
+
+`policy-amq-broker-operator-sno`, `spoke-01`, and `spoke-02` should be `Compliant`. `spoke-03` stays unmatched without a CT SNO. `policy-block-spoke-01-federation` stays blank (disabled) until xref:module-06.adoc[Module 6]. `policy-sno-uwl-amq-metrics` is the SNO user-workload metrics allowlist (xref:module-08.adoc[Module 8]).
+
+.CLI — `oc get policy` in edge-broker-policies (not the ACM console)
+image::m3-oc-get-policy.png[CLI output of oc get policy in edge-broker-policies. Operator, spoke-01, spoke-02, and sno-uwl metrics are Compliant; spoke-03 and the partition policy have empty COMPLIANCE STATE.,link=self,window=blank,width=800]
 
 === 3. Verify hub-01 ActiveMQArtemis and AMQPS
 
@@ -41,6 +76,21 @@ oc get policy -n edge-broker-policies
 ----
 oc get activemqartemis hub-01-broker -n artemis -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}{"\n"}'
 oc get route -n artemis hub-01-broker-amqps-acceptor-0-svc-rte
+----
+
+.Expected output (Ready jsonpath)
+[source,text]
+----
+False
+----
+
+This catalog item often shows `Ready=False` because `BrokerPropertiesApplied` is `OutOfSync`. The hub-01 *pod* can still be `Running` (step 1) and the AMQPS Route still exists. Do not treat that as a failed lab, and do not try to "fix" OutOfSync here. SNO→hub federation proof is Jolokia `hub-01-connection` `started: true` in step 5.
+
+.Expected output (AMQPS Route; host uses your `{guid}`)
+[source,text,subs="attributes+"]
+----
+NAME                                     HOST/PORT                                                                              PATH   SERVICES                             PORT               TERMINATION        WILDCARD
+hub-01-broker-amqps-acceptor-0-svc-rte   hub-01-broker-amqps-acceptor-0-svc-rte-artemis.apps.hub.{guid}.gcp.redhatworkshops.io          hub-01-broker-amqps-acceptor-0-svc   amqps-acceptor-0   passthrough/None   None
 ----
 
 The AMQPS Route is how SNO brokers reach hub-01 (TLS passthrough on port 443). In-cluster clients still use `amqp://hub-01-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672`.
