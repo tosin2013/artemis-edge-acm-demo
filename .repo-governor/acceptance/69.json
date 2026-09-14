@@ -1,0 +1,14 @@
+{
+  "$comment": "Module 4 honest NY SNO producer expected output (#69). Count is 10. Do not add Maven output. Do not continue #67/#68.",
+  "authority_id": "69",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q '.Expected output' showroom/content/modules/ROOT/pages/module-04.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'Produced: 10 messages' showroom/content/modules/ROOT/pages/module-04.adoc"
+    }
+  ]
+}

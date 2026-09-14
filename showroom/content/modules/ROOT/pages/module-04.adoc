@@ -48,6 +48,27 @@ Inside the container:
   --destination=topic://messages.NY.test --verbose
 ----
 
+.Expected output
+[source,text]
+----
+Producer messages.NY.test, thread=0 Sent: hello from NY SNO
+Producer messages.NY.test, thread=0 Sent: hello from NY SNO
+Producer messages.NY.test, thread=0 Sent: hello from NY SNO
+Producer messages.NY.test, thread=0 Sent: hello from NY SNO
+Producer messages.NY.test, thread=0 Sent: hello from NY SNO
+Producer messages.NY.test, thread=0 Sent: hello from NY SNO
+Producer messages.NY.test, thread=0 Sent: hello from NY SNO
+Producer messages.NY.test, thread=0 Sent: hello from NY SNO
+Producer messages.NY.test, thread=0 Sent: hello from NY SNO
+Producer messages.NY.test, thread=0 Sent: hello from NY SNO
+Producer messages.NY.test, thread=0 Produced: 10 messages
+----
+
+.CLI — NY SNO producer, 10 messages (not the hub-colocated spoke-01 service)
+image::m4-producer-ny.png[CLI output of artemis producer to the NY SNO AMQPS Route. Ten Sent hello from NY SNO lines and Produced: 10 messages.,link=self,window=blank,width=800]
+
+Elapsed-time lines differ every run. Consuming these messages on hub-01 is xref:module-05.adoc[Module 5] (start the consumer *before* producing).
+
 Do **not** use `amqp://spoke-01-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672`. That service is the hub-colocated broker, not the SNO.
 
 == Build the Java clients (optional)
