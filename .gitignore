@@ -50,8 +50,10 @@ artemis/tls/
 artemis/tmp/
 keycloak/tls/
 
-# Antora cache
+# Antora cache and GitHub Pages build
 showroom/.cache/
+.cache/
+build/
 
 # PRD (local-only planning doc)
 PRD.md

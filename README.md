@@ -12,6 +12,14 @@ Red Hat Demo Platform (RHDP).
 - **Observability** — Prometheus + Grafana monitor all brokers with a unified AMQ dashboard
 - **OIDC Security** — Keycloak provides OIDC authentication for broker access
 
+## Lab guide preview
+
+A static Antora preview of the Showroom lab guide is published to GitHub Pages:
+
+https://tosin2013.github.io/artemis-edge-acm-demo/
+
+That preview uses example hostnames (`guid: example`). It is **not** a live workshop: no terminal, no cluster login, no substituted GUID. Students still use Showroom on the hub after `agd provision`.
+
 ## Quick Start
 
 One command goes from zero to a fully deployed demo:
