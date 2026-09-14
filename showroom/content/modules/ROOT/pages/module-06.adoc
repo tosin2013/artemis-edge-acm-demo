@@ -60,7 +60,20 @@ oc patch policy policy-block-spoke-01-federation -n edge-broker-policies \
 oc get policy policy-block-spoke-01-federation -n edge-broker-policies
 ----
 
-Wait until the policy is `Compliant` on `sno-edge-01`. The hub consumer should stop receiving new NY messages from the SNO.
+.Expected output
+[source,text]
+----
+NAME                               REMEDIATION ACTION   COMPLIANCE STATE   AGE
+policy-block-spoke-01-federation   enforce              Compliant          3d20h
+----
+
+.CLI — `oc get policy` (not the ACM console)
+image::m6-oc-get-policy.png[CLI output of oc get policy policy-block-spoke-01-federation showing remediation enforce and COMPLIANCE STATE Compliant, plus sno-edge-01 Compliant.,link=self,window=blank,width=800]
+
+Wait until the policy is `Compliant` on `sno-edge-01`. Confirm the same state in ACM Governance (*Governance* → *Policies* → `policy-block-spoke-01-federation`): Status **Enabled**, remediation **enforce**, no violations on `sno-edge-01`. The hub consumer should stop receiving new NY messages from the SNO.
+
+.ACM Governance — partition policy Compliant on sno-edge-01
+image::m6-acm-partition-policy.png[ACM Governance policy details for policy-block-spoke-01-federation. Status Enabled, remediation enforce, no violations on sno-edge-01.,link=self,window=blank,width=800]
 
 === 3. Produce While Disconnected
 
@@ -89,17 +102,62 @@ oc extract secret/$(oc get clusterdeployment sno-edge-01 -n sno-edge-01 -o jsonp
 oc --kubeconfig /tmp/kubeconfig delete networkpolicy block-spoke-01-federation -n artemis
 ----
 
+Confirm the policy is disabled again and the leftover NetworkPolicy is gone:
+
+[source,bash,role=execute]
+----
+oc get policy policy-block-spoke-01-federation -n edge-broker-policies -o jsonpath='{.spec.disabled}{"\n"}'
+----
+
+.Expected output
+[source,text]
+----
+true
+----
+
+[source,bash]
+----
+oc --kubeconfig /tmp/kubeconfig get networkpolicy -n artemis
+----
+
+.Expected output
+[source,text]
+----
+No resources found in artemis namespace.
+----
+
 === 5. Observe Store-and-Forward Flush
 
-Watch the hub consumer terminal. The 20 messages should arrive after `hub-01-connection` restarts on the SNO.
+Watch the hub consumer terminal. The intended outcome is that the 20 queued messages arrive after federation resumes.
 
-Confirm the named connection is started again:
+The proof that the SNO→hub link is up again is Jolokia `hub-01-connection` with `started: true` (same check as xref:module-03.adoc[Module 3]):
 
 [source,bash,role=execute,subs="attributes+"]
 ----
 curl -sS -u admin:admin \
-  'http://spoke-01-broker-wconsj-0-svc-rte-artemis.apps.sno-edge-01.{guid}.gcp.redhatworkshops.io/console/jolokia/exec/org.apache.activemq.artemis:broker=%22amq-broker%22/listBrokerConnections'
+  'http://spoke-01-broker-wconsj-0-svc-rte-artemis.apps.sno-edge-01.{guid}.gcp.redhatworkshops.io/console/jolokia/exec/org.apache.activemq.artemis:broker=%22amq-broker%22/listBrokerConnections' \
+  | python3 -m json.tool
 ----
+
+.Expected output
+[source,json]
+----
+{
+    "request": {
+        "mbean": "org.apache.activemq.artemis:broker=\"amq-broker\"",
+        "type": "exec",
+        "operation": "listBrokerConnections"
+    },
+    "value": "[{\"name\":\"hub-01-connection\",\"protocol\":\"AMQP\",\"started\":true}]",
+    "timestamp": 1789396379,
+    "status": 200
+}
+----
+
+`timestamp` will differ. `value` is a JSON *string*; parse it if you want a structured array. `started: true` is the federation proof — not a count of flushed consumer lines.
+
+.Jolokia — hub-01-connection started
+image::m6-jolokia-hub-01-connection.png[Formatted listBrokerConnections JSON from the NY SNO broker. hub-01-connection has started true.,link=self,window=blank,width=800]
 
 === 6. Clean Up
 
