@@ -1,0 +1,26 @@
+{
+  "$comment": "Module 6 honest Governance/Jolokia shots and oc expected output (#67). Do not fake consumer flush of 20 messages. Do not continue #57.",
+  "authority_id": "67",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'image::' showroom/content/modules/ROOT/pages/module-06.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q '.Expected output' showroom/content/modules/ROOT/pages/module-06.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'image::m6-jolokia-hub-01-connection.png' showroom/content/modules/ROOT/pages/module-06.adoc"
+    },
+    {
+      "check": "file_exists",
+      "target": "showroom/content/modules/ROOT/assets/images/m6-acm-partition-policy.png"
+    },
+    {
+      "check": "file_exists",
+      "target": "showroom/content/modules/ROOT/assets/images/m6-jolokia-hub-01-connection.png"
+    }
+  ]
+}
