@@ -1,0 +1,18 @@
+{
+  "$comment": "Module 5 honest NY/NJ produce-consume expected output (#68). Live CLI says Sent:/Produced: 5 messages, not Sent 5. Do not fake Module 6 flush of 20. Do not continue #67.",
+  "authority_id": "68",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q '.Expected output' showroom/content/modules/ROOT/pages/module-05.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'Produced: 5 messages' showroom/content/modules/ROOT/pages/module-05.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'Consumed: 5 messages' showroom/content/modules/ROOT/pages/module-05.adoc"
+    }
+  ]
+}

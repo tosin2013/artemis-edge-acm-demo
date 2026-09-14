@@ -33,7 +33,21 @@ Inside the container:
 
 TIP: If `{consumer_user}`/`{consumer_password}` fails with a SASL authentication error, use `admin`/`admin` instead.
 
-Leave this consumer running and open a *second terminal* for the next step.
+Leave this consumer running and open a *second terminal* for the next step. After the NY producer finishes, the consumer prints five `Received` lines and `Consumed: 5 messages`. JMS Message IDs and elapsed time differ every run.
+
+.Expected output (hub consumer, after NY produce)
+[source,text]
+----
+Consumer messages.NY.test, thread=0 Received hello from NY SNO
+Consumer messages.NY.test, thread=0 Received hello from NY SNO
+Consumer messages.NY.test, thread=0 Received hello from NY SNO
+Consumer messages.NY.test, thread=0 Received hello from NY SNO
+Consumer messages.NY.test, thread=0 Received hello from NY SNO
+Consumer messages.NY.test, thread=0 Consumed: 5 messages
+----
+
+.CLI — hub consumer received five NY messages (not Grafana)
+image::m5-hub-consumer-ny.png[CLI output of artemis consumer on topic messages.NY.test showing five Received hello from NY SNO lines and Consumed: 5 messages.,link=self,window=blank,width=800]
 
 === 2. Produce from the NY SNO
 
@@ -50,7 +64,21 @@ oc -n artemis run producer-ny -ti \
   --destination=topic://messages.NY.test --verbose
 ----
 
-The hub consumer should receive the five `messages.NY.test` messages.
+.Expected output
+[source,text]
+----
+Producer messages.NY.test, thread=0 Sent: hello from NY SNO
+Producer messages.NY.test, thread=0 Sent: hello from NY SNO
+Producer messages.NY.test, thread=0 Sent: hello from NY SNO
+Producer messages.NY.test, thread=0 Sent: hello from NY SNO
+Producer messages.NY.test, thread=0 Sent: hello from NY SNO
+Producer messages.NY.test, thread=0 Produced: 5 messages
+----
+
+.CLI — NY SNO producer (not the ACM console)
+image::m5-producer-ny.png[CLI output of artemis producer to the NY SNO AMQPS Route. Five Sent hello from NY SNO lines and Produced: 5 messages.,link=self,window=blank,width=800]
+
+The hub consumer in step 1 should then show the five `messages.NY.test` messages (see that step's expected output). Elapsed-time lines differ every run.
 
 === 3. Produce from the NJ SNO
 
@@ -65,7 +93,39 @@ oc -n artemis run producer-nj -ti \
   --destination=topic://messages.NJ.test --verbose
 ----
 
-Start a hub consumer on `topic://messages.NJ.test` first if you want to see these arrive. The SNO remote address policy *pushes* `messages.{region}.#` to hub-01. `messages.ALL.#` is pulled from the hub onto the SNO, not the reverse.
+.Expected output
+[source,text]
+----
+Producer messages.NJ.test, thread=0 Sent: hello from NJ SNO
+Producer messages.NJ.test, thread=0 Sent: hello from NJ SNO
+Producer messages.NJ.test, thread=0 Sent: hello from NJ SNO
+Producer messages.NJ.test, thread=0 Sent: hello from NJ SNO
+Producer messages.NJ.test, thread=0 Sent: hello from NJ SNO
+Producer messages.NJ.test, thread=0 Produced: 5 messages
+----
+
+Start a hub consumer on `topic://messages.NJ.test` first if you want to see these arrive:
+
+[source,bash,subs="attributes+"]
+----
+/opt/amq/bin/artemis consumer \
+  --url=amqp://hub-01-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672 \
+  --protocol=AMQP --user={consumer_user} --password={consumer_password} \
+  --destination=topic://messages.NJ.test --message-count=5 --receive-timeout=60000 --verbose
+----
+
+.Expected output (hub consumer, after NJ produce)
+[source,text]
+----
+Consumer messages.NJ.test, thread=0 Received hello from NJ SNO
+Consumer messages.NJ.test, thread=0 Received hello from NJ SNO
+Consumer messages.NJ.test, thread=0 Received hello from NJ SNO
+Consumer messages.NJ.test, thread=0 Received hello from NJ SNO
+Consumer messages.NJ.test, thread=0 Received hello from NJ SNO
+Consumer messages.NJ.test, thread=0 Consumed: 5 messages
+----
+
+The SNO remote address policy *pushes* `messages.{region}.#` to hub-01. `messages.ALL.#` is pulled from the hub onto the SNO, not the reverse.
 
 === 4. CT region
 
