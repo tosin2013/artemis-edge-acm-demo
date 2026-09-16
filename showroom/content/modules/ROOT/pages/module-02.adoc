@@ -11,16 +11,10 @@
 Hive (via RHACM) can provision SNO edge clusters on GCP. After a cluster joins with labels `sites: edge-sno`, `fleet: amq`, and `edge-region: NY|NJ|CT`, ACM ConfigurationPolicies in namespace `edge-broker-policies` install the AMQ Broker operator and one `ActiveMQArtemis` per region. Those SNO brokers federate to hub-01 over AMQPS.
 
 ifdef::mode_multi_hub[]
-You are adding a SNO under *regional hub east*; it never talks to Global Hub. After join, Global Hub inventory lists the site under this managed hub. Federation is to the AMQ hub broker *on this regional ACM hub* (address classes 5603–5607).
+You are adding a SNO under *regional ACM east*; it never talks to Global Hub. After join, Global Hub inventory lists the site under this managed hub. Federation is to the AMQ hub broker *on this regional ACM hub* (`hub-01`, address classes 5603–5607). Preview of the required produce path (`messages.NY.5604` / `messages.NY.5603`) is xref:module-04.adoc[Module 4] and xref:module-05.adoc[Module 5].
 
-.Where this SNO sits
-[source,text]
-----
-Global Hub (T0)  --inventory only-->  ACM east (T1, you are here)
-                                          |
-                                     SNO site (T2, this module)
-                                     site AMQ --> AMQ hub-01 on east
-----
+.Mode 2 messaging — site brokers federate to AMQ hub-01 on east
+image::mode2-amq-federation.png[NY and NJ site brokers federate over AMQPS to AMQ hub-01 on regional ACM east. messages.NY.5604 reaches the AMQ hub; messages.NY.5603 stays on the SNO. Global Hub has no AMQ broker.,link=self,window=blank,width=800]
 endif::[]
 
 [NOTE]
@@ -193,7 +187,6 @@ NAME            REGION   PROVIDER   AVAILABLE
 local-cluster   <none>   <none>     True
 sno-edge-01     NY       gcp        True
 sno-edge-02     NJ       gcp        True
-sno-edge-03     CT       gcp        True
 ----
 endif::[]
 

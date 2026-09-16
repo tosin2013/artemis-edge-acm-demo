@@ -9,7 +9,7 @@
 ifdef::mode_multi_hub[]
 === Address classes (5603–5607)
 
-Apps pick `messages.{REGION|ALL}.{class}`. Federation to the **regional** AMQ hub (`hub-01` on this ACM hub) uses the same helper as Mode 1, plus 560x excludes.
+Apps pick `messages.{REGION|ALL}.{class}`. Federation is to the **regional AMQ hub** (`hub-01` on this ACM east cluster). Global Hub is not on the messaging path.
 
 [cols="1,3"]
 |===
@@ -22,7 +22,8 @@ Apps pick `messages.{REGION|ALL}.{class}`. Federation to the **regional** AMQ hu
 | 5607 | Regional AMQ hub to one SNO (`messages.{region}.5607`)
 |===
 
-The required exercise below still uses `messages.NY.test` (matches `messages.NY.#`). To prove 5603 does not leave the site, produce to `topic://messages.NY.5603` and confirm the hub consumer does not receive it.
+.Mode 2 messaging — required path is 5604 (5603 proof is Module 5)
+image::mode2-amq-federation.png[NY and NJ site brokers federate over AMQPS to AMQ hub-01 on regional ACM east. messages.NY.5604 reaches the AMQ hub; messages.NY.5603 stays on the SNO.,link=self,window=blank,width=800]
 endif::[]
 
 == Application Overview
@@ -58,6 +59,7 @@ oc -n artemis run producer -ti \
 
 Inside the container:
 
+ifndef::mode_multi_hub[]
 [source,bash,subs="attributes+"]
 ----
 /opt/amq/bin/artemis producer \
@@ -85,6 +87,36 @@ Producer messages.NY.test, thread=0 Produced: 10 messages
 
 .CLI — NY SNO producer, 10 messages (not the hub-colocated spoke-01 service)
 image::m4-producer-ny.png[CLI output of artemis producer to the NY SNO AMQPS Route. Ten Sent hello from NY SNO lines and Produced: 10 messages.,link=self,window=blank,width=800]
+endif::[]
+
+ifdef::mode_multi_hub[]
+The required destination is `topic://messages.NY.5604` so the message reaches **AMQ hub-01 on this regional ACM hub**. `maxHops=1` keeps it off the other SNO. Proving `messages.NY.5603` stays on-site is xref:module-05.adoc[Module 5].
+
+[source,bash,subs="attributes+"]
+----
+/opt/amq/bin/artemis producer \
+  --url='amqps://spoke-01-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-01.{guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
+  --protocol=AMQP --user=admin --password=admin \
+  --message-count=10 --message='hello from NY SNO' \
+  --destination=topic://messages.NY.5604 --verbose
+----
+
+.Expected output
+[source,text]
+----
+Producer messages.NY.5604, thread=0 Sent: hello from NY SNO
+Producer messages.NY.5604, thread=0 Sent: hello from NY SNO
+Producer messages.NY.5604, thread=0 Sent: hello from NY SNO
+Producer messages.NY.5604, thread=0 Sent: hello from NY SNO
+Producer messages.NY.5604, thread=0 Sent: hello from NY SNO
+Producer messages.NY.5604, thread=0 Sent: hello from NY SNO
+Producer messages.NY.5604, thread=0 Sent: hello from NY SNO
+Producer messages.NY.5604, thread=0 Sent: hello from NY SNO
+Producer messages.NY.5604, thread=0 Sent: hello from NY SNO
+Producer messages.NY.5604, thread=0 Sent: hello from NY SNO
+Producer messages.NY.5604, thread=0 Produced: 10 messages
+----
+endif::[]
 
 Elapsed-time lines differ every run. Consuming these messages on hub-01 is xref:module-05.adoc[Module 5] (start the consumer *before* producing).
 

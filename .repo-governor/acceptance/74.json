@@ -1,0 +1,42 @@
+{
+  "$comment": "Mode 2 Showroom voice, connection diagrams, 5604/5603 exercises (#74). Do not continue #72. Do not change in-cluster showroom/site.yml url. Mode 1 ifndef unchanged.",
+  "authority_id": "74",
+  "criteria": [
+    {
+      "check": "file_exists",
+      "target": "showroom/content/modules/ROOT/assets/images/mode2-control-plane.png"
+    },
+    {
+      "check": "file_exists",
+      "target": "showroom/content/modules/ROOT/assets/images/mode2-amq-federation.png"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'mode2-control-plane.png' showroom/content/modules/ROOT/pages/module-00.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'mode2-amq-federation.png' showroom/content/modules/ROOT/pages/module-04.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'messages.NY.5604' showroom/content/modules/ROOT/pages/module-04.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'messages.NY.5603' showroom/content/modules/ROOT/pages/module-05.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'regional ACM east' showroom/content/modules/ROOT/pages/module-00.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "! grep -q 'local-policy.excludes.5604' templates/_helpers.tpl"
+    },
+    {
+      "check": "command_exit",
+      "target": "! awk '/ifdef::mode_multi_hub/,/endif::/' showroom/content/modules/ROOT/pages/module-02.adoc | grep -q sno-edge-03"
+    }
+  ]
+}

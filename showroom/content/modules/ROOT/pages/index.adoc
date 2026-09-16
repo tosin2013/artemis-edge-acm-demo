@@ -3,7 +3,13 @@
 
 == Overview
 
+ifndef::mode_multi_hub[]
 This demo showcases a federated AMQ Broker messaging architecture deployed across RHACM-managed Single Node OpenShift (SNO) edge clusters. Edge brokers use AMQP federation to route regional messages (`messages.NY.#`, `messages.NJ.#`, `messages.CT.#`) back to hub brokers with store-and-forward resilience.
+endif::[]
+
+ifdef::mode_multi_hub[]
+This demo is Mode 2: a hub-of-hubs control plane plus regional AMQ. You log into **regional ACM east**. Site brokers on SNOs federate to the **AMQ hub** (`hub-01` on this cluster) using address classes 5603–5607. Global Hub is inventory and compliance only — no AMQ broker, and sites never talk to it.
+endif::[]
 
 === Architecture
 
@@ -16,24 +22,26 @@ endif::[]
 ifdef::mode_multi_hub[]
 You are on a *Tier 1 regional ACM hub* (east). AgnosticD already created **Tier 0 Global Hub** plus three regional ACM hubs. You create **Tier 2 SNOs** in xref:module-02.adoc[Module 2]. Sites never talk to Global Hub.
 
-.Mode 2 three-tier control plane (blueprint)
-[source,text]
-----
-                    Tier 0 Global Hub
-                    GH Grafana = compliance (PostgreSQL)
-                    Thanos Query = fleet AMQ (queries 3 regions)
-                    no AMQ broker
-                           |
-              Argo CD push | (hubs/east|central|west)
-              +------------+------------+
-              |            |            |
-         ACM east     ACM central    ACM west     Tier 1
-         MCO Grafana  MCO Grafana    MCO Grafana
-         AMQ hub      AMQ hub        AMQ hub
-              |
-           SNOs (you, Module 2)                   Tier 2
-           site AMQ  --federate 5603-5607--> AMQ hub east
-----
+.Vocabulary
+[cols="1,3"]
+|===
+| Term | Meaning
+
+| ACM hub
+| This cluster — regional ACM east (`local-cluster`)
+
+| AMQ hub
+| Broker `hub-01` on this regional ACM hub. There is no AMQ broker on Global Hub.
+
+| Global Hub
+| Tier 0 inventory and policy compliance only
+
+| Site
+| A SNO you join in Module 2. Sites never talk to Global Hub.
+|===
+
+.Mode 2 control plane — you are on regional ACM east
+image::mode2-control-plane.png[Mode 2 three-tier control plane. You are here is marked on ACM east. Global Hub has inventory, compliance Grafana, and fleet Thanos Query. SNOs join east only.,link=self,window=blank,width=800]
 endif::[]
 
 === Deployment Mode
@@ -67,6 +75,26 @@ TIP: Your credentials are `{user}` / `{password}`. The OpenShift Web Console is 
 
 === Console Links
 
+ifdef::mode_multi_hub[]
+[cols="1,2"]
+|===
+| Component | URL
+
+| AMQ Console (regional AMQ hub)
+| {amq_console_url}
+
+| Keycloak Admin
+| {keycloak_url}
+
+| Grafana (this region's MCO)
+| {grafana_url}
+
+| RHACM Console (this ACM hub)
+| {rhacm_console_url}
+|===
+endif::[]
+
+ifndef::mode_multi_hub[]
 [cols="1,2"]
 |===
 | Component | URL
@@ -83,3 +111,4 @@ TIP: Your credentials are `{user}` / `{password}`. The OpenShift Web Console is 
 | RHACM Console
 | {rhacm_console_url}
 |===
+endif::[]

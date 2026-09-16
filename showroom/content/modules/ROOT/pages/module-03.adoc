@@ -6,6 +6,10 @@
 * Confirm ACM placed AMQ brokers on JOINED SNOs
 * Verify each SNO broker's `hub-01-connection` federation is started
 
+ifdef::mode_multi_hub[]
+`hub-01` is the **regional AMQ hub** on this ACM east cluster. Global Hub has no AMQ broker. Hub-colocated `spoke-*` pods in the `artemis` namespace are still **not** the edge path — NY/NJ brokers run on the SNOs you joined in Module 2.
+endif::[]
+
 == Steps
 
 === 1. Check Hub Broker Pods
@@ -96,6 +100,10 @@ hub-01-broker-amqps-acceptor-0-svc-rte   hub-01-broker-amqps-acceptor-0-svc-rte-
 The AMQPS Route is how SNO brokers reach hub-01 (TLS passthrough on port 443). In-cluster clients still use `amqp://hub-01-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672`.
 
 === 4. Open the Hub AMQ Console
+
+ifdef::mode_multi_hub[]
+This console is the **regional AMQ hub** (`hub-01` on ACM east). Global Hub has no AMQ broker.
+endif::[]
 
 Navigate to the hub AMQ Console:
 

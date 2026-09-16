@@ -6,6 +6,13 @@
 * Verify access to all demo services
 * Understand which credentials to use
 
+ifdef::mode_multi_hub[]
+You are logging into **regional ACM east**, not Global Hub. The OpenShift console, AMQ Console, and Grafana on this page belong to this regional hub. Sites you add later never talk to Global Hub.
+
+.Mode 2 control plane — you are on regional ACM east
+image::mode2-control-plane.png[Mode 2 three-tier control plane. You are here is marked on ACM east. Global Hub has inventory, compliance Grafana, and fleet Thanos Query. SNOs join east only in Module 2.,link=self,window=blank,width=800]
+endif::[]
+
 == Log In to Your Cluster
 
 Start by logging in to the OpenShift cluster. Run the following command in the Showroom terminal:
@@ -56,6 +63,36 @@ Open the OpenShift web console in your browser:
 
 == Service Credentials
 
+ifdef::mode_multi_hub[]
+[cols="1,2,1,1"]
+|===
+| Service | URL | Username | Password
+
+| AMQ Console (regional AMQ hub / `hub-01`)
+| {amq_console_url}
+| `admin`
+| `admin`
+
+| Keycloak Admin
+| {keycloak_url}
+| `admin`
+| `admin`
+
+| Grafana (this region's MCO)
+| {grafana_url}
+| (OpenShift SSO)
+| (use OCP credentials)
+
+NOTE: This Grafana is **this region's MCO**, not Global Hub compliance Grafana. See xref:module-07.adoc[Module 7] (compliance) and xref:module-08.adoc[Module 8] (regional MCO + fleet Thanos Query).
+
+| RHACM Console (this ACM hub)
+| {rhacm_console_url}
+| (OpenShift SSO)
+| (use OCP credentials)
+|===
+endif::[]
+
+ifndef::mode_multi_hub[]
 [cols="1,2,1,1"]
 |===
 | Service | URL | Username | Password
@@ -82,6 +119,7 @@ NOTE: Grafana requires Multicluster Observability (MCO) to be deployed. If MCO i
 | (OpenShift SSO)
 | (use OCP credentials)
 |===
+endif::[]
 
 == Messaging Users (OIDC)
 
@@ -125,4 +163,9 @@ You should see `field-content` with `Synced` and `Healthy` status.
 
 == Next Steps
 
+ifdef::mode_multi_hub[]
+Proceed to xref:module-01.adoc[Module 1: Verify this Regional ACM Hub].
+endif::[]
+ifndef::mode_multi_hub[]
 Proceed to xref:module-01.adoc[Module 1: Verify Hub + RHACM].
+endif::[]
