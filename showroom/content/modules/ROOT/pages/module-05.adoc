@@ -8,6 +8,9 @@
 
 ifdef::mode_multi_hub[]
 Hub-01 in these steps is the **AMQ hub on this regional ACM hub**, not Global Hub. `messages.NY.5604` should appear on hub-01; `messages.NY.5603` must not.
+
+.Mode 2 messaging — 5604 reaches AMQ hub-01; 5603 stays on the SNO
+image::mode2-amq-federation.png[NY and NJ site brokers federate over AMQPS to AMQ hub-01 on regional ACM east. messages.NY.5604 reaches the AMQ hub; messages.NY.5603 stays on the SNO. Global Hub has no AMQ broker.,link=self,window=blank,width=800]
 endif::[]
 
 == Steps
@@ -27,6 +30,7 @@ oc -n artemis run consumer -ti \
 
 Inside the container:
 
+ifndef::mode_multi_hub[]
 [source,bash,subs="attributes+"]
 ----
 /opt/amq/bin/artemis consumer \
@@ -34,11 +38,23 @@ Inside the container:
   --protocol=AMQP --user={consumer_user} --password={consumer_password} \
   --destination=topic://messages.NY.test --message-count=5 --receive-timeout=60000 --verbose
 ----
+endif::[]
+
+ifdef::mode_multi_hub[]
+[source,bash,subs="attributes+"]
+----
+/opt/amq/bin/artemis consumer \
+  --url=amqp://hub-01-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672 \
+  --protocol=AMQP --user={consumer_user} --password={consumer_password} \
+  --destination=topic://messages.NY.5604 --message-count=5 --receive-timeout=60000 --verbose
+----
+endif::[]
 
 TIP: If `{consumer_user}`/`{consumer_password}` fails with a SASL authentication error, use `admin`/`admin` instead.
 
 Leave this consumer running and open a *second terminal* for the next step. After the NY producer finishes, the consumer prints five `Received` lines and `Consumed: 5 messages`. JMS Message IDs and elapsed time differ every run.
 
+ifndef::mode_multi_hub[]
 .Expected output (hub consumer, after NY produce)
 [source,text]
 ----
@@ -52,11 +68,26 @@ Consumer messages.NY.test, thread=0 Consumed: 5 messages
 
 .CLI — hub consumer received five NY messages (not Grafana)
 image::m5-hub-consumer-ny.png[CLI output of artemis consumer on topic messages.NY.test showing five Received hello from NY SNO lines and Consumed: 5 messages.,link=self,window=blank,width=800]
+endif::[]
+
+ifdef::mode_multi_hub[]
+.Expected output (hub consumer on messages.NY.5604, after NY produce)
+[source,text]
+----
+Consumer messages.NY.5604, thread=0 Received hello from NY SNO
+Consumer messages.NY.5604, thread=0 Received hello from NY SNO
+Consumer messages.NY.5604, thread=0 Received hello from NY SNO
+Consumer messages.NY.5604, thread=0 Received hello from NY SNO
+Consumer messages.NY.5604, thread=0 Received hello from NY SNO
+Consumer messages.NY.5604, thread=0 Consumed: 5 messages
+----
+endif::[]
 
 === 2. Produce from the NY SNO
 
 Use the sno-edge-01 AMQPS Route. SNO brokers use `admin` / `admin`.
 
+ifndef::mode_multi_hub[]
 [source,bash,subs="attributes+"]
 ----
 oc -n artemis run producer-ny -ti \
@@ -83,9 +114,79 @@ Producer messages.NY.test, thread=0 Produced: 5 messages
 image::m5-producer-ny.png[CLI output of artemis producer to the NY SNO AMQPS Route. Five Sent hello from NY SNO lines and Produced: 5 messages.,link=self,window=blank,width=800]
 
 The hub consumer in step 1 should then show the five `messages.NY.test` messages (see that step's expected output). Elapsed-time lines differ every run.
+endif::[]
 
+ifdef::mode_multi_hub[]
+[source,bash,subs="attributes+"]
+----
+oc -n artemis run producer-ny -ti \
+  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
+  --rm=true --restart=Never -- /opt/amq/bin/artemis producer \
+  --url='amqps://spoke-01-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-01.{guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
+  --protocol=AMQP --user=admin --password=admin \
+  --message-count=5 --message='hello from NY SNO' \
+  --destination=topic://messages.NY.5604 --verbose
+----
+
+.Expected output
+[source,text]
+----
+Producer messages.NY.5604, thread=0 Sent: hello from NY SNO
+Producer messages.NY.5604, thread=0 Sent: hello from NY SNO
+Producer messages.NY.5604, thread=0 Sent: hello from NY SNO
+Producer messages.NY.5604, thread=0 Sent: hello from NY SNO
+Producer messages.NY.5604, thread=0 Sent: hello from NY SNO
+Producer messages.NY.5604, thread=0 Produced: 5 messages
+----
+
+The hub consumer in step 1 should then show the five `messages.NY.5604` messages (see that step's expected output). Elapsed-time lines differ every run.
+endif::[]
+
+ifdef::mode_multi_hub[]
+=== 3. Prove 5603 stays on the SNO
+
+Start a **new** hub consumer on `topic://messages.NY.5603`, then produce that address on the NY SNO. The hub consumer must print **no** `Received` lines (`Consumed: 0 messages` after the timeout). `messages.*.5603` is excluded from both local and remote federation.
+
+[source,bash,subs="attributes+"]
+----
+oc -n artemis run consumer-5603 -ti \
+  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
+  --rm=true --restart=Never -- /opt/amq/bin/artemis consumer \
+  --url=amqp://hub-01-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672 \
+  --protocol=AMQP --user={consumer_user} --password={consumer_password} \
+  --destination=topic://messages.NY.5603 --message-count=5 --receive-timeout=15000 --verbose
+----
+
+In a second terminal, produce while that consumer is waiting:
+
+[source,bash,subs="attributes+"]
+----
+oc -n artemis run producer-5603 -ti \
+  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
+  --rm=true --restart=Never -- /opt/amq/bin/artemis producer \
+  --url='amqps://spoke-01-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-01.{guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
+  --protocol=AMQP --user=admin --password=admin \
+  --message-count=5 --message='stays on NY SNO' \
+  --destination=topic://messages.NY.5603 --verbose
+----
+
+.Expected output (hub consumer — nothing arrives)
+[source,text]
+----
+Consumer messages.NY.5603, thread=0 Consumed: 0 messages
+----
+
+The 5604 consumer from step 1 also receives **nothing** from this produce — 5603 is a different address and is excluded from federation.
+endif::[]
+
+ifndef::mode_multi_hub[]
 === 3. Produce from the NJ SNO
+endif::[]
+ifdef::mode_multi_hub[]
+=== 4. Produce from the NJ SNO
+endif::[]
 
+ifndef::mode_multi_hub[]
 [source,bash,subs="attributes+"]
 ----
 oc -n artemis run producer-nj -ti \
@@ -128,11 +229,67 @@ Consumer messages.NJ.test, thread=0 Received hello from NJ SNO
 Consumer messages.NJ.test, thread=0 Received hello from NJ SNO
 Consumer messages.NJ.test, thread=0 Consumed: 5 messages
 ----
+endif::[]
+
+ifdef::mode_multi_hub[]
+NJ uses `messages.NJ.5604`. Start a hub consumer on that address first.
+
+[source,bash,subs="attributes+"]
+----
+/opt/amq/bin/artemis consumer \
+  --url=amqp://hub-01-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672 \
+  --protocol=AMQP --user={consumer_user} --password={consumer_password} \
+  --destination=topic://messages.NJ.5604 --message-count=5 --receive-timeout=60000 --verbose
+----
+
+[source,bash,subs="attributes+"]
+----
+oc -n artemis run producer-nj -ti \
+  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
+  --rm=true --restart=Never -- /opt/amq/bin/artemis producer \
+  --url='amqps://spoke-02-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-02.{guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
+  --protocol=AMQP --user=admin --password=admin \
+  --message-count=5 --message='hello from NJ SNO' \
+  --destination=topic://messages.NJ.5604 --verbose
+----
+
+.Expected output
+[source,text]
+----
+Producer messages.NJ.5604, thread=0 Sent: hello from NJ SNO
+Producer messages.NJ.5604, thread=0 Sent: hello from NJ SNO
+Producer messages.NJ.5604, thread=0 Sent: hello from NJ SNO
+Producer messages.NJ.5604, thread=0 Sent: hello from NJ SNO
+Producer messages.NJ.5604, thread=0 Sent: hello from NJ SNO
+Producer messages.NJ.5604, thread=0 Produced: 5 messages
+----
+
+.Expected output (hub consumer, after NJ produce)
+[source,text]
+----
+Consumer messages.NJ.5604, thread=0 Received hello from NJ SNO
+Consumer messages.NJ.5604, thread=0 Received hello from NJ SNO
+Consumer messages.NJ.5604, thread=0 Received hello from NJ SNO
+Consumer messages.NJ.5604, thread=0 Received hello from NJ SNO
+Consumer messages.NJ.5604, thread=0 Received hello from NJ SNO
+Consumer messages.NJ.5604, thread=0 Consumed: 5 messages
+----
+
+`maxHops=1` on `remote-policy-5604` means NJ 5604 reaches AMQ hub-01 and does **not** hop to the NY SNO.
+endif::[]
 
 The SNO remote address policy *pushes* `messages.{region}.#` to hub-01. `messages.ALL.#` is pulled from the hub onto the SNO, not the reverse.
 
+ifndef::mode_multi_hub[]
 === 4. CT region
 
 This catalog item often has no `sno-edge-03`. `policy-amq-broker-spoke-03` stays unmatched. Skip CT unless Module 2 showed a CT SNO.
+endif::[]
+
+ifdef::mode_multi_hub[]
+=== 5. CT region
+
+This catalog item has no `sno-edge-03`. First pass is NY and NJ on *east* only. Skip CT.
+endif::[]
 
 NOTE: The `artemis` CLI does not support `--protocol=MQTT`. Native MQTT would target the SNO MQTT acceptor, which is not exposed on a Route in this demo.

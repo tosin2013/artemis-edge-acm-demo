@@ -1,10 +1,22 @@
+ifdef::mode_multi_hub[]
+= Module 1: Verify this Regional ACM Hub
+endif::[]
+ifndef::mode_multi_hub[]
 = Module 1: Verify Hub Cluster and RHACM
+endif::[]
 
 == Objectives
 
 * Confirm the RHACM hub is healthy
 * Verify ArgoCD Applications are synced
 * Check operator subscriptions are installed
+
+ifdef::mode_multi_hub[]
+This terminal is **regional ACM east**, not Global Hub. Confirm `local-cluster` is this ACM hub. SNOs do not exist until xref:module-02.adoc[Module 2].
+
+.Mode 2 control plane — you are on regional ACM east
+image::mode2-control-plane.png[Mode 2 three-tier control plane. You are here is marked on ACM east. Managed clusters on this hub are only local-cluster until Module 2.,link=self,window=blank,width=800]
+endif::[]
 
 == Steps
 
@@ -67,9 +79,9 @@ keycloak-operator   keycloak-operator   community-operators   fast
 oc get managedclusters
 ----
 
+ifndef::mode_multi_hub[]
 You always see `local-cluster` (the hub). If SNOs were provisioned (this catalog item, or xref:module-02.adoc[Module 2]), you also see `sno-edge-01` and `sno-edge-02` with `JOINED=True` and `AVAILABLE=True`.
 
-ifndef::mode_multi_hub[]
 .Expected output (Mode 1 after SNOs join)
 [source,text]
 ----
@@ -80,7 +92,14 @@ sno-edge-02     true           https://api.sno-edge-02.<guid>.gcp.redhatworkshop
 ----
 endif::[]
 ifdef::mode_multi_hub[]
-Before xref:module-02.adoc[Module 2] you should see only `local-cluster` (this regional ACM hub). After Module 2, `sno-edge-01` and `sno-edge-02` join *this* hub. They never appear as direct managed clusters of Global Hub.
+Managed clusters: **only `local-cluster` until Module 2**. `local-cluster` is this regional ACM hub. After Module 2, `sno-edge-01` and `sno-edge-02` join *this* hub. They never appear as direct managed clusters of Global Hub.
+
+.Expected output (before Module 2)
+[source,text]
+----
+NAME            HUB ACCEPTED   MANAGED CLUSTER URLS                                      JOINED   AVAILABLE
+local-cluster   true           https://api.hub.<guid>.gcp.redhatworkshops.io:6443    True     True
+----
 endif::[]
 
 TIP: `field-content` in ArgoCD may stay `Progressing` because ApplicationSet `artemis-edge-workloads` has no child apps. That is expected — AMQ on SNOs is delivered by ACM policies in `edge-broker-policies`, not by ArgoCD apps on the spokes.
