@@ -148,7 +148,6 @@ Call with: include "artemis-edge.snoFederationBrokerProperties" (dict "spoke" . 
 {{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.localAddressPolicies.local-policy.includes.all.addressMatch=messages.ALL.#" $hub $spoke.name | quote) -}}
 {{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.localAddressPolicies.local-policy.includes.region.addressMatch=messages.%s.#" $hub $spoke.name $spoke.region | quote) -}}
 {{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.localAddressPolicies.local-policy.excludes.5603.addressMatch=messages.*.5603" $hub $spoke.name | quote) -}}
-{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.localAddressPolicies.local-policy.excludes.5604.addressMatch=messages.*.5604" $hub $spoke.name | quote) -}}
 {{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy.autoDelete=true" $hub $spoke.name | quote) -}}
 {{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy.autoDeleteDelay=0" $hub $spoke.name | quote) -}}
 {{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy.autoDeleteMessageCount=1000" $hub $spoke.name | quote) -}}

@@ -12,6 +12,12 @@ IMPORTANT: Global Hub Grafana is **compliance only**. It does not merge `artemis
 
 == Background
 
+ifdef::mode_multi_hub[]
+.Control plane Grafana surfaces — GH compliance vs regional MCO vs fleet Thanos Query
+image::mode2-control-plane.png[Mode 2 control plane. Global Hub Grafana is compliance (PostgreSQL). Each regional ACM hub has MCO Grafana. Fleet AMQ is Thanos Query on Global Hub. You are on ACM east.,link=self,window=blank,width=800]
+endif::[]
+
+ifndef::mode_multi_hub[]
 .Three Grafana surfaces
 [source,text]
 ----
@@ -20,6 +26,7 @@ Global Hub          Grafana = policy compliance (PostgreSQL)
 
 ACM east/central/west   MCO Grafana = that region's clusters only
 ----
+endif::[]
 
 == Steps
 
