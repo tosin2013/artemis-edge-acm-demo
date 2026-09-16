@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: amq
+  namespace: openshift-gitops
+spec:
+  description: Regional pull of site AMQ brokers
+  sourceRepos:
+    - https://github.com/tosin2013/artemis-edge-acm-demo.git
+  destinations:
+    - namespace: artemis
+      server: https://kubernetes.default.svc
+    - namespace: "*"
+      server: "*"
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"

@@ -1,0 +1,32 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: policy-amq-broker-operator
+  namespace: open-cluster-management
+  annotations:
+    policy.open-cluster-management.io/standards: NIST-CSF
+    policy.open-cluster-management.io/categories: PR.IP
+    policy.open-cluster-management.io/controls: PR.IP-1
+spec:
+  disabled: false
+  remediationAction: enforce
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1beta1
+        kind: OperatorPolicy
+        metadata:
+          name: amq-broker-operator
+        spec:
+          remediationAction: enforce
+          severity: high
+          complianceType: musthave
+          upgradeApproval: Automatic
+          operatorGroup:
+            name: amq-broker-og
+            namespace: artemis
+          subscription:
+            channel: 7.12.x
+            name: amq-broker-rhel8
+            namespace: artemis
+            source: redhat-operators
+            sourceNamespace: openshift-marketplace

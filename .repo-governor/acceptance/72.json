@@ -1,0 +1,64 @@
+{
+  "$comment": "Mode 2 hub-of-hubs control plane + AMQ hub per regional ACM hub (#72). Bar strengthened to match GitHub issue Acceptance (Showroom diagrams, AgnosticD T0+T1, M7/M8 Grafana split). Mode 1 freeze at tag mode-1. Do not continue #67-#71. Do not change in-cluster showroom/site.yml url.",
+  "authority_id": "72",
+  "amendments": [
+    {
+      "cites": [
+        "docs/architecture.md"
+      ],
+      "effect": "strengthened",
+      "date": "2026-09-16",
+      "reason": "First bar only checked a subset of files and produced STOP_COMPLETE before GitHub issue #72 Acceptance (AgnosticD four hubs/zero SNOs, Showroom T0/T1/T2 diagrams, Module 7 compliance vs Module 8 fleet Thanos Query) was implemented."
+    }
+  ],
+  "criteria": [
+    {
+      "check": "file_exists",
+      "target": "fleet-gitops/applicationsets/hubs.yaml"
+    },
+    {
+      "check": "file_exists",
+      "target": "fleet-gitops/hubs/base/applicationset-amq.yaml"
+    },
+    {
+      "check": "file_exists",
+      "target": "fleet-gitops/platform/policies/amq-broker-operator.yaml"
+    },
+    {
+      "check": "file_exists",
+      "target": "values-mode2-global.yaml"
+    },
+    {
+      "check": "file_exists",
+      "target": "agnosticd/gcp/vars-multihub-regional.yml"
+    },
+    {
+      "check": "file_exists",
+      "target": "agnosticd/gcp/MODE2.md"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'messages.\\*.5603' templates/_helpers.tpl"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'spokeProvisioning' agnosticd/gcp/vars-multihub.yml && grep -A1 'spokeProvisioning:' agnosticd/gcp/vars-multihub.yml | grep -q 'enabled: false'"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'Tier 0' showroom/content/modules/ROOT/pages/index.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'never talks to Global Hub' showroom/content/modules/ROOT/pages/module-02.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'not AMQ metrics' showroom/content/modules/ROOT/pages/module-07.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'Thanos Query' showroom/content/modules/ROOT/pages/module-08.adoc"
+    }
+  ]
+}

@@ -37,3 +37,5 @@ asciidoc:
     producer_password: bosco
     consumer_user: bob
     consumer_password: bosco
+    # Preview Mode 2 module text on Pages (in-cluster Showroom still uses antora.yml + patch-showroom-mode.sh).
+    mode_multi_hub: "true"

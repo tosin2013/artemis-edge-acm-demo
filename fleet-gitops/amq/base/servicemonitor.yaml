@@ -1,0 +1,17 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: site-broker
+  namespace: artemis
+  labels:
+    application-type: artemis
+spec:
+  selector:
+    matchLabels:
+      ActiveMQArtemis: site-broker
+  endpoints:
+    - port: console-jolokia
+      path: /metrics
+      scheme: https
+      tlsConfig:
+        insecureSkipVerify: true

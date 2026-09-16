@@ -8,7 +8,20 @@
 
 == Background
 
-Hive (via RHACM) can provision SNO edge clusters on GCP. After a cluster joins with labels `sites: edge-sno` and `edge-region: NY|NJ|CT`, ACM ConfigurationPolicies in namespace `edge-broker-policies` install the AMQ Broker operator and one `ActiveMQArtemis` per region. Those SNO brokers federate to hub-01 over AMQPS.
+Hive (via RHACM) can provision SNO edge clusters on GCP. After a cluster joins with labels `sites: edge-sno`, `fleet: amq`, and `edge-region: NY|NJ|CT`, ACM ConfigurationPolicies in namespace `edge-broker-policies` install the AMQ Broker operator and one `ActiveMQArtemis` per region. Those SNO brokers federate to hub-01 over AMQPS.
+
+ifdef::mode_multi_hub[]
+You are adding a SNO under *regional hub east*; it never talks to Global Hub. After join, Global Hub inventory lists the site under this managed hub. Federation is to the AMQ hub broker *on this regional ACM hub* (address classes 5603–5607).
+
+.Where this SNO sits
+[source,text]
+----
+Global Hub (T0)  --inventory only-->  ACM east (T1, you are here)
+                                          |
+                                     SNO site (T2, this module)
+                                     site AMQ --> AMQ hub-01 on east
+----
+endif::[]
 
 [NOTE]
 .On-premises bare-metal provisioning
@@ -25,7 +38,7 @@ NOTE: Many Mode 1 environments already have `sno-edge-01` (NY) and `sno-edge-02`
 endif::[]
 
 ifdef::mode_multi_hub[]
-NOTE: In Mode 2, spoke clusters may already be provisioned. Check their status before running the script.
+NOTE: AgnosticD did **not** create SNOs. `oc get managedcluster` should show only `local-cluster` until you run `deploy-spokes.sh` on this regional hub.
 endif::[]
 
 == Steps
@@ -77,7 +90,7 @@ endif::[]
 ifdef::mode_multi_hub[]
 [source,bash,role=execute]
 ----
-./scripts/deploy-spokes.sh --clusters 3
+./scripts/deploy-spokes.sh --clusters 2
 ----
 endif::[]
 
@@ -120,11 +133,9 @@ ifdef::mode_multi_hub[]
 | sno-edge-02
 | NJ
 | n2-standard-8
-
-| sno-edge-03
-| CT
-| n2-standard-8
 |===
+
+First pass is two SNOs on *east* only. Central and west stay empty until a later lab.
 endif::[]
 
 NOTE: Spoke cluster provisioning takes approximately 30-45 minutes per cluster. All clusters provision in parallel.

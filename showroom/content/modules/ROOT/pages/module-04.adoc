@@ -6,6 +6,25 @@
 * Produce test messages on the **NY SNO** (AMQPS Route), not the hub-colocated `spoke-01` service
 * Optionally clone and compile the Java clients (not required)
 
+ifdef::mode_multi_hub[]
+=== Address classes (5603–5607)
+
+Apps pick `messages.{REGION|ALL}.{class}`. Federation to the **regional** AMQ hub (`hub-01` on this ACM hub) uses the same helper as Mode 1, plus 560x excludes.
+
+[cols="1,3"]
+|===
+| Class | Meaning
+
+| 5603 | Stays on the SNO (`messages.*.5603` is excluded from federation)
+| 5604 | SNO and this region's AMQ hub only (`maxHops=1`)
+| 5605 | SNO to SNO via the regional AMQ hub
+| 5606 | Regional AMQ hub to all SNOs in this region (`messages.ALL.5606`)
+| 5607 | Regional AMQ hub to one SNO (`messages.{region}.5607`)
+|===
+
+The required exercise below still uses `messages.NY.test` (matches `messages.NY.#`). To prove 5603 does not leave the site, produce to `topic://messages.NY.5603` and confirm the hub consumer does not receive it.
+endif::[]
+
 == Application Overview
 
 The demo includes four Java applications. You do **not** need to build or deploy them to complete this module. The required exercise uses the AMQ Broker image already on the hub, connecting out to the SNO AMQPS Route.

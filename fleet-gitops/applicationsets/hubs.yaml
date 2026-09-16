@@ -1,0 +1,28 @@
+# applicationsets/hubs.yaml — on the GLOBAL hub (Argo CD push)
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: hubs
+  namespace: openshift-gitops
+spec:
+  generators:
+    - clusters:
+        selector:
+          matchLabels:
+            hub-tier: regional
+  template:
+    metadata:
+      name: 'hub-config-{{name}}'
+    spec:
+      project: platform
+      source:
+        repoURL: https://github.com/tosin2013/artemis-edge-acm-demo.git
+        targetRevision: main
+        path: 'fleet-gitops/hubs/overlays/{{metadata.labels.region}}'
+      destination:
+        server: '{{server}}'
+        namespace: openshift-gitops
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true

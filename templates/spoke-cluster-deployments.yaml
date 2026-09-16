@@ -20,6 +20,7 @@ metadata:
     cloud: GCP
     vendor: OpenShift
     sites: edge-sno
+    fleet: amq
     edge-region: {{ .region }}
     cloud-provider: gcp
 spec:

@@ -8,6 +8,10 @@
 
 `{user}` cannot apply a NetworkPolicy on the SNO. The partition is an ACM policy in `edge-broker-policies` that a cluster-admin enables. Students still produce and consume from the hub.
 
+ifdef::mode_multi_hub[]
+The partition is between the SNO and **this region's AMQ hub**. Global Hub is not on the messaging path.
+endif::[]
+
 [NOTE]
 .Real WAN disconnection vs. lab simulation
 ====

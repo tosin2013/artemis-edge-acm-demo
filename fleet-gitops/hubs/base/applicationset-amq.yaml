@@ -1,0 +1,37 @@
+# hubs/base/applicationset-amq.yaml — on each REGIONAL hub (Argo CD pull to SNOs)
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: amq-fleet
+  namespace: openshift-gitops
+spec:
+  generators:
+    - clusterDecisionResource:
+        configMapRef: acm-placement
+        labelSelector:
+          matchLabels:
+            cluster.open-cluster-management.io/placement: all-amq-sites
+        requeueAfterSeconds: 180
+  template:
+    metadata:
+      name: 'amq-{{name}}'
+      labels:
+        apps.open-cluster-management.io/pull-to-ocm-managed-cluster: "true"
+      annotations:
+        apps.open-cluster-management.io/ocm-managed-cluster: '{{name}}'
+        argocd.argoproj.io/skip-reconcile: "true"
+    spec:
+      project: amq
+      source:
+        repoURL: https://github.com/tosin2013/artemis-edge-acm-demo.git
+        targetRevision: fleet-east
+        path: fleet-gitops/amq/overlays/site-class/small
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: artemis
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
