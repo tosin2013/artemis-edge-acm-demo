@@ -1,0 +1,32 @@
+# Policy placement on the regional hub (same label as GitOpsCluster placement).
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: all-amq-sites-policies
+  namespace: open-cluster-management
+spec:
+  predicates:
+    - requiredClusterSelector:
+        labelSelector:
+          matchLabels:
+            fleet: amq
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: binding-site-platform
+  namespace: open-cluster-management
+placementRef:
+  name: all-amq-sites-policies
+  kind: Placement
+  apiGroup: cluster.open-cluster-management.io
+subjects:
+  - name: policy-amq-broker-operator
+    kind: Policy
+    apiGroup: policy.open-cluster-management.io
+  - name: policy-openshift-gitops-operator
+    kind: Policy
+    apiGroup: policy.open-cluster-management.io
+  - name: policy-enable-uwm
+    kind: Policy
+    apiGroup: policy.open-cluster-management.io

@@ -3,14 +3,11 @@
 # Artemis Edge ACM Demo — GCP Multi Hub Deployment Variables
 # ===================================================================
 #
-# Multi Hub mode: 1 Global Hub + 2 hub clusters + 6 SNO edge clusters
-# Cross-hub AMQP federation with fleet-of-fleets observability.
+# Multi Hub (Mode 2) — TIER 0 GLOBAL HUB only.
+# 1 Global Hub + 3 regional ACM hubs (separate provisions). Zero SNOs here.
+# See agnosticd/gcp/MODE2.md
 #
 # Usage:
-#   cd ~/Development/agnosticd-v2
-#   agd provision --guid <GUID> --config artemis-edge-gcp-multihub --account <ACCOUNT>
-#
-# Or using the wrapper script:
 #   ./scripts/deploy.sh --mode multi-hub --guid <GUID> --account <ACCOUNT>
 #
 # ===================================================================
@@ -76,7 +73,7 @@ install_satellite_repositories: false
 install_rhn_repositories: false
 
 # -------------------------------------------------------------------
-# OpenShift — Hub cluster (primary Global Hub)
+# --- Hub cluster (Global Hub) ---
 # -------------------------------------------------------------------
 cluster_name: hub
 cluster_dns_zone: "{{ base_domain }}"
@@ -95,7 +92,7 @@ control_plane_instance_count: 3
 control_plane_storage_type: pd-ssd
 control_plane_storage_size: 500
 
-# More workers to host Global Hub, 2 hub brokers, and management workloads
+# Workers for Global Hub (PostgreSQL Grafana + extra Thanos Query). No AMQ brokers.
 worker_instance_type: n2-standard-16
 worker_instance_count: 5
 worker_storage_type: pd-ssd
@@ -124,7 +121,7 @@ workloads:
   - agnosticd.core_workloads.ocp4_workload_openshift_gitops
   - agnosticd.core_workloads.ocp4_workload_field_content
   - ocp4_workload_rhacm_observability_gcs
-  - agnosticd.core_workloads.ocp4_workload_showroom
+  # Showroom lives on the regional east hub (student kubeconfig). See MODE2.md.
 
 # ===================================================================
 # Workload Variables
@@ -160,11 +157,17 @@ ocp4_workload_field_content_sync_options:
 ocp4_workload_field_content_helm_values:
   global:
     mode: "multi-hub"
+    hubTier: global
     clusterDomain: "{{ openshift_cluster_ingress_domain }}"
     clusterApiUrl: "{{ openshift_api_url }}"
     namespace: "artemis"
+  hubBrokers: []
+  edgeBrokers: []
   globalHub:
     enabled: true
+  fleetThanosQuery:
+    enabled: true
+    regionalStores: []
   keycloak:
     enabled: true
   monitoring:
@@ -172,27 +175,9 @@ ocp4_workload_field_content_helm_values:
     acmObservability:
       enabled: true
   spokeProvisioning:
-    enabled: true
-    baseDomain: "{{ base_domain }}"
-    gcpProjectID: "{{ gcp_project_id }}"
-    gcpRegion: "{{ gcp_region }}"
-    clusterImageSet: "img4.22.12-x86-64-appsub"
-    sshPublicKey: "{{ lookup('file', '~/.ssh/id_rsa.pub', errors='ignore') | default('') }}"
-    networkType: "OVNKubernetes"
-    workerMachineType: "n2-standard-8"
-    masterMachineType: "n2-standard-8"
-    clusters:
-      - name: sno-edge-01
-        region: NY
-      - name: sno-edge-02
-        region: NJ
-      - name: sno-edge-03
-        region: CT
+    enabled: false
   showroom:
     enabled: false
-    terminalRbac:
-      - namespace: showroom
-        serviceAccount: showroom
   tls:
     hubKeystoreBase64: ""
     hubTruststoreBase64: ""

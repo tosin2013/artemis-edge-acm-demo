@@ -9,7 +9,11 @@ metadata:
 data:
   openshift_cluster_ingress_domain: {{ .Values.global.clusterDomain | quote }}
   openshift_api_url: {{ .Values.global.clusterApiUrl | quote }}
+  {{- if .Values.hubBrokers }}
   amq_console_url: "https://{{ (index .Values.hubBrokers 0).name }}-broker-wconsj-0-svc-rte-{{ .Values.global.namespace }}.{{ .Values.global.clusterDomain }}"
+  {{- else }}
+  amq_console_url: ""
+  {{- end }}
   {{- if .Values.keycloak.enabled }}
   keycloak_url: "https://keycloak-ingress-{{ .Values.keycloak.namespace }}.{{ .Values.global.clusterDomain }}"
   {{- end }}

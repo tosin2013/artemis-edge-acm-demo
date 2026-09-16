@@ -1,0 +1,20 @@
+# Not chart artifacts (Helm 5 MiB file cap)
+AMQ_Fleet_Control_Blueprint.pdf
+.git/
+.github/
+.cursor/
+.repo-governor/
+showroom/
+content
+java/
+agnosticd/
+docs/
+fleet-gitops/
+scripts/
+upstream-ref/
+ztp/
+acm/
+*.md
+*.adoc
+.venv/
+.cache/
