@@ -19,6 +19,9 @@ Red Hat Advanced Cluster Management includes a *Multicluster Observability* (MCO
 
 ifdef::mode_multi_hub[]
 MCO is **per regional ACM hub**. This Grafana sees east only (`local-cluster` plus SNOs you joined in Module 2). Global Hub Grafana in xref:module-07.adoc[Module 7] is compliance (PostgreSQL), not AMQ. Fleet AMQ is an extra **Thanos Query** on Global Hub whose stores are the three regional Thanos Query gRPC endpoints (passthrough + mTLS; fill `fleetThanosQuery.regionalStores` after the regionals exist).
+
+.Control plane Grafana surfaces — regional MCO on east vs GH compliance vs fleet Thanos Query
+image::mode2-control-plane.png[Mode 2 control plane. This module uses MCO Grafana on ACM east and, for fleet AMQ, Thanos Query on Global Hub. Module 7 Grafana is compliance only.,link=self,window=blank,width=800]
 endif::[]
 
 MCO was deployed automatically during cluster provisioning via an AgnosticD workload role (`ocp4_workload_rhacm_observability_gcs`). In this module you will verify the deployment, explore built-in dashboards, and build custom alerting and dashboards for AMQ Broker.
@@ -110,7 +113,7 @@ image::grafana-clusters-overview.png[ACM Clusters Overview dashboard showing loc
 ifdef::mode_multi_hub[]
 With your SNO spoke clusters joined, you can compare metrics across:
 
-* `local-cluster` (the hub)
+* `local-cluster` (this regional ACM hub)
 * `sno-edge-01` (NY edge)
 * `sno-edge-02` (NJ edge)
 endif::mode_multi_hub[]
@@ -165,7 +168,7 @@ Run this query to check that AMQ Broker metrics are being collected:
 artemis_message_count
 ----
 
-You should see results from hub brokers (`cluster="local-cluster"`) and SNO brokers (`cluster="sno-edge-01"` / `sno-edge-02`). Helm ships ConfigMap `observability-metrics-custom-allowlist` in `open-cluster-management-observability` with both `metrics_list.yaml` and `uwl_metrics_list.yaml` — hub AMQ is scraped by user-workload Prometheus, so the UWL list is required or Explore stays empty.
+You should see results from the regional AMQ hub (`cluster="local-cluster"`) and SNO brokers (`cluster="sno-edge-01"` / `sno-edge-02`). Helm ships ConfigMap `observability-metrics-custom-allowlist` in `open-cluster-management-observability` with both `metrics_list.yaml` and `uwl_metrics_list.yaml` — hub AMQ is scraped by user-workload Prometheus, so the UWL list is required or Explore stays empty.
 
 SNO AMQ ServiceMonitors are also user-workload: the default spoke metrics-collector federates platform Prometheus (`prometheus-k8s`), which does not scrape the `artemis` namespace. Policy `policy-sno-uwl-amq-metrics` sets `enableUserWorkload: true` on each SNO (merged into `openshift-monitoring/cluster-monitoring-config` so ACM alert-forwarding is preserved) and creates a spoke `observability-metrics-custom-allowlist` in `artemis`. That starts `uwl-metrics-collector` so SNO `artemis_*` series reach Thanos and appear in the AMQ dashboard cluster dropdown.
 
@@ -381,7 +384,7 @@ artemis_connection_count
 
 Filter by specific clusters:
 
-* `+{cluster="local-cluster"}+` — hub broker metrics
+* `+{cluster="local-cluster"}+` — regional AMQ hub (`hub-01`) metrics
 * `+{cluster="sno-edge-01"}+` — NY edge metrics (once AMQ Broker is deployed via policy)
 * `+{cluster="sno-edge-02"}+` — NJ edge metrics
 endif::mode_multi_hub[]

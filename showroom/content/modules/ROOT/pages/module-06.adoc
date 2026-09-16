@@ -31,10 +31,16 @@ In short: losing hub connectivity does not break local operations. The SNO and i
 
 === 1. Start a Consumer on the Hub
 
+ifndef::mode_multi_hub[]
 Start a long-running consumer on `messages.NY.test`:
+endif::[]
+ifdef::mode_multi_hub[]
+Start a long-running consumer on `messages.NY.5604` (the federated class). Store-and-forward in this module is on **5604**, not `NY.test`.
+endif::[]
 
 IMPORTANT: Start the consumer *before* simulating the partition so it is subscribed to the topic.
 
+ifndef::mode_multi_hub[]
 [source,bash,subs="attributes+"]
 ----
 oc -n artemis run consumer-m6 -ti \
@@ -44,6 +50,19 @@ oc -n artemis run consumer-m6 -ti \
   --protocol=AMQP --user={consumer_user} --password={consumer_password} \
   --destination=topic://messages.NY.test --verbose
 ----
+endif::[]
+
+ifdef::mode_multi_hub[]
+[source,bash,subs="attributes+"]
+----
+oc -n artemis run consumer-m6 -ti \
+  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
+  --rm=true --restart=Never -- /opt/amq/bin/artemis consumer \
+  --url=amqp://hub-01-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672 \
+  --protocol=AMQP --user={consumer_user} --password={consumer_password} \
+  --destination=topic://messages.NY.5604 --verbose
+----
+endif::[]
 
 Leave this running in a separate terminal.
 
@@ -71,18 +90,23 @@ NAME                               REMEDIATION ACTION   COMPLIANCE STATE   AGE
 policy-block-spoke-01-federation   enforce              Compliant          3d20h
 ----
 
+ifndef::mode_multi_hub[]
 .CLI — `oc get policy` (not the ACM console)
 image::m6-oc-get-policy.png[CLI output of oc get policy policy-block-spoke-01-federation showing remediation enforce and COMPLIANCE STATE Compliant, plus sno-edge-01 Compliant.,link=self,window=blank,width=800]
+endif::[]
 
 Wait until the policy is `Compliant` on `sno-edge-01`. Confirm the same state in ACM Governance (*Governance* → *Policies* → `policy-block-spoke-01-federation`): Status **Enabled**, remediation **enforce**, no violations on `sno-edge-01`. The hub consumer should stop receiving new NY messages from the SNO.
 
+ifndef::mode_multi_hub[]
 .ACM Governance — partition policy Compliant on sno-edge-01
 image::m6-acm-partition-policy.png[ACM Governance policy details for policy-block-spoke-01-federation. Status Enabled, remediation enforce, no violations on sno-edge-01.,link=self,window=blank,width=800]
+endif::[]
 
 === 3. Produce While Disconnected
 
 Produce to the NY SNO Route. Messages stay on the edge broker until federation resumes.
 
+ifndef::mode_multi_hub[]
 [source,bash,subs="attributes+"]
 ----
 oc -n artemis run producer-m6 -ti \
@@ -93,6 +117,20 @@ oc -n artemis run producer-m6 -ti \
   --message-count=20 --message='queued during SNO partition' \
   --destination=topic://messages.NY.test --verbose
 ----
+endif::[]
+
+ifdef::mode_multi_hub[]
+[source,bash,subs="attributes+"]
+----
+oc -n artemis run producer-m6 -ti \
+  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
+  --rm=true --restart=Never -- /opt/amq/bin/artemis producer \
+  --url='amqps://spoke-01-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-01.{guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
+  --protocol=AMQP --user=admin --password=admin \
+  --message-count=20 --message='queued during SNO partition' \
+  --destination=topic://messages.NY.5604 --verbose
+----
+endif::[]
 
 === 4. Restore Connectivity
 
@@ -160,8 +198,10 @@ curl -sS -u admin:admin \
 
 `timestamp` will differ. `value` is a JSON *string*; parse it if you want a structured array. `started: true` is the federation proof — not a count of flushed consumer lines.
 
+ifndef::mode_multi_hub[]
 .Jolokia — hub-01-connection started
 image::m6-jolokia-hub-01-connection.png[Formatted listBrokerConnections JSON from the NY SNO broker. hub-01-connection has started true.,link=self,window=blank,width=800]
+endif::[]
 
 === 6. Clean Up
 
