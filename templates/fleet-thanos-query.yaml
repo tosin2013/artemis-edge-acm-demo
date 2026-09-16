@@ -1,0 +1,21 @@
+{{- if and .Values.globalHub.enabled (index .Values "fleetThanosQuery" | default dict).enabled }}
+# Extra fleet AMQ Grafana path (not Global Hub PostgreSQL Grafana).
+# Point Thanos Query at regional Thanos Query gRPC routes after they exist.
+# Passthrough + mTLS is a build spike — see docs/architecture.md.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fleet-thanos-query-stores
+  namespace: open-cluster-management-observability
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+data:
+  stores.yaml: |
+{{- if .Values.fleetThanosQuery.regionalStores }}
+{{- range .Values.fleetThanosQuery.regionalStores }}
+    - {{ . | quote }}
+{{- end }}
+{{- else }}
+    []
+{{- end }}
+{{- end }}

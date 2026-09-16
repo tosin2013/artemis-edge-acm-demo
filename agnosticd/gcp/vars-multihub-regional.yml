@@ -1,0 +1,240 @@
+---
+# ===================================================================
+# Artemis Edge ACM Demo — GCP Multi Hub Deployment Variables
+# ===================================================================
+#
+# Multi Hub (Mode 2) — TIER 1 REGIONAL ACM HUB (east first pass).
+# One AMQ hub broker on this cluster. Zero SNOs at provision time.
+# Students run deploy-spokes.sh in Module 2 against this hub.
+# See agnosticd/gcp/MODE2.md
+#
+# Usage:
+#   ./scripts/deploy.sh --mode multi-hub --tier regional --guid <GUID> --account <ACCOUNT>
+#
+# Overlay for central / west: set gcp_region and helm global.region (central|west),
+# and set showroom.enabled: false.
+#
+# ===================================================================
+
+# ===================================================================
+# Mandatory Variables
+# ===================================================================
+tag: main
+cloud_provider: gcp
+cloud_provider_repo: "https://github.com/tosin2013/cloud_provider_gcp.git"
+config: openshift-cluster
+
+gcp_credentials: "{{ lookup('file', gcp_credentials_file) | from_json }}"
+gcp_auth_type: serviceaccount
+gcp_account: "{{ gcp_service_account }}"
+gcp_create_open_env_project: false
+agnosticd_open_environment: false
+
+# ===================================================================
+# Additional Collections
+# ===================================================================
+requirements_content:
+  collections:
+    - name: https://github.com/rhpds/core_workloads.git
+      type: git
+      version: "{{ tag }}"
+    - name: https://github.com/tosin2013/cloud_provider_gcp.git
+      type: git
+      version: main
+    - name: google.cloud
+      version: ">=1.0.0"
+
+# ===================================================================
+# GCP Specific settings
+# ===================================================================
+gcp_region: us-east4
+
+cloud_tags:
+  - owner: tosin2013@redhat.com
+  - Purpose: development
+  - config: openshift-cluster
+  - guid: "{{ guid }}"
+  - mode: multi-hub
+  - hub-tier: regional
+
+# ===================================================================
+# OpenShift cluster specific settings
+# ===================================================================
+
+host_ssh_authorized_keys:
+  - key: https://github.com/tosin2013.keys
+
+# -------------------------------------------------------------------
+# Bastion
+# -------------------------------------------------------------------
+install_bastion: true
+bastion_setup_student_user: true
+bastion_student_user_name: lab-user
+bastion_instance_type: n2-standard-4
+bastion_rootfs_size: 50
+
+repo_method: none
+install_satellite_repositories: false
+install_rhn_repositories: false
+
+# -------------------------------------------------------------------
+# --- Hub cluster (regional ACM + AMQ hub) ---
+# -------------------------------------------------------------------
+cluster_name: hub-east
+cluster_dns_zone: "{{ base_domain }}"
+ocp4_base_domain: "{{ base_domain }}"
+
+ocp4_installer_root_url: https://mirror.openshift.com/pub/openshift-v4/clients
+ocp4_installer_version: "4.22"
+host_ocp4_installer_version: "4.22"
+host_ocp4_installer_set_user_data_kubeadmin_password: true
+
+openshift_cluster_admin_service_account_enable: true
+
+# Control plane for regional ACM + MCO + one AMQ hub broker
+control_plane_instance_type: n2-standard-16
+control_plane_instance_count: 3
+control_plane_storage_type: pd-ssd
+control_plane_storage_size: 500
+
+worker_instance_type: n2-standard-16
+worker_instance_count: 3
+worker_storage_type: pd-ssd
+worker_storage_size: 500
+
+# Instances to provision (bastion)
+instances:
+  - name: "bastion-{{ guid }}"
+    instance_type: "{{ bastion_instance_type }}"
+    image_project: rhel-cloud
+    image_family: rhel-9
+    rootfs_size: "{{ bastion_rootfs_size }}"
+    public_ip: true
+    ansible_group: bastions
+    tags:
+      - "{{ project_tag }}"
+      - bastion
+
+# ===================================================================
+# Workloads — executed in order after cluster is up
+# ===================================================================
+workloads:
+  - agnosticd.core_workloads.ocp4_workload_cert_manager
+  - agnosticd.core_workloads.ocp4_workload_authentication_htpasswd
+  - agnosticd.core_workloads.ocp4_workload_rhacm
+  - agnosticd.core_workloads.ocp4_workload_openshift_gitops
+  - agnosticd.core_workloads.ocp4_workload_field_content
+  - ocp4_workload_rhacm_observability_gcs
+  - agnosticd.core_workloads.ocp4_workload_showroom
+
+# ===================================================================
+# Workload Variables
+# ===================================================================
+
+# --- cert-manager ---
+ocp4_workload_cert_manager_channel: stable-v1
+ocp4_workload_cert_manager_use_catalog_snapshot: false
+ocp4_workload_cert_manager_install_ingress_certificates: true
+ocp4_workload_cert_manager_install_api_certificates: false
+ocp4_workload_cert_manager_gcp_dns_zone_name: "dns-zone-{{ base_domain.split('.')[0] }}"
+
+# --- authentication ---
+ocp4_workload_authentication_htpasswd_user_count: 2
+ocp4_workload_authentication_htpasswd_user_password_randomized: true
+ocp4_workload_authentication_htpasswd_admin_user: admin
+
+# --- RHACM ---
+ocp4_workload_rhacm_acm_channel: release-2.17
+ocp4_workload_rhacm_catalog_source: redhat-operators
+
+# --- OpenShift GitOps (ArgoCD) ---
+ocp4_workload_openshift_gitops_channel: latest
+
+# --- Field-Sourced Content (deploys Artemis Edge Helm chart via ArgoCD) ---
+ocp4_workload_field_content_gitops_repo_url: "https://github.com/tosin2013/artemis-edge-acm-demo.git"
+ocp4_workload_field_content_gitops_repo_revision: main
+ocp4_workload_field_content_gitops_repo_path: "."
+ocp4_workload_field_content_namespace: openshift-gitops
+ocp4_workload_field_content_sync_options:
+  - CreateNamespace=true
+  - SkipDryRunOnMissingResource=true
+ocp4_workload_field_content_helm_values:
+  global:
+    mode: "multi-hub"
+    hubTier: regional
+    region: east
+    clusterDomain: "{{ openshift_cluster_ingress_domain }}"
+    clusterApiUrl: "{{ openshift_api_url }}"
+    namespace: "artemis"
+  hubBrokers:
+    - name: hub-01
+      adminUser: admin
+      adminPassword: admin
+      replicas: 1
+      persistenceEnabled: false
+      resources:
+        limits:
+          cpu: "1000m"
+          memory: "2Gi"
+        requests:
+          cpu: "1000m"
+          memory: "2Gi"
+  edgeBrokers:
+    - name: spoke-01
+      region: NY
+      hubConnections:
+        - hub: hub-01
+          autoStart: true
+    - name: spoke-02
+      region: NJ
+      hubConnections:
+        - hub: hub-01
+          autoStart: true
+  globalHub:
+    enabled: false
+  fleetThanosQuery:
+    enabled: false
+  keycloak:
+    enabled: true
+  monitoring:
+    enabled: true
+    acmObservability:
+      enabled: true
+  spokeProvisioning:
+    enabled: true
+    baseDomain: "{{ base_domain }}"
+    gcpProjectID: "{{ gcp_project_id }}"
+    gcpRegion: "{{ gcp_region }}"
+    clusterImageSet: "img4.22.12-x86-64-appsub"
+    sshPublicKey: "{{ lookup('file', '~/.ssh/id_rsa.pub', errors='ignore') | default('') }}"
+    networkType: "OVNKubernetes"
+    workerMachineType: "n2-standard-8"
+    masterMachineType: "n2-standard-8"
+    clusters: []
+  showroom:
+    enabled: true
+    terminalRbac:
+      - namespace: showroom
+        serviceAccount: showroom
+  tls:
+    hubKeystoreBase64: ""
+    hubTruststoreBase64: ""
+    spokeKeystoreBase64: ""
+    spokeTruststoreBase64: ""
+
+# --- Showroom ---
+ocp4_workload_showroom_content_git_repo: "https://github.com/tosin2013/artemis-edge-acm-demo.git"
+ocp4_workload_showroom_content_git_repo_ref: main
+ocp4_workload_showroom_content_antora_playbook: showroom/site.yml
+ocp4_workload_showroom_content_title: "Artemis Edge ACM Demo — Regional Hub (east)"
+
+# --- Showroom Mode Wiring ---
+# After provisioning, deploy.sh calls patch-showroom-mode.sh which injects
+# mode_multi_hub: "true" into the showroom-userdata ConfigMap. The Showroom
+# entrypoint merges this into antora.yml via yq, enabling ifdef::mode_multi_hub[]
+# guards in the .adoc content at Antora build time.
+#
+# Future: when AgnosticD supports injecting custom user_data variables from
+# config vars, replace the ConfigMap patch with a native variable here:
+#   agnosticd_custom_user_data:
+#     mode_multi_hub: "true"

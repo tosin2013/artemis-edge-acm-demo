@@ -9,9 +9,17 @@
 * Import a custom AMQ Broker Grafana dashboard
 * Compare cross-cluster metrics between hub and SNO edge clusters
 
+ifdef::mode_multi_hub[]
+* Use *regional* MCO Grafana for this hub's SNOs, and Global Hub **Thanos Query** for fleet AMQ (not GH compliance Grafana)
+endif::[]
+
 == Background
 
 Red Hat Advanced Cluster Management includes a *Multicluster Observability* (MCO) addon that aggregates Prometheus metrics from all managed clusters into a central Thanos/Grafana stack on the hub. This deployment uses **Google Cloud Storage (GCS)** as the Thanos backend for long-term metric retention.
+
+ifdef::mode_multi_hub[]
+MCO is **per regional ACM hub**. This Grafana sees east only (`local-cluster` plus SNOs you joined in Module 2). Global Hub Grafana in xref:module-07.adoc[Module 7] is compliance (PostgreSQL), not AMQ. Fleet AMQ is an extra **Thanos Query** on Global Hub whose stores are the three regional Thanos Query gRPC endpoints (passthrough + mTLS; fill `fleetThanosQuery.regionalStores` after the regionals exist).
+endif::[]
 
 MCO was deployed automatically during cluster provisioning via an AgnosticD workload role (`ocp4_workload_rhacm_observability_gcs`). In this module you will verify the deployment, explore built-in dashboards, and build custom alerting and dashboards for AMQ Broker.
 
@@ -327,7 +335,7 @@ image::grafana-amq-broker-sno-edge-01.png[AMQ Broker - Artemis Edge dashboard wi
 image::grafana-amq-broker-sno-edge-02.png[AMQ Broker - Artemis Edge dashboard with cluster filter sno-edge-02.,link=self,window=blank,width=800]
 
 ifdef::mode_multi_hub[]
-The dropdown values are `local-cluster`, `sno-edge-01`, and `sno-edge-02`.
+The dropdown values on *this regional* Grafana are `local-cluster`, `sno-edge-01`, and `sno-edge-02`. For all three regions at once, use Global Hub Thanos Query (not Module 7 compliance Grafana).
 endif::mode_multi_hub[]
 
 The dashboard has 5 panels:

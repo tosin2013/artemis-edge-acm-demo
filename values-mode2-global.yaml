@@ -1,0 +1,25 @@
+global:
+  mode: "multi-hub"
+  hubTier: global
+
+# Tier 0: Global Hub cluster only. No AMQ brokers. No SNOs.
+hubBrokers: []
+
+edgeBrokers: []
+
+globalHub:
+  enabled: true
+
+fleetThanosQuery:
+  enabled: true
+  # Regional Thanos Query gRPC routes (passthrough + mTLS). Fill after regional hubs exist.
+  regionalStores: []
+  # - thanos-grpc-east.example.com:443
+  # - thanos-grpc-central.example.com:443
+  # - thanos-grpc-west.example.com:443
+
+spokeProvisioning:
+  enabled: false
+
+showroom:
+  enabled: false

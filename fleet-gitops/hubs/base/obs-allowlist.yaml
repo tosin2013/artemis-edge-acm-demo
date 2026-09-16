@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: observability-metrics-custom-allowlist
+  namespace: open-cluster-management-observability
+data:
+  uwl_metrics_list.yaml: |
+    names:
+      - artemis_active
+      - artemis_disk_store_usage
+      - artemis_address_memory_usage
+      - artemis_connection_count
+      - artemis_total_connection_count
+      - artemis_message_count
+      - artemis_messages_added
+      - artemis_messages_acknowledged
+      - artemis_consumer_count
+      - artemis_delivering_count
+      - artemis_address_size
+      - artemis_unrouted_message_count

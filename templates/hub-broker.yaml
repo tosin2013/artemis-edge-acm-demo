@@ -31,7 +31,7 @@ spec:
   acceptors:
     {{- include "artemis-edge.brokerAcceptors" $ | nindent 4 }}
     {{- /* KCS 7107078: second acceptor for TLS+expose; do not mix plain/TLS on one port. */}}
-    {{- if and $.Values.spokeProvisioning.enabled (not $.Values.tls.enabled) (eq .name "hub-01") }}
+    {{- if and $.Values.spokeProvisioning.enabled (not $.Values.tls.enabled) }}
     - name: amqps-acceptor
       protocols: amqp
       port: 5671
@@ -40,7 +40,7 @@ spec:
       needClientAuth: false
       expose: true
     {{- end }}
-  {{- if and $.Values.spokeProvisioning.enabled (not $.Values.tls.enabled) (eq .name "hub-01") }}
+  {{- if and $.Values.spokeProvisioning.enabled (not $.Values.tls.enabled) }}
   brokerProperties:
     - "acceptorConfigurations.amqps-acceptor.params.sslAutoReload=true"
   resourceTemplates:
