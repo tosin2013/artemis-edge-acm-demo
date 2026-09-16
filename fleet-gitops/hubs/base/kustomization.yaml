@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - applicationset-amq.yaml
+  - appproject-amq.yaml
+  - gitopscluster.yaml
+  - placement-all-amq-sites.yaml
+  - obs-allowlist.yaml
+  - placementbinding-site-platform.yaml
+  - policy-amq-broker-operator.yaml
+  - policy-openshift-gitops-operator.yaml
+  - policy-enable-uwm.yaml

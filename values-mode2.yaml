@@ -1,6 +1,10 @@
 global:
   mode: "multi-hub"
+  hubTier: regional
+  # Overlay per region: east | central | west
+  region: east
 
+# One AMQ hub broker on this regional ACM hub (not on Global Hub).
 hubBrokers:
   - name: hub-01
     adminUser: admin
@@ -14,22 +18,14 @@ hubBrokers:
       requests:
         cpu: "1000m"
         memory: "2Gi"
-  - name: hub-02
-    adminUser: admin
-    adminPassword: admin
-    replicas: 1
-    persistenceEnabled: false
-    resources:
-      limits:
-        cpu: "1000m"
-        memory: "2Gi"
-      requests:
-        cpu: "1000m"
-        memory: "2Gi"
 
 globalHub:
-  enabled: true
+  enabled: false
 
+fleetThanosQuery:
+  enabled: false
+
+# Student SNOs (Module 2). AgnosticD does not create these clusters.
 spokeProvisioning:
   enabled: true
   baseDomain: ""
@@ -40,10 +36,18 @@ spokeProvisioning:
   networkType: "OVNKubernetes"
   workerMachineType: "n2-standard-8"
   masterMachineType: "n2-standard-8"
-  clusters:
-    - name: sno-edge-01
-      region: NY
-    - name: sno-edge-02
-      region: NJ
-    - name: sno-edge-03
-      region: CT
+  # Empty list: Helm coalesce may keep chart defaults. deploy-spokes.sh adds clusters
+  # after Module 2. Do not pre-create SNOs at provision time.
+  clusters: []
+
+edgeBrokers:
+  - name: spoke-01
+    region: NY
+    hubConnections:
+      - hub: hub-01
+        autoStart: true
+  - name: spoke-02
+    region: NJ
+    hubConnections:
+      - hub: hub-01
+        autoStart: true

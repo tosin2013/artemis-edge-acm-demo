@@ -121,30 +121,47 @@ Backward-compatible wrapper: hub brokers use the shared "broker-tls-secret".
 {{- end }}
 
 {{/*
-SNO edge brokerProperties: address federation to hub-01 AMQPS Route (KCS 7104022/7042028).
+SNO edge brokerProperties: AMQP federation to each hubBrokers entry.
 Call with: include "artemis-edge.snoFederationBrokerProperties" (dict "spoke" . "Values" $.Values)
 */}}
 {{- define "artemis-edge.snoFederationBrokerProperties" -}}
 {{- $spoke := .spoke -}}
 {{- $v := .Values -}}
-{{- $hub := (index $v.hubBrokers 0).name -}}
-{{- $uri := printf "tcp://%s-broker-amqps-acceptor-0-svc-rte-%s.%s:443?sslEnabled=true&trustAll=true&verifyHost=false&useTopologyForLoadBalancing=false" $hub $v.global.namespace $v.global.clusterDomain -}}
-- {{ printf "acceptorConfigurations.amqps-acceptor.params.sslAutoReload=true" | quote }}
-- {{ printf "AMQPConnections.%s-connection.autostart=true" $hub | quote }}
-- {{ printf "AMQPConnections.%s-connection.uri=%s" $hub $uri | quote }}
-- {{ printf "AMQPConnections.%s-connection.user=%s" $hub $v.edgeBrokerDefaults.adminUser | quote }}
-- {{ printf "AMQPConnections.%s-connection.password=%s" $hub $v.edgeBrokerDefaults.adminPassword | quote }}
-- {{ printf "AMQPConnections.%s-connection.retryInterval=5000" $hub | quote }}
-- {{ printf "AMQPConnections.%s-connection.reconnectAttempts=-1" $hub | quote }}
-- {{ printf "AMQPConnections.%s-connection.federations.%s-federation.type=FEDERATION" $hub $spoke.name | quote }}
-- {{ printf "AMQPConnections.%s-connection.federations.%s-federation.localAddressPolicies.local-policy.autoDelete=true" $hub $spoke.name | quote }}
-- {{ printf "AMQPConnections.%s-connection.federations.%s-federation.localAddressPolicies.local-policy.autoDeleteDelay=0" $hub $spoke.name | quote }}
-- {{ printf "AMQPConnections.%s-connection.federations.%s-federation.localAddressPolicies.local-policy.autoDeleteMessageCount=1000" $hub $spoke.name | quote }}
-- {{ printf "AMQPConnections.%s-connection.federations.%s-federation.localAddressPolicies.local-policy.includes.all.addressMatch=messages.ALL.#" $hub $spoke.name | quote }}
-- {{ printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy.autoDelete=true" $hub $spoke.name | quote }}
-- {{ printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy.autoDeleteDelay=0" $hub $spoke.name | quote }}
-- {{ printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy.autoDeleteMessageCount=1000" $hub $spoke.name | quote }}
-- {{ printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy.includes.region.addressMatch=messages.%s.#" $hub $spoke.name $spoke.region | quote }}
+{{- printf "- %s\n" ("acceptorConfigurations.amqps-acceptor.params.sslAutoReload=true" | quote) -}}
+{{- range $i, $hubb := $v.hubBrokers -}}
+{{- $hub := $hubb.name -}}
+{{- $auto := "false" -}}
+{{- if eq $i 0 }}{{- $auto = "true" -}}{{- end -}}
+{{- $dom := $v.global.clusterDomain -}}
+{{- if $hubb.clusterDomain }}{{ $dom = $hubb.clusterDomain }}{{ end -}}
+{{- $uri := printf "tcp://%s-broker-amqps-acceptor-0-svc-rte-%s.%s:443?sslEnabled=true&trustAll=true&verifyHost=false&useTopologyForLoadBalancing=false" $hub $v.global.namespace $dom -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.autostart=%s" $hub $auto | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.uri=%s" $hub $uri | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.user=%s" $hub $v.edgeBrokerDefaults.adminUser | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.password=%s" $hub $v.edgeBrokerDefaults.adminPassword | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.retryInterval=5000" $hub | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.reconnectAttempts=-1" $hub | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.type=FEDERATION" $hub $spoke.name | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.localAddressPolicies.local-policy.autoDelete=true" $hub $spoke.name | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.localAddressPolicies.local-policy.autoDeleteDelay=0" $hub $spoke.name | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.localAddressPolicies.local-policy.autoDeleteMessageCount=1000" $hub $spoke.name | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.localAddressPolicies.local-policy.includes.all.addressMatch=messages.ALL.#" $hub $spoke.name | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.localAddressPolicies.local-policy.includes.region.addressMatch=messages.%s.#" $hub $spoke.name $spoke.region | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.localAddressPolicies.local-policy.excludes.5603.addressMatch=messages.*.5603" $hub $spoke.name | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.localAddressPolicies.local-policy.excludes.5604.addressMatch=messages.*.5604" $hub $spoke.name | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy.autoDelete=true" $hub $spoke.name | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy.autoDeleteDelay=0" $hub $spoke.name | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy.autoDeleteMessageCount=1000" $hub $spoke.name | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy.includes.wild.addressMatch=messages.#" $hub $spoke.name | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy.excludes.all.addressMatch=messages.ALL.#" $hub $spoke.name | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy.excludes.region.addressMatch=messages.%s.#" $hub $spoke.name $spoke.region | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy.excludes.5603.addressMatch=messages.*.5603" $hub $spoke.name | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy-5604.autoDelete=true" $hub $spoke.name | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy-5604.autoDeleteDelay=0" $hub $spoke.name | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy-5604.autoDeleteMessageCount=1000" $hub $spoke.name | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy-5604.maxHops=1" $hub $spoke.name | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy-5604.includes.5604.addressMatch=messages.*.5604" $hub $spoke.name | quote) -}}
+{{- end }}
 {{- end }}
 
 {{/*

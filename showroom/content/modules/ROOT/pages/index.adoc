@@ -7,17 +7,42 @@ This demo showcases a federated AMQ Broker messaging architecture deployed acros
 
 === Architecture
 
+ifndef::mode_multi_hub[]
 * *Hub Cluster* -- RHACM hub running ArgoCD, Keycloak OIDC, hub AMQ Brokers, Prometheus, and Grafana
 * *Edge Clusters* -- SNO clusters (NY, NJ, and optionally CT). RHACM Governance (`edge-broker-policies`) installs the AMQ Broker operator and one `ActiveMQArtemis` per region after join
 * *Messaging* -- AMQP federation from each SNO broker to hub-01 (`messages.NY.#`, `messages.NJ.#`, `messages.ALL.#`) over an AMQPS Route
+endif::[]
+
+ifdef::mode_multi_hub[]
+You are on a *Tier 1 regional ACM hub* (east). AgnosticD already created **Tier 0 Global Hub** plus three regional ACM hubs. You create **Tier 2 SNOs** in xref:module-02.adoc[Module 2]. Sites never talk to Global Hub.
+
+.Mode 2 three-tier control plane (blueprint)
+[source,text]
+----
+                    Tier 0 Global Hub
+                    GH Grafana = compliance (PostgreSQL)
+                    Thanos Query = fleet AMQ (queries 3 regions)
+                    no AMQ broker
+                           |
+              Argo CD push | (hubs/east|central|west)
+              +------------+------------+
+              |            |            |
+         ACM east     ACM central    ACM west     Tier 1
+         MCO Grafana  MCO Grafana    MCO Grafana
+         AMQ hub      AMQ hub        AMQ hub
+              |
+           SNOs (you, Module 2)                   Tier 2
+           site AMQ  --federate 5603-5607--> AMQ hub east
+----
+endif::[]
 
 === Deployment Mode
 
 ifdef::mode_multi_hub[]
-You are running *Mode 2: Multi-Hub* with a Multicluster Global Hub, 2 regional hubs, and 6 SNO edge clusters.
+You are running *Mode 2*: 1 Global Hub + 3 regional ACM hubs (east/central/west). This terminal is the **east** regional hub. SNOs are not present until Module 2.
 endif::[]
 ifndef::mode_multi_hub[]
-You are running *Mode 1: Single Hub* with 1 RHACM hub and 3 SNO edge clusters.
+You are running *Mode 1: Single Hub* with 1 RHACM hub and student-provisioned SNO edge clusters.
 endif::[]
 
 === Getting Started

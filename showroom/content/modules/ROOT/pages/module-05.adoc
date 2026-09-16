@@ -6,6 +6,10 @@
 * Consume those messages at hub-01 (federation)
 * Confirm hub-colocated `spoke-*` URLs are not this exercise
 
+ifdef::mode_multi_hub[]
+Hub-01 in these steps is the **AMQ hub on this regional ACM hub**, not Global Hub. `messages.NY.5604` should appear on hub-01; `messages.NY.5603` must not.
+endif::[]
+
 == Steps
 
 === 1. Start a Consumer on the Hub

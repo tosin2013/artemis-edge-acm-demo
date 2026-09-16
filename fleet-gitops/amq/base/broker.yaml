@@ -1,0 +1,38 @@
+# Site ActiveMQArtemis. Addresses are brokerProperties (AMQ 7.12; Address CRD deprecated).
+# Cookie-cutter: apps pick messages.{REGION|ALL}.{5603-5607}. Federation URI is filled
+# per site (Helm snoFederationBrokerProperties on the regional hub, or a later overlay).
+apiVersion: broker.amq.io/v1beta1
+kind: ActiveMQArtemis
+metadata:
+  name: site-broker
+  namespace: artemis
+spec:
+  adminUser: admin
+  adminPassword: admin
+  deploymentPlan:
+    size: 1
+    persistenceEnabled: false
+    journalType: nio
+    enableMetricsPlugin: true
+  acceptors:
+    - name: amqp
+      protocols: amqp
+      port: 5672
+    - name: amqps
+      protocols: amqp
+      port: 5671
+      sslEnabled: true
+      expose: true
+  brokerProperties:
+    - addressSettings."messages.#".autoDeleteAddresses=true
+    - addressSettings."messages.#".autoCreateAddresses=true
+    - addressSettings."messages.#".autoCreateQueues=true
+    - securityRoles."messages.#".admin.send=true
+    - securityRoles."messages.#".admin.consume=true
+    # 5603 must not leave the site (Helm helper excludes messages.*.5603).
+    - addressSettings."messages.*.5603".autoCreateAddresses=true
+    - addressSettings."messages.*.5604".autoCreateAddresses=true
+    - addressSettings."messages.*.5605".autoCreateAddresses=true
+    - addressSettings."messages.ALL.5606".autoCreateAddresses=true
+    - addressSettings."messages.*.5607".autoCreateAddresses=true
+

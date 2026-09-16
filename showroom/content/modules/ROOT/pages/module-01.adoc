@@ -80,7 +80,7 @@ sno-edge-02     true           https://api.sno-edge-02.<guid>.gcp.redhatworkshop
 ----
 endif::[]
 ifdef::mode_multi_hub[]
-You should see 3 SNO edge clusters (or 6 in Mode 2) with `JOINED=True` and `AVAILABLE=True`.
+Before xref:module-02.adoc[Module 2] you should see only `local-cluster` (this regional ACM hub). After Module 2, `sno-edge-01` and `sno-edge-02` join *this* hub. They never appear as direct managed clusters of Global Hub.
 endif::[]
 
 TIP: `field-content` in ArgoCD may stay `Progressing` because ApplicationSet `artemis-edge-workloads` has no child apps. That is expected — AMQ on SNOs is delivered by ACM policies in `edge-broker-policies`, not by ArgoCD apps on the spokes.

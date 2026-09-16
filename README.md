@@ -66,10 +66,12 @@ Runs validation checks without installing or deploying anything.
 
 ## Deployment Modes
 
-| Mode | Clusters | Description |
-|------|----------|-------------|
-| Single Hub | 1 hub + 3 SNO | Quick validation of edge-to-hub federation |
-| Multi Hub | 1 Global Hub + 2 hubs + 6 SNO | Cross-hub federation with fleet-of-fleets observability |
+| Mode | What AgnosticD creates | What students create | Description |
+|------|------------------------|----------------------|-------------|
+| Mode 1 (single-hub) | 1 ACM hub | SNOs in Module 2 | Edge-to-hub AMQP federation on one ACM hub |
+| Mode 2 (multi-hub) | 1 Global Hub + 3 regional ACM hubs (east/central/west) | SNOs in Module 2 onto a **regional** hub | ACM hub-of-hubs control plane; one AMQ hub broker **per regional ACM hub**; GH Grafana is compliance only |
+
+See [docs/architecture.md](docs/architecture.md), [agnosticd/gcp/MODE2.md](agnosticd/gcp/MODE2.md), and [AMQ_Fleet_Control_Blueprint.pdf](AMQ_Fleet_Control_Blueprint.pdf). SNOs are never created at `agd provision` time.
 
 ## How It Works
 
@@ -125,8 +127,10 @@ cd ~/Development/agnosticd-v2
 
 ```
 ├── Chart.yaml                     # Helm chart metadata
-├── values.yaml                    # Mode 1 defaults (single hub, 3 SNO)
-├── values-mode2.yaml              # Mode 2 overlay (multi-hub, 6 SNO)
+├── values.yaml                    # Mode 1 defaults (single ACM hub)
+├── values-mode2.yaml              # Mode 2 overlay for a *regional* ACM hub (one AMQ hub, student SNOs)
+├── values-mode2-global.yaml       # Mode 2 overlay for Global Hub (no AMQ broker, no SNOs)
+├── fleet-gitops/                  # Push to 3 regional hubs; pull to SNOs; OperatorPolicy
 ├── values-gcp.yaml                # GCP instance types + storage
 ├── values-azure.yaml              # Azure instance types + storage
 ├── templates/                     # All Helm templates
@@ -134,7 +138,7 @@ cd ~/Development/agnosticd-v2
 ├── acm/                           # ACM: ApplicationSet + policies
 ├── showroom/                      # Showroom lab guide (Antora)
 ├── java/                          # Quarkus Camel clients (AMQP, MQTT, bridge)
-├── agnosticd/gcp/                 # AgnosticD vars and secrets example
+├── agnosticd/gcp/                 # AgnosticD vars (Mode 1, Mode 2 GH, Mode 2 regional)
 ├── scripts/                       # deploy.sh, start/stop/teardown, TLS gen
 ├── onboard.yml                    # Onboarding manifest (single source of truth)
 ├── bootstrap.sh                   # Standalone setup script (reads onboard.yml)
@@ -153,7 +157,8 @@ cd ~/Development/agnosticd-v2
 | `keycloak.enabled` | `true` | Deploy Keycloak OIDC provider |
 | `keycloak.clientSecret` | `""` | Keycloak broker client secret |
 | `monitoring.enabled` | `true` | Deploy Prometheus + Grafana |
-| `globalHub.enabled` | `false` | Deploy Multicluster Global Hub (Mode 2) |
+| `globalHub.enabled` | `false` | Global Hub operator (Tier 0 cluster only; no AMQ broker) |
+| `fleetThanosQuery.enabled` | `false` | Extra Thanos Query + Grafana for fleet AMQ metrics on Global Hub |
 | `showroom.enabled` | `true` | Deploy Showroom lab guide |
 
 ## Demo Credentials

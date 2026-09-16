@@ -1,18 +1,31 @@
-= Module 7: Global Hub Dashboard (Mode 2 Only)
+= Module 7: Global Hub Compliance Grafana (Mode 2 Only)
 
 == Objectives
 
-* Access the Multicluster Global Hub
-* View cross-hub compliance and fleet status
-* Observe aggregated security posture
+* Access Multicluster Global Hub **compliance** Grafana (PostgreSQL) — not AMQ metrics
+* View policy compliance and inventory across the three regional ACM hubs
+* Confirm sites you added in Module 2 appear under the east managed hub
 
-NOTE: This module applies only to Mode 2 (multi-hub) deployments. If you are running Mode 1, skip to xref:module-08.adoc[Module 8].
+NOTE: This module applies only to Mode 2. If you are running Mode 1, skip to xref:module-08.adoc[Module 8].
+
+IMPORTANT: Global Hub Grafana is **compliance only**. It does not merge `artemis_*`. Fleet AMQ Grafana is xref:module-08.adoc[Module 8] (regional MCO + extra Thanos Query on Global Hub).
+
+== Background
+
+.Three Grafana surfaces
+[source,text]
+----
+Global Hub          Grafana = policy compliance (PostgreSQL)
+                    extra Thanos Query = fleet AMQ (Module 8)
+
+ACM east/central/west   MCO Grafana = that region's clusters only
+----
 
 == Steps
 
-=== 1. Access Global Hub Console
+=== 1. Access Global Hub Grafana
 
-Navigate to the Global Hub Grafana:
+From a kubeconfig for the **Global Hub** (facilitator), not this regional hub:
 
 [source,bash]
 ----
@@ -24,8 +37,8 @@ oc get route -n open-cluster-management -l app=multicluster-global-hub
 In the Grafana dashboard:
 
 * Select the *Global Hub - Policy Compliance* dashboard
-* Observe compliance status across both regional hubs
-* Each hub manages 3 SNO clusters with AMQ Broker policies
+* Observe compliance across regional hubs east, central, and west
+* After Module 2, the NY/NJ SNOs appear in inventory *under* the east managed hub — they are not Global Hub managed clusters
 
 === 3. Cross-Hub Cluster Inventory
 
@@ -35,13 +48,13 @@ oc get managedclusterset -A
 oc get placement -A
 ----
 
-The Global Hub aggregates cluster inventory from both regional hubs without directly managing edge clusters.
+The Global Hub aggregates cluster inventory from the three regional hubs. Sites never talk to Global Hub.
 
-=== 4. Verify Security Integration
-
-If RHACS is deployed, the Global Hub aggregates vulnerability data:
+=== 4. Verify there is no AMQ broker on Global Hub
 
 [source,bash]
 ----
-oc get multiclusterglobalhub -n open-cluster-management -o yaml | grep stackrox
+oc get activemqartemis -A
 ----
+
+Expected: no `hub-01-broker` (or any AMQ CR) on Global Hub. The AMQ hub for east is on *this* regional cluster (`oc get activemqartemis -n artemis` here).

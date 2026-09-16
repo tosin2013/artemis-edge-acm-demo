@@ -32,6 +32,9 @@ AGD_ROOT="${AGD_ROOT:-${HOME}/Development/agnosticd-v2}"
 # Overridden below when --mode multi-hub is selected.
 AGD_CONFIG="artemis-edge-gcp"
 
+# Mode 2 hub tier: global (default) or regional. See agnosticd/gcp/MODE2.md
+: "${HUB_TIER:=global}"
+
 # Deployment mode: single-hub (default) or multi-hub
 # Read from config.yml if not set via env or CLI
 : "${DEPLOY_MODE:=}"
@@ -55,6 +58,7 @@ while [[ $# -gt 0 ]]; do
     --account) AGD_ACCOUNT="$2"; shift 2 ;;
     --action) AGD_ACTION="$2"; shift 2 ;;
     --mode) DEPLOY_MODE="$2"; shift 2 ;;
+    --tier) HUB_TIER="$2"; shift 2 ;;
     --destroy) AGD_ACTION="destroy"; shift ;;
     --stop) AGD_ACTION="stop"; shift ;;
     --start) AGD_ACTION="start"; shift ;;
@@ -67,6 +71,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --guid GUID        Deployment GUID (reads from config.yml if not set)"
       echo "  --account ACCOUNT  Secrets account name (default: openenv-gcp)"
       echo "  --mode MODE        Deployment mode: single-hub (default) or multi-hub"
+      echo "  --tier TIER        Mode 2 only: global (default) or regional (see agnosticd/gcp/MODE2.md)"
       echo "  --action ACTION    AgnosticD action: provision, destroy, stop, start, status"
       echo "  --destroy          Shorthand for --action destroy"
       echo "  --stop             Shorthand for --action stop"
@@ -77,7 +82,8 @@ while [[ $# -gt 0 ]]; do
       echo ""
       echo "Examples:"
       echo "  $0 --guid 725j2 --account openenv-gcp"
-      echo "  $0 --mode multi-hub --guid 725j2 --account openenv-gcp"
+      echo "  $0 --mode multi-hub --tier global --guid 725j2 --account openenv-gcp"
+      echo "  $0 --mode multi-hub --tier regional --guid east01 --account openenv-gcp"
       echo "  $0 --destroy --guid 725j2"
       echo "  $0  # reads GUID and mode from config.yml"
       exit 0
@@ -98,7 +104,14 @@ case "${DEPLOY_MODE}" in
     AGD_CONFIG="artemis-edge-gcp"
     ;;
   multi-hub)
-    AGD_CONFIG="artemis-edge-gcp-multihub"
+    case "${HUB_TIER}" in
+      global) AGD_CONFIG="artemis-edge-gcp-multihub" ;;
+      regional) AGD_CONFIG="artemis-edge-gcp-multihub-regional" ;;
+      *)
+        echo "ERROR: Unknown --tier '${HUB_TIER}'. Use: global, regional" >&2
+        exit 1
+        ;;
+    esac
     ;;
   *)
     echo "ERROR: Unknown mode '${DEPLOY_MODE}'. Use: single-hub, multi-hub" >&2
@@ -133,6 +146,7 @@ esac
 echo "=== Artemis Edge ACM Demo — ${AGD_ACTION^} ==="
 echo "Action:      ${AGD_ACTION}"
 echo "Mode:        ${DEPLOY_MODE}"
+echo "Hub tier:    ${HUB_TIER}"
 echo "GUID:        ${AGD_GUID}"
 echo "Config:      ${AGD_CONFIG}"
 echo "Account:     ${AGD_ACCOUNT}"

@@ -77,6 +77,10 @@ monitoring:
 globalHub:
   enabled: false
 
+fleetThanosQuery:
+  enabled: false
+  regionalStores: []
+
 showroom:
   enabled: true
   contentRepoUrl: ""
