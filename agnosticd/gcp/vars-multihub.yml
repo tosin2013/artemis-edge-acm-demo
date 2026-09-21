@@ -51,6 +51,7 @@ cloud_tags:
   - config: openshift-cluster
   - guid: "{{ guid }}"
   - mode: multi-hub
+  - hub-tier: global
 
 # ===================================================================
 # OpenShift cluster specific settings

@@ -169,7 +169,6 @@ ocp4_workload_field_content_helm_values:
   hubBrokers:
     - name: hub-01
       adminUser: admin
-      adminPassword: admin
       replicas: 1
       persistenceEnabled: false
       resources:
