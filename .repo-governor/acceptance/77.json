@@ -1,0 +1,30 @@
+{
+  "$comment": "Mode 2 AgnosticD RHDP audit + in-repo remediations (#77). Do not continue #76/#74/#36. Do not change Mode 1 vars.yml. Do not collapse T0+T1.",
+  "authority_id": "77",
+  "criteria": [
+    {
+      "check": "file_exists",
+      "target": "docs/mode2-agnosticd-audit.md"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'Result:' docs/mode2-agnosticd-audit.md"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'hub-tier: global' agnosticd/gcp/vars-multihub.yml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'one catalog item' agnosticd/gcp/MODE2.md"
+    },
+    {
+      "check": "command_exit",
+      "target": "! grep -q 'adminPassword: admin' agnosticd/gcp/vars-multihub-regional.yml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'ocp4_workload_rhacm_observability_gcs' agnosticd/gcp/MODE2.md"
+    }
+  ]
+}

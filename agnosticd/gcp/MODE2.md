@@ -1,8 +1,8 @@
 # Mode 2 AgnosticD — four OpenShift clusters, zero SNOs
 
-AgnosticD in this catalog provisions **one OpenShift cluster per GUID**.
-Mode 2 is four provisions (four GUIDs), then you import the three regional
-hubs into Global Hub. Do **not** list SNO ClusterDeployments in Helm.
+RHDP catalog items are **one catalog item** and **one GUID** (one OpenShift cluster). Mode 2 is four provisions (four GUIDs: Global Hub, east, central, west), then you import the three regional hubs into Global Hub. This repo does not wrap those four GUIDs into a single catalog SKU. Do **not** collapse T0 and T1 into one cluster. Do **not** list SNO ClusterDeployments in Helm.
+
+MCO/Thanos on each hub is workload `ocp4_workload_rhacm_observability_gcs`. That role is not vendored here; AgnosticD v2 loads it from `ansible/roles/ocp4_workload_rhacm_observability_gcs` next to `bin/agd` (this host: `~/Development/agnosticd-v2/ansible/roles/ocp4_workload_rhacm_observability_gcs`).
 
 | Order | Role | Vars file | Wrapper |
 |-------|------|-----------|---------|
