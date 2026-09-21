@@ -1,0 +1,18 @@
+{
+  "$comment": "Remove AMQ_Fleet_Control_Blueprint.pdf from main history (#76). Do not continue #74. Do not force-push release/mode-1. Keep local PDF; helmignore already lists it.",
+  "authority_id": "76",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "! git cat-file -e origin/main:AMQ_Fleet_Control_Blueprint.pdf"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'AMQ_Fleet_Control_Blueprint.pdf' .gitignore"
+    },
+    {
+      "check": "command_exit",
+      "target": "! grep -q '](AMQ_Fleet_Control_Blueprint.pdf)' README.md"
+    }
+  ]
+}

@@ -7,7 +7,7 @@ Two planes. Do not use “hub” for both.
 
 Mode 1 (tag `mode-1`) is one ACM hub plus student-provisioned SNOs. This page describes **Mode 2**.
 
-Source: [AMQ_Fleet_Control_Blueprint.pdf](../AMQ_Fleet_Control_Blueprint.pdf) (rev 2, 15 Sep 2026).
+Source: local blueprint PDF `AMQ_Fleet_Control_Blueprint.pdf` (rev 2, 15 Sep 2026; not in git).
 
 ## Tiers
 

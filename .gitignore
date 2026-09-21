@@ -58,6 +58,9 @@ build/
 # PRD (local-only planning doc)
 PRD.md
 
+# Local architecture blueprint (not published)
+AMQ_Fleet_Control_Blueprint.pdf
+
 # Catalog from upstream (development artifact)
 .catalog-from-upstream/
 

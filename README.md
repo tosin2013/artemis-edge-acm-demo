@@ -71,7 +71,7 @@ Runs validation checks without installing or deploying anything.
 | Mode 1 (single-hub) | 1 ACM hub | SNOs in Module 2 | Edge-to-hub AMQP federation on one ACM hub |
 | Mode 2 (multi-hub) | 1 Global Hub + 3 regional ACM hubs (east/central/west) | SNOs in Module 2 onto a **regional** hub | ACM hub-of-hubs control plane; one AMQ hub broker **per regional ACM hub**; GH Grafana is compliance only |
 
-See [docs/architecture.md](docs/architecture.md), [agnosticd/gcp/MODE2.md](agnosticd/gcp/MODE2.md), and [AMQ_Fleet_Control_Blueprint.pdf](AMQ_Fleet_Control_Blueprint.pdf). SNOs are never created at `agd provision` time.
+See [docs/architecture.md](docs/architecture.md) and [agnosticd/gcp/MODE2.md](agnosticd/gcp/MODE2.md). The architecture blueprint PDF is a local file (`AMQ_Fleet_Control_Blueprint.pdf`), not in git. SNOs are never created at `agd provision` time.
 
 ## How It Works
 
