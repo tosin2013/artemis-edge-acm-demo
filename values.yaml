@@ -109,13 +109,10 @@ spokeProvisioning:
   networkType: "OVNKubernetes"
   workerMachineType: "n2-standard-8"
   masterMachineType: "n2-standard-8"
-  clusters:
-    - name: sno-edge-01
-      region: NY
-    - name: sno-edge-02
-      region: NJ
-    - name: sno-edge-03
-      region: CT
+  # Empty by default. An empty overlay (clusters: []) must not coalesce back to
+  # workshop SNO names. deploy-spokes.sh creates Hive ClusterDeployments in
+  # Module 2; pass clusters explicitly if Helm should emit ManagedCluster CRs.
+  clusters: []
 
 tls:
   enabled: false
