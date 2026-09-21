@@ -198,6 +198,10 @@ config:
       default: "~/gcp-service-account.json"
       required: true
 
+    - key: gcp_quota_region
+      prompt: "GCP region for OpenShift cluster quota check (T0 us-east1, east us-east4, central us-central1, west us-west1)"
+      default: "us-east1"
+
 # ─────────────────────────────────────────────────────────────
 # Validation Checks
 # ─────────────────────────────────────────────────────────────
@@ -258,15 +262,43 @@ validation:
     required: false
     fail_message: "OpenShift GitOps not found (will be deployed by workloads)"
 
-  - name: "GCP N2 vCPU quota sufficient for spoke provisioning"
-    command: "N2_AVAIL=$(gcloud compute regions describe us-east1 --project=openenv-${agd_guid} --format='json(quotas)' 2>/dev/null | python3 -c \"import json,sys; data=json.load(sys.stdin); [print(int(q['limit']-q['usage'])) for q in data.get('quotas',[]) if q.get('metric')=='N2_CPUS']\" 2>/dev/null) && [ \"${N2_AVAIL:-0}\" -ge 16 ]"
-    required: false
-    fail_message: "Need at least 16 free N2 vCPUs in us-east1 for 2 SNO spokes (8 vCPUs each). Request a quota increase."
-
   - name: "All workloads synced"
     command: "scripts/validate-deployment.sh"
     required: false
     fail_message: "Post-deploy validation failed. Run: scripts/validate-deployment.sh for details"
+
+# ─────────────────────────────────────────────────────────────
+# Quota Checks (Phase 5b) — OpenShift cluster capacity, not SNOs.
+# Spoke N2 checks stay in scripts/deploy-spokes.sh (Module 2).
+# needed: 132 covers Mode 2 T0 (3 CP + 5 workers n2-standard-16 + bastion).
+# T1 / Mode 1 need 100. SSD is T0 node disks (8 x 500 GiB) + bastion 50.
+# ─────────────────────────────────────────────────────────────
+
+quota_checks:
+  - label: "GCP N2 vCPUs (OpenShift cluster)"
+    needed: 132
+    limit_command: >-
+      gcloud compute regions describe ${gcp_quota_region} --project=openenv-${agd_guid}
+      --format='json(quotas)' | python3 -c "import json,sys; qs=(json.load(sys.stdin).get('quotas') or []); print(next((int(q.get('limit',0)) for q in qs if q.get('metric')=='N2_CPUS'), 0))"
+    usage_command: >-
+      gcloud compute regions describe ${gcp_quota_region} --project=openenv-${agd_guid}
+      --format='json(quotas)' | python3 -c "import json,sys; qs=(json.load(sys.stdin).get('quotas') or []); print(next((int(q.get('usage',0)) for q in qs if q.get('metric')=='N2_CPUS'), 0))"
+    fail_message: >-
+      Need 132 free N2 vCPUs in ${gcp_quota_region} for Mode 2 T0 (3 control-plane + 5 workers
+      n2-standard-16 + n2-standard-4 bastion). T1 and Mode 1 need 100. Request a quota
+      increase on Open Environment project openenv-${agd_guid}.
+
+  - label: "GCP SSD GB (OpenShift cluster disks)"
+    needed: 4050
+    limit_command: >-
+      gcloud compute regions describe ${gcp_quota_region} --project=openenv-${agd_guid}
+      --format='json(quotas)' | python3 -c "import json,sys; qs=(json.load(sys.stdin).get('quotas') or []); print(next((int(q.get('limit',0)) for q in qs if q.get('metric')=='SSD_TOTAL_GB'), 0))"
+    usage_command: >-
+      gcloud compute regions describe ${gcp_quota_region} --project=openenv-${agd_guid}
+      --format='json(quotas)' | python3 -c "import json,sys; qs=(json.load(sys.stdin).get('quotas') or []); print(next((int(q.get('usage',0)) for q in qs if q.get('metric')=='SSD_TOTAL_GB'), 0))"
+    fail_message: >-
+      Need 4050 GiB SSD in ${gcp_quota_region} for Mode 2 T0 (8 x 500 GiB node disks + 50 GiB
+      bastion). T1 needs 3050. Request a quota increase on openenv-${agd_guid}.
 
 # ─────────────────────────────────────────────────────────────
 # Post-Setup Message

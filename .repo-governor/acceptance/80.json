@@ -1,0 +1,22 @@
+{
+  "$comment": "Onboard quota_checks + bootstrap Phase 5b (#80). Do not continue #77. Do not change prod post_validation_command to Mode 2.",
+  "authority_id": "80",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "python3 -c \"import yaml; d=yaml.safe_load(open('onboard.yml')); qs=d.get('quota_checks') or []; assert qs, 'missing quota_checks'; assert any(int(c.get('needed',0))==132 for c in qs)\""
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'run_quota_checks()' bootstrap.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "python3 -c \"p=open('bootstrap.sh').read(); i=p.find('if [[ \\\"\\$CHECK_ONLY\\\" == \\\"true\\\" ]]'); assert i>=0; assert 'run_quota_checks' in p[i:i+500]\""
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'gcp_quota_region' onboard.yml"
+    }
+  ]
+}

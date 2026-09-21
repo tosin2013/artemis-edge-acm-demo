@@ -1,0 +1,10 @@
+{
+  "$comment": "Tear down Mode 1 GUID 7d2ft (#79). Do not continue #77. Do not reuse 7d2ft for Mode 2. Do not pass --mode multi-hub on destroy.",
+  "authority_id": "79",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "python3 -c \"import subprocess,sys; r=subprocess.run(['gcloud','compute','instances','list','--project=openenv-7d2ft','--format=value(name)'],capture_output=True,text=True); names=(r.stdout or '').split(); sys.exit(1 if any(('master' in n or 'worker' in n) for n in names) else 0)\""
+    }
+  ]
+}

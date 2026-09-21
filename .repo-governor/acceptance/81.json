@@ -1,0 +1,18 @@
+{
+  "$comment": "Helm empty clusters must not coalesce to values.yaml SNO defaults (#81). Do not continue #77. Mode 1 enabled:false stays the default.",
+  "authority_id": "81",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "! helm template test . --set spokeProvisioning.enabled=true --set global.clusterDomain=ci-test.example.com --set global.clusterApiUrl=https://api.ci-test.example.com:6443 | grep -q sno-edge-01"
+    },
+    {
+      "check": "command_exit",
+      "target": "! helm template test . -f values-mode2.yaml --set global.clusterDomain=ci-test.example.com --set global.clusterApiUrl=https://api.ci-test.example.com:6443 | grep -q sno-edge-"
+    },
+    {
+      "check": "command_exit",
+      "target": "helm template test . --set spokeProvisioning.enabled=true --set spokeProvisioning.clusters[0].name=sno-test-01 --set spokeProvisioning.clusters[0].region=NY --set global.clusterDomain=ci-test.example.com --set global.clusterApiUrl=https://api.ci-test.example.com:6443 | grep -q sno-test-01"
+    }
+  ]
+}

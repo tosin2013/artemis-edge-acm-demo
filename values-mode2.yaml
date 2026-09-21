@@ -36,8 +36,8 @@ spokeProvisioning:
   networkType: "OVNKubernetes"
   workerMachineType: "n2-standard-8"
   masterMachineType: "n2-standard-8"
-  # Empty list: Helm coalesce may keep chart defaults. deploy-spokes.sh adds clusters
-  # after Module 2. Do not pre-create SNOs at provision time.
+  # Empty: chart values.yaml defaults are also empty. deploy-spokes.sh adds
+  # clusters after Module 2. Do not pre-create SNOs at provision time.
   clusters: []
 
 edgeBrokers:

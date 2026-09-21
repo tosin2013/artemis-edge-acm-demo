@@ -1,0 +1,18 @@
+{
+  "$comment": "Mode 2 four-GUID provision (#82). Do not continue #77. Do not use onboard prod deploy. Do not reuse 7d2ft. Vars copy is the declared bar; live four-GUID provision is uncovered until four new Open Environment GUIDs exist.",
+  "authority_id": "82",
+  "covers": {
+    "declared": "Copy Mode 2 vars into agnosticd-v2-vars as artemis-edge-gcp-multihub.yml and artemis-edge-gcp-multihub-regional.yml.",
+    "uncovered": "Live four-GUID agd provision (Global Hub, east, central, west), regional import into Global Hub, and fleet-gitops ApplicationSet. Those need four new Open Environment GUIDs this host does not mint."
+  },
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "test -f /home/vpcuser/Development/agnosticd-v2-vars/artemis-edge-gcp-multihub.yml && grep -q 'hub-tier: global' /home/vpcuser/Development/agnosticd-v2-vars/artemis-edge-gcp-multihub.yml"
+    },
+    {
+      "check": "command_exit",
+      "target": "test -f /home/vpcuser/Development/agnosticd-v2-vars/artemis-edge-gcp-multihub-regional.yml && grep -q 'hub-tier: regional' /home/vpcuser/Development/agnosticd-v2-vars/artemis-edge-gcp-multihub-regional.yml"
+    }
+  ]
+}
