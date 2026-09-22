@@ -3,12 +3,12 @@
 # Artemis Edge ACM Demo — GCP Multi Hub Deployment Variables
 # ===================================================================
 #
-# Multi Hub (Mode 2) — TIER 0 GLOBAL HUB only.
-# 1 Global Hub + 3 regional ACM hubs (separate provisions). Zero SNOs here.
-# See agnosticd/gcp/MODE2.md
+# Multi Hub (Mode 2) — TIER 1 REGIONAL ACM HUB (central).
+# One AMQ hub broker on this cluster. Zero SNOs at provision time.
+# Showroom is on the east hub only. See agnosticd/gcp/MODE2.md
 #
 # Usage:
-#   ./scripts/deploy.sh --mode multi-hub --tier global --sandbox <SANDBOX> --account <ACCOUNT>
+#   ./scripts/deploy.sh --mode multi-hub --tier central --sandbox <SANDBOX> --account <ACCOUNT>
 #
 # ===================================================================
 
@@ -43,7 +43,7 @@ requirements_content:
 # ===================================================================
 # GCP Specific settings
 # ===================================================================
-gcp_region: us-east1
+gcp_region: us-central1
 
 cloud_tags:
   - owner: tosin2013@redhat.com
@@ -51,7 +51,7 @@ cloud_tags:
   - config: openshift-cluster
   - guid: "{{ guid }}"
   - mode: multi-hub
-  - hub-tier: global
+  - hub-tier: regional
 
 # ===================================================================
 # OpenShift cluster specific settings
@@ -74,9 +74,9 @@ install_satellite_repositories: false
 install_rhn_repositories: false
 
 # -------------------------------------------------------------------
-# --- Hub cluster (Global Hub) ---
+# --- Hub cluster (regional ACM + AMQ hub) ---
 # -------------------------------------------------------------------
-cluster_name: hub
+cluster_name: hub-central
 cluster_dns_zone: "{{ base_domain }}"
 ocp4_base_domain: "{{ base_domain }}"
 
@@ -87,15 +87,14 @@ host_ocp4_installer_set_user_data_kubeadmin_password: true
 
 openshift_cluster_admin_service_account_enable: true
 
-# Larger control plane for Global Hub + RHACM
+# Control plane for regional ACM + MCO + one AMQ hub broker
 control_plane_instance_type: n2-standard-16
 control_plane_instance_count: 3
 control_plane_storage_type: pd-ssd
 control_plane_storage_size: 500
 
-# Workers for Global Hub (PostgreSQL Grafana + extra Thanos Query). No AMQ brokers.
 worker_instance_type: n2-standard-16
-worker_instance_count: 5
+worker_instance_count: 3
 worker_storage_type: pd-ssd
 worker_storage_size: 500
 
@@ -122,7 +121,6 @@ workloads:
   - agnosticd.core_workloads.ocp4_workload_openshift_gitops
   - agnosticd.core_workloads.ocp4_workload_field_content
   - ocp4_workload_rhacm_observability_gcs
-  # Showroom lives on the regional east hub (student kubeconfig). See MODE2.md.
 
 # ===================================================================
 # Workload Variables
@@ -134,8 +132,7 @@ ocp4_workload_cert_manager_use_catalog_snapshot: false
 ocp4_workload_cert_manager_install_ingress_certificates: true
 ocp4_workload_cert_manager_install_api_certificates: false
 # The GCP DNS zone is named after the sandbox ID (last segment of guid),
-# not the full composed guid. In Mode 1, guid IS the sandbox. In Mode 2,
-# guid is {tier}-{sandbox}, e.g. global-ctbz4 → sandbox is ctbz4.
+# not the full composed guid. In Mode 2, guid is {tier}-{sandbox}.
 ocp4_workload_cert_manager_gcp_dns_zone_name: "dns-zone-{{ guid.split('-')[-1] if '-' in guid else guid }}"
 
 # --- authentication ---
@@ -161,17 +158,38 @@ ocp4_workload_field_content_sync_options:
 ocp4_workload_field_content_helm_values:
   global:
     mode: "multi-hub"
-    hubTier: global
+    hubTier: regional
+    region: central
     clusterDomain: "{{ openshift_cluster_ingress_domain }}"
     clusterApiUrl: "{{ openshift_api_url }}"
     namespace: "artemis"
-  hubBrokers: []
-  edgeBrokers: []
+  hubBrokers:
+    - name: hub-01
+      adminUser: admin
+      replicas: 1
+      persistenceEnabled: false
+      resources:
+        limits:
+          cpu: "1000m"
+          memory: "2Gi"
+        requests:
+          cpu: "1000m"
+          memory: "2Gi"
+  edgeBrokers:
+    - name: spoke-01
+      region: NY
+      hubConnections:
+        - hub: hub-01
+          autoStart: true
+    - name: spoke-02
+      region: NJ
+      hubConnections:
+        - hub: hub-01
+          autoStart: true
   globalHub:
-    enabled: true
+    enabled: false
   fleetThanosQuery:
-    enabled: true
-    regionalStores: []
+    enabled: false
   keycloak:
     enabled: true
   monitoring:
@@ -179,7 +197,16 @@ ocp4_workload_field_content_helm_values:
     acmObservability:
       enabled: true
   spokeProvisioning:
-    enabled: false
+    enabled: true
+    baseDomain: "{{ base_domain }}"
+    gcpProjectID: "{{ gcp_project_id }}"
+    gcpRegion: "{{ gcp_region }}"
+    clusterImageSet: "img4.22.12-x86-64-appsub"
+    sshPublicKey: "{{ lookup('file', '~/.ssh/id_rsa.pub', errors='ignore') | default('') }}"
+    networkType: "OVNKubernetes"
+    workerMachineType: "n2-standard-8"
+    masterMachineType: "n2-standard-8"
+    clusters: []
   showroom:
     enabled: false
   tls:
@@ -188,19 +215,4 @@ ocp4_workload_field_content_helm_values:
     spokeKeystoreBase64: ""
     spokeTruststoreBase64: ""
 
-# --- Showroom ---
-ocp4_workload_showroom_content_git_repo: "https://github.com/tosin2013/artemis-edge-acm-demo.git"
-ocp4_workload_showroom_content_git_repo_ref: main
-ocp4_workload_showroom_content_antora_playbook: showroom/site.yml
-ocp4_workload_showroom_content_title: "Artemis Edge ACM Demo — Multi Hub"
-
-# --- Showroom Mode Wiring ---
-# After provisioning, deploy.sh calls patch-showroom-mode.sh which injects
-# mode_multi_hub: "true" into the showroom-userdata ConfigMap. The Showroom
-# entrypoint merges this into antora.yml via yq, enabling ifdef::mode_multi_hub[]
-# guards in the .adoc content at Antora build time.
-#
-# Future: when AgnosticD supports injecting custom user_data variables from
-# config vars, replace the ConfigMap patch with a native variable here:
-#   agnosticd_custom_user_data:
-#     mode_multi_hub: "true"
+# --- Showroom is on the east hub only ---

@@ -1,0 +1,18 @@
+{
+  "$comment": "Fix cert-manager DNS zone name mismatch in Mode 2 multi-hub deployments (#87). The GCP DNS zone is named after the sandbox ID, not the composed GUID.",
+  "authority_id": "87",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'guid.split' agnosticd/gcp/vars-multihub.yml && grep -q 'guid.split' agnosticd/gcp/vars-multihub-regional.yml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'guid.split' agnosticd/gcp/vars-multihub-central.yml && grep -q 'guid.split' agnosticd/gcp/vars-multihub-west.yml"
+    },
+    {
+      "check": "command_exit",
+      "target": "! grep -q 'base_domain.split' agnosticd/gcp/vars-multihub.yml"
+    }
+  ]
+}

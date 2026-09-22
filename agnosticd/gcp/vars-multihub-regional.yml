@@ -3,16 +3,13 @@
 # Artemis Edge ACM Demo — GCP Multi Hub Deployment Variables
 # ===================================================================
 #
-# Multi Hub (Mode 2) — TIER 1 REGIONAL ACM HUB (east first pass).
+# Multi Hub (Mode 2) — TIER 1 REGIONAL ACM HUB (east).
 # One AMQ hub broker on this cluster. Zero SNOs at provision time.
 # Students run deploy-spokes.sh in Module 2 against this hub.
 # See agnosticd/gcp/MODE2.md
 #
 # Usage:
-#   ./scripts/deploy.sh --mode multi-hub --tier regional --guid <GUID> --account <ACCOUNT>
-#
-# Overlay for central / west: set gcp_region and helm global.region (central|west),
-# and set showroom.enabled: false.
+#   ./scripts/deploy.sh --mode multi-hub --tier east --sandbox <SANDBOX> --account <ACCOUNT>
 #
 # ===================================================================
 
@@ -136,7 +133,9 @@ ocp4_workload_cert_manager_channel: stable-v1
 ocp4_workload_cert_manager_use_catalog_snapshot: false
 ocp4_workload_cert_manager_install_ingress_certificates: true
 ocp4_workload_cert_manager_install_api_certificates: false
-ocp4_workload_cert_manager_gcp_dns_zone_name: "dns-zone-{{ base_domain.split('.')[0] }}"
+# The GCP DNS zone is named after the sandbox ID (last segment of guid),
+# not the full composed guid. In Mode 2, guid is {tier}-{sandbox}.
+ocp4_workload_cert_manager_gcp_dns_zone_name: "dns-zone-{{ guid.split('-')[-1] if '-' in guid else guid }}"
 
 # --- authentication ---
 ocp4_workload_authentication_htpasswd_user_count: 2
