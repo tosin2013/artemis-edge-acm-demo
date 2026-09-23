@@ -1,0 +1,21 @@
+{
+  "authority_id": "91",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'multicluster-global-hub-operator-rh' templates/global-hub.yaml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'release-1.8' templates/global-hub.yaml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'rhbk-operator' templates/keycloak-operator-sub.yaml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'redhat-operators' templates/keycloak-operator-sub.yaml"
+    }
+  ]
+}

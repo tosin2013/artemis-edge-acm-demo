@@ -9,9 +9,9 @@ metadata:
   labels:
     {{- include "artemis-edge.labels" . | nindent 4 }}
 spec:
-  channel: fast
+  channel: stable-v26
   installPlanApproval: Automatic
-  name: keycloak-operator
-  source: community-operators
+  name: rhbk-operator
+  source: redhat-operators
   sourceNamespace: openshift-marketplace
 {{- end }}
