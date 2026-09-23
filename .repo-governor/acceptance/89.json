@@ -1,0 +1,17 @@
+{
+  "authority_id": "89",
+  "criteria": [
+    {
+      "check": "file_exists",
+      "target": "scripts/import-managed-hubs.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'ManagedCluster' scripts/import-managed-hubs.sh && grep -q 'auto-import-secret' scripts/import-managed-hubs.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'import-managed-hubs' agnosticd/gcp/MODE2.md"
+    }
+  ]
+}
