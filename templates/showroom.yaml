@@ -50,7 +50,7 @@ spec:
       serviceAccountName: showroom-terminal
       containers:
         - name: showroom-content
-          image: ghcr.io/rhpds/showroom-httpd:latest
+          image: {{ .Values.showroom.contentImage | default "quay.io/rhpds/showroom-content:v1.4.2" | quote }}
           ports:
             - containerPort: 8080
           env:
