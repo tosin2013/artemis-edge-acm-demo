@@ -1,0 +1,222 @@
+= Verify Hub-of-Hubs Control Plane (Mode 2 Facilitator Pre-Check)
+
+ifdef::mode_multi_hub[]
+
+== Objectives
+
+* Confirm all three regional hubs are imported as ManagedClusters on Global Hub
+* Verify the fleet ArgoCD ApplicationSet is pushing config to each regional hub
+* Confirm the Multicluster Global Hub Operator is running
+* Understand what lives on each tier before students begin
+
+IMPORTANT: This is a **facilitator module**. These commands run from a terminal with the **Global Hub kubeconfig**, not the student Showroom terminal. Students start at xref:module-00.adoc[Module 0].
+
+== Background
+
+AgnosticD provisions four independent OpenShift clusters. The `import-managed-hubs.sh` post-provision script creates `ManagedCluster` + `auto-import-secret` + `KlusterletAddonConfig` on the Global Hub for each regional hub. Once imported, the `hubs` ApplicationSet on Global Hub's ArgoCD detects the new clusters (label `hub-tier: regional`) and pushes per-region config overlays.
+
+.Mode 2 three-tier control plane
+image::mode2-control-plane.png[Mode 2 three-tier control plane. Global Hub is Tier 0 with inventory and compliance. Regional ACM hubs are Tier 1 with AMQ and Keycloak. SNOs are Tier 2 edge.,link=self,window=blank,width=800]
+
+.What lives on each tier
+[cols="1,1,3"]
+|===
+| Tier | Cluster | Components
+
+| Tier 0 — Global Hub
+| `global-<sandbox>`
+| RHACM, Multicluster Global Hub Operator, fleet ArgoCD (`hubs` ApplicationSet), fleet Thanos Query, compliance Grafana. **No AMQ broker, no Keycloak.**
+
+| Tier 1 — Regional Hub
+| `east-<sandbox>`, `cen-<sandbox>`, `west-<sandbox>`
+| RHACM, ArgoCD (`field-content`), AMQ Broker (`hub-01`), Keycloak, edge-broker-policies, Showroom. Manages SNOs for its region.
+
+| Tier 2 — Edge SNO
+| `sno-edge-01`, `sno-edge-02`, ...
+| AMQ Broker (1 per region), AMQP federation to regional hub-01. Provisioned in xref:module-02.adoc[Module 2].
+|===
+
+== Prerequisites
+
+Set the Global Hub kubeconfig in your facilitator terminal:
+
+[source,bash]
+----
+export KUBECONFIG=~/Development/agnosticd-v2-output/global-<sandbox>/openshift-cluster_global-<sandbox>_kubeconfig
+----
+
+Replace `<sandbox>` with your sandbox ID (e.g., `ctbz4`).
+
+== Steps
+
+=== 1. Verify Regional Hubs Are Imported as ManagedClusters
+
+[source,bash]
+----
+oc get managedclusters
+----
+
+.Expected output
+[source,text]
+----
+NAME            HUB ACCEPTED   MANAGED CLUSTER URLS                                          JOINED   AVAILABLE   AGE
+cen-<sandbox>   true           https://api.hub-central.<sandbox>.gcp.redhatworkshops.io:6443  True     True        ...
+east-<sandbox>  true           https://api.hub-east.<sandbox>.gcp.redhatworkshops.io:6443     True     True        ...
+local-cluster   true           https://api.hub.<sandbox>.gcp.redhatworkshops.io:6443          True     True        ...
+west-<sandbox>  true           https://api.hub-west.<sandbox>.gcp.redhatworkshops.io:6443     True     True        ...
+----
+
+Each regional hub should show `JOINED=True` and `AVAILABLE=True`. `local-cluster` is the Global Hub itself. If any hub shows `AVAILABLE=Unknown`, check the MCE hypershift-addon status on that hub.
+
+Verify the labels that the `hubs` ApplicationSet selector uses:
+
+[source,bash]
+----
+oc get managedcluster -l hub-tier=regional -o custom-columns=NAME:.metadata.name,REGION:.metadata.labels.region,TIER:.metadata.labels.hub-tier
+----
+
+.Expected output
+[source,text]
+----
+NAME            REGION    TIER
+cen-<sandbox>   central   regional
+east-<sandbox>  east      regional
+west-<sandbox>  west      regional
+----
+
+=== 2. Verify the Hubs ApplicationSet
+
+The `hubs` ApplicationSet uses a `clusters` generator with the label selector `hub-tier: regional`. It creates one `hub-config-<name>` Application per regional hub, pushing the overlay from `fleet-gitops/hubs/overlays/<region>/`.
+
+[source,bash]
+----
+oc get applicationsets -n openshift-gitops
+----
+
+.Expected output
+[source,text]
+----
+NAME   AGE
+hubs   ...
+----
+
+=== 3. Verify Hub-Config Applications Are Synced
+
+[source,bash]
+----
+oc get applications.argoproj.io -n openshift-gitops
+----
+
+.Expected output
+[source,text]
+----
+NAME                        SYNC STATUS   HEALTH STATUS
+field-content               Synced        Healthy
+hub-config-cen-<sandbox>    Synced        Healthy
+hub-config-east-<sandbox>   Synced        Healthy
+hub-config-west-<sandbox>   Synced        Healthy
+----
+
+* `field-content` is the Global Hub's own Helm chart (operators, Keycloak, observability ConfigMaps, RBAC).
+* Each `hub-config-*` app targets a regional hub via the ACM cluster-proxy. It pushes: AMQ fleet ApplicationSet, AMQ broker operator policy, GitOps operator policy, UWM policy, observability allowlist, and GitOpsCluster registration.
+
+If any hub-config app shows `Progressing`, check whether the `amq-fleet` ApplicationSet on that hub is waiting for edge SNOs — that is expected before xref:module-02.adoc[Module 2].
+
+=== 4. Verify field-content on Global Hub
+
+[source,bash]
+----
+oc get applications.argoproj.io field-content -n openshift-gitops -o wide
+----
+
+Confirm `SYNC STATUS = Synced` and `HEALTH STATUS = Healthy`. The field-content app deploys:
+
+* Multicluster Global Hub Operator subscription and CR
+* Keycloak (RHBK) operator and realm
+* AMQ Broker operator subscription (artemis namespace)
+* Observability ConfigMaps (metrics allowlist, Thanos ruler rules, AMQ dashboard)
+* RBAC (ClusterRoles, workshop user bindings)
+
+=== 5. Verify Multicluster Global Hub Operator
+
+[source,bash]
+----
+oc get multiclusterglobalhub -n open-cluster-management
+----
+
+.Expected output
+[source,text]
+----
+NAME                    AGE
+multiclusterglobalhub   ...
+----
+
+Check the operator subscription is healthy:
+
+[source,bash]
+----
+oc get subscription.operators.coreos.com multicluster-global-hub-operator-rh -n open-cluster-management
+----
+
+.Expected output
+[source,text]
+----
+NAME                                  PACKAGE                               SOURCE             CHANNEL
+multicluster-global-hub-operator-rh   multicluster-global-hub-operator-rh   redhat-operators   release-1.8
+----
+
+The Global Hub Operator aggregates cluster inventory and policy compliance from the three regional ACM hubs into a single view. It does **not** handle AMQ metrics — that is fleet Thanos Query (xref:module-08.adoc[Module 8]).
+
+=== 6. Verify MCH on Global Hub
+
+[source,bash]
+----
+oc get multiclusterhub -A
+----
+
+.Expected output
+[source,text]
+----
+NAMESPACE                 NAME              STATUS    AGE    CURRENTVERSION   DESIREDVERSION
+open-cluster-management   multiclusterhub   Running   ...    2.17.2           2.17.2
+----
+
+If STATUS is `Pending`, check for stuck hypershift-addon:
+
+[source,bash]
+----
+oc get managedclusteraddon -n local-cluster
+----
+
+If `hypershift-addon` shows `Available=Unknown`, it is a known cosmetic issue — all ACM/MCE pods are healthy and the hub is fully functional.
+
+== Post-Provision Reference
+
+The hub import was performed by:
+
+[source,bash]
+----
+./scripts/import-managed-hubs.sh --sandbox <sandbox>
+----
+
+This script is idempotent. It:
+
+. Discovers all `*-<sandbox>` hub directories in the agd output
+. Skips `global-<sandbox>` (the Global Hub itself)
+. For each regional hub, creates:
+** `ManagedCluster` with labels `hub-tier: regional`, `region: <east|central|west>`, `vendor: OpenShift`
+** `auto-import-secret` containing the regional hub's kubeconfig (triggers ACM auto-import)
+** `KlusterletAddonConfig` enabling all ACM add-ons
+. Waits for each hub to reach `JOINED=True`
+
+After import completes, the `hubs` ApplicationSet detects the new clusters and pushes config automatically.
+
+== Next Steps
+
+Once all checks pass, students can begin at xref:module-00.adoc[Module 0: Access Your Environment] on the **east regional hub** Showroom terminal.
+
+endif::mode_multi_hub[]
+
+ifndef::mode_multi_hub[]
+This module applies only to Mode 2 (hub-of-hubs). In Mode 1, proceed to xref:module-01.adoc[Module 1: Verify Hub + RHACM].
+endif::[]

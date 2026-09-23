@@ -1,0 +1,13 @@
+{
+  "authority_id": "93",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'rhbk-operator' showroom/content/modules/ROOT/pages/module-01.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "sed -n '/=== 3/,/=== 4/p' showroom/content/modules/ROOT/pages/module-01.adoc | grep -q 'ifdef::mode_multi_hub'"
+    }
+  ]
+}

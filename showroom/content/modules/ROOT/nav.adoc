@@ -1,5 +1,6 @@
 * xref:index.adoc[Overview]
 * xref:module-00.adoc[0. Access Your Environment]
+* xref:hub-of-hubs-verify.adoc[Facilitator: Verify Hub-of-Hubs (Mode 2)]
 * xref:module-01.adoc[1. Verify Hub + RHACM]
 * xref:module-02.adoc[2. SNOs + ACM edge brokers]
 * xref:module-03.adoc[3. Verify AMQ Brokers]

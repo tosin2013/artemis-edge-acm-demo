@@ -1,0 +1,25 @@
+{
+  "authority_id": "92",
+  "criteria": [
+    {
+      "check": "file_exists",
+      "target": "showroom/content/modules/ROOT/pages/hub-of-hubs-verify.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'hub-of-hubs-verify.adoc' showroom/content/modules/ROOT/nav.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'ifdef::mode_multi_hub' showroom/content/modules/ROOT/pages/hub-of-hubs-verify.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "! grep -q 'role=execute' showroom/content/modules/ROOT/pages/hub-of-hubs-verify.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "test $(grep -c '=== ' showroom/content/modules/ROOT/pages/hub-of-hubs-verify.adoc) -ge 6"
+    }
+  ]
+}

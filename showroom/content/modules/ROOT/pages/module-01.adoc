@@ -60,17 +60,33 @@ oc get sub -n artemis
 oc get sub -n keycloak
 ----
 
-Confirm `amq-broker-rhel8` and `keycloak-operator` subscriptions exist. The output shows the `PACKAGE`, `SOURCE`, and `CHANNEL` columns.
+Confirm `amq-broker-rhel8` and `rhbk-operator` (Red Hat Build of Keycloak) subscriptions exist. The output shows the `PACKAGE`, `SOURCE`, and `CHANNEL` columns.
 
+ifndef::mode_multi_hub[]
 .Expected output
 [source,text]
 ----
 NAME               PACKAGE            SOURCE             CHANNEL
 amq-broker-rhel8   amq-broker-rhel8   redhat-operators   7.12.x
 
-NAME                PACKAGE             SOURCE                CHANNEL
-keycloak-operator   keycloak-operator   community-operators   fast
+NAME              PACKAGE        SOURCE             CHANNEL
+rhbk-operator     rhbk-operator  redhat-operators   stable-v26
 ----
+endif::[]
+
+ifdef::mode_multi_hub[]
+.Expected output
+[source,text]
+----
+NAME               PACKAGE            SOURCE             CHANNEL
+amq-broker-rhel8   amq-broker-rhel8   redhat-operators   7.12.x
+
+NAME              PACKAGE        SOURCE             CHANNEL
+rhbk-operator     rhbk-operator  redhat-operators   stable-v26
+----
+
+NOTE: These subscriptions are created by the `field-content` ArgoCD Application on this regional hub. If field-content sync has not yet completed, the `artemis` and `keycloak` namespaces may not exist yet. Check `oc get application.argoproj.io field-content -n openshift-gitops` — it should be `Synced` before these subscriptions appear.
+endif::[]
 
 === 4. Check Managed Clusters
 
