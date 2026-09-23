@@ -47,6 +47,10 @@ The `fleet-gitops/applicationsets/hubs.yaml` ApplicationSet (deployed by `ocp4_w
 4. Students log into **east**. Module 2 runs `deploy-spokes.sh` there. **Zero SNOs until that step.**
 5. Global Hub inventory then lists the new site under that managed hub. Sites never talk to Global Hub.
 
+## ArgoCD sizing for multi-hub
+
+The Global Hub's ArgoCD `application-controller` scans regional clusters through the ACM cluster-proxy. With 4+ clusters, the default 2Gi memory limit causes OOMKill. The vars file sets `ocp4_workload_openshift_gitops_controller_limits_memory: 4Gi` to handle this. If adding more regional hubs, increase proportionally.
+
 ## What each cluster runs
 
 - **Global Hub:** Multicluster Global Hub operator, compliance Grafana (PostgreSQL), extra Thanos Query ConfigMap for fleet AMQ. **No AMQ broker. No Showroom.**

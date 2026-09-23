@@ -149,6 +149,13 @@ ocp4_workload_rhacm_catalog_source: redhat-operators
 
 # --- OpenShift GitOps (ArgoCD) ---
 ocp4_workload_openshift_gitops_channel: latest
+# Grant cluster-admin so ArgoCD can push fleet config to managed clusters
+ocp4_workload_openshift_gitops_setup_cluster_admin: true
+# Application Controller — increase memory for multi-hub cluster-proxy scanning
+# Default 2Gi causes OOMKill when scanning 4+ clusters through ACM cluster-proxy
+ocp4_workload_openshift_gitops_controller_update: true
+ocp4_workload_openshift_gitops_controller_limits_memory: 4Gi
+ocp4_workload_openshift_gitops_controller_requests_memory: 2Gi
 
 # --- Field-Sourced Content (deploys Artemis Edge Helm chart via ArgoCD) ---
 ocp4_workload_field_content_gitops_repo_url: "https://github.com/tosin2013/artemis-edge-acm-demo.git"

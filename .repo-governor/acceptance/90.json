@@ -1,0 +1,17 @@
+{
+  "authority_id": "90",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'controller_limits_memory.*4Gi' agnosticd/gcp/vars-multihub.yml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'controller_update.*true' agnosticd/gcp/vars-multihub.yml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'cluster-proxy' agnosticd/gcp/MODE2.md"
+    }
+  ]
+}
