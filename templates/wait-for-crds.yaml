@@ -58,7 +58,7 @@ spec:
       serviceAccountName: crd-checker
       containers:
         - name: wait
-          image: registry.redhat.io/openshift4/ose-cli:latest
+          image: registry.redhat.io/openshift4/ose-cli:v4.22
           command:
             - /bin/bash
             - -c
