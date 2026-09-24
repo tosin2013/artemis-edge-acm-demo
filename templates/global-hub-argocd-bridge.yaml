@@ -1,0 +1,50 @@
+{{- if .Values.globalHub.enabled }}
+# -----------------------------------------------------------------------
+# RHACM-to-ArgoCD bridge: register regional hubs as ArgoCD cluster secrets
+# so the fleet-gitops ApplicationSet (clusters generator) can push config.
+# -----------------------------------------------------------------------
+
+# 1. Bind the "default" ManagedClusterSet to the openshift-gitops namespace
+apiVersion: cluster.open-cluster-management.io/v1beta2
+kind: ManagedClusterSetBinding
+metadata:
+  name: default
+  namespace: openshift-gitops
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  clusterSet: default
+---
+# 2. Placement: select all ManagedClusters with hub-tier=regional
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: regional-hubs
+  namespace: openshift-gitops
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  predicates:
+    - requiredClusterSelector:
+        labelSelector:
+          matchLabels:
+            hub-tier: regional
+---
+# 3. GitOpsCluster: tell RHACM to create ArgoCD cluster secrets for each
+#    ManagedCluster matched by the Placement above.
+apiVersion: apps.open-cluster-management.io/v1beta1
+kind: GitOpsCluster
+metadata:
+  name: regional-hubs-gitops
+  namespace: openshift-gitops
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  argoServer:
+    cluster: local-cluster
+    argoNamespace: openshift-gitops
+  placementRef:
+    kind: Placement
+    apiVersion: cluster.open-cluster-management.io/v1beta1
+    name: regional-hubs
+{{- end }}

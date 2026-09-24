@@ -60,6 +60,8 @@ spec:
               value: {{ .Values.showroom.contentRepoRef | quote }}
             - name: CONTENT_PATH
               value: "showroom"
+            - name: PLAYBOOK
+              value: "showroom/site.yml"
         - name: showroom-terminal
           image: {{ .Values.showroom.terminalImage | quote }}
           ports:
