@@ -125,12 +125,17 @@ oc get applications.argoproj.io -n openshift-gitops
 ----
 NAME                        SYNC STATUS   HEALTH STATUS
 field-content               Synced        Healthy
+fleet-gitops                Synced        Healthy
 hub-config-cen-<sandbox>    Synced        Healthy
 hub-config-east-<sandbox>   Synced        Healthy
 hub-config-west-<sandbox>   Synced        Healthy
 ----
 
+.ArgoCD Global Hub — all five Applications Synced and Healthy
+image::argocd-global-hub-apps.png[ArgoCD dashboard on the Global Hub showing field-content and fleet-gitops plus three hub-config Applications for east central and west regional hubs all Synced and Healthy,link=self,window=blank,width=800]
+
 * `field-content` is the Global Hub's own Helm chart (operators, Keycloak, observability ConfigMaps, RBAC).
+* `fleet-gitops` deploys the fleet Kustomize tree (AppProject, `hubs` ApplicationSet, RHACM Policies for regional hubs).
 * Each `hub-config-*` app targets a regional hub via the ACM cluster-proxy. It pushes: AMQ fleet ApplicationSet, AMQ broker operator policy, GitOps operator policy, UWM policy, observability allowlist, and GitOpsCluster registration.
 
 If any hub-config app shows `Progressing`, check whether the `amq-fleet` ApplicationSet on that hub is waiting for edge SNOs — that is expected before xref:module-02.adoc[Module 2].
