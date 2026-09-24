@@ -19,6 +19,15 @@ GUID="${2:?Missing GUID}"
 ACCOUNT="${3:?Missing account name}"
 AGD_ROOT="${4:?Missing agnosticd-v2 root path}"
 
+# OpenEnv sandbox id only. A composed agd GUID (east-<sandbox>) would invent
+# gcp_project_id openenv-east-<sandbox> and the wrong DNS zone.
+if [[ ! "${GUID}" =~ ^[a-z0-9]{5}$ ]]; then
+    echo "ERROR: GUID '${GUID}' is not a 5-character OpenEnv sandbox id." >&2
+    echo "Pass the sandbox (e.g. abc12), not a composed agd GUID like east-<sandbox>." >&2
+    echo "Secrets must stay on openenv-<sandbox> and <sandbox>.gcp.redhatworkshops.io." >&2
+    exit 1
+fi
+
 SECRETS_DIR="${AGD_ROOT}/../agnosticd-v2-secrets"
 SECRETS_FILE="${SECRETS_DIR}/secrets-${ACCOUNT}.yml"
 
