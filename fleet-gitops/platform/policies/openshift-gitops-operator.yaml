@@ -20,6 +20,6 @@ spec:
           subscription:
             channel: latest
             name: openshift-gitops-operator
-            namespace: openshift-operators
+            namespace: openshift-gitops-operator
             source: redhat-operators
             sourceNamespace: openshift-marketplace
