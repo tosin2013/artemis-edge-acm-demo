@@ -68,6 +68,19 @@ west-<sandbox>  true           https://api.hub-west.<sandbox>.gcp.redhatworkshop
 
 Each regional hub should show `JOINED=True` and `AVAILABLE=True`. `local-cluster` is the Global Hub itself. If any hub shows `AVAILABLE=Unknown`, check the MCE hypershift-addon status on that hub.
 
+.RHACM Fleet management — all four clusters Ready after import
+image::rhacm-fleet-clusters-all-ready.png[RHACM Fleet management Clusters page showing cen-ctbz4 central and east-ctbz4 east and west-ctbz4 west regional hubs plus local-cluster all Ready on OpenShift 4.22,link=self,window=blank,width=800]
+
+.Live example (sandbox ctbz4)
+[source,text]
+----
+NAME            HUB ACCEPTED   MANAGED CLUSTER URLS                                        JOINED   AVAILABLE   AGE
+cen-ctbz4       true           https://api.hub-central.ctbz4.gcp.redhatworkshops.io:6443   True     True        11m
+east-ctbz4      true           https://api.hub-east.ctbz4.gcp.redhatworkshops.io:6443      True     True        11m
+local-cluster   true           https://api.hub.ctbz4.gcp.redhatworkshops.io:6443           True     True        17h
+west-ctbz4      true           https://api.hub-west.ctbz4.gcp.redhatworkshops.io:6443      True     True        11m
+----
+
 Verify the labels that the `hubs` ApplicationSet selector uses:
 
 [source,bash]
