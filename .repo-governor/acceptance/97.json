@@ -1,0 +1,12 @@
+{
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "ls showroom/content/modules/ROOT/images/app-of-apps-*.svg showroom/content/modules/ROOT/images/app-of-apps-*.png 2>/dev/null | grep -q ."
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'image::' showroom/content/modules/ROOT/pages/app-of-apps-architecture.adoc"
+    }
+  ]
+}
