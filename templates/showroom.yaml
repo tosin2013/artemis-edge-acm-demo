@@ -71,7 +71,7 @@ spec:
         - name: showroom-content
           image: {{ .Values.showroom.contentImage | default "quay.io/rhpds/showroom-content:v1.4.2" | quote }}
           ports:
-            - containerPort: 8080
+            - containerPort: 8000
           env:
             - name: GIT_REPO_URL
               value: {{ .Values.showroom.contentRepoUrl | default "https://github.com/tosin2013/artemis-edge-acm-demo.git" | quote }}
@@ -115,7 +115,7 @@ spec:
   ports:
     - name: content
       port: 8080
-      targetPort: 8080
+      targetPort: 8000
     - name: terminal
       port: 7681
       targetPort: 7681
