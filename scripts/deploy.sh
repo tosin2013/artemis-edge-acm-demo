@@ -14,7 +14,8 @@ set -euo pipefail
 #
 # Usage:
 #   ./scripts/deploy.sh --guid 725j2 --account openenv-gcp
-#   ./scripts/deploy.sh --mode multi-hub --guid 725j2 --account openenv-gcp
+#   ./scripts/deploy.sh --mode multi-hub --tier global --sandbox abc12 --account openenv-gcp
+#   ./scripts/deploy.sh --mode multi-hub --tier east --sandbox abc12
 #   ./scripts/deploy.sh --destroy --guid 725j2 --account openenv-gcp
 #   ./scripts/deploy.sh --stop --guid 725j2 --account openenv-gcp
 #   ./scripts/deploy.sh --start --guid 725j2 --account openenv-gcp
@@ -32,8 +33,10 @@ AGD_ROOT="${AGD_ROOT:-${HOME}/Development/agnosticd-v2}"
 # Overridden below when --mode multi-hub is selected.
 AGD_CONFIG="artemis-edge-gcp"
 
-# Mode 2 hub tier: global (default) or regional. See agnosticd/gcp/MODE2.md
+# Mode 2 hub tier: global (default), east, central, west. regional aliases east.
+# See agnosticd/gcp/MODE2.md
 : "${HUB_TIER:=global}"
+: "${SANDBOX:=}"
 
 # Deployment mode: single-hub (default) or multi-hub
 # Read from config.yml if not set via env or CLI
@@ -55,6 +58,7 @@ fi
 while [[ $# -gt 0 ]]; do
   case $1 in
     --guid) AGD_GUID="$2"; shift 2 ;;
+    --sandbox) SANDBOX="$2"; shift 2 ;;
     --account) AGD_ACCOUNT="$2"; shift 2 ;;
     --action) AGD_ACTION="$2"; shift 2 ;;
     --mode) DEPLOY_MODE="$2"; shift 2 ;;
@@ -64,26 +68,29 @@ while [[ $# -gt 0 ]]; do
     --start) AGD_ACTION="start"; shift ;;
     --status) AGD_ACTION="status"; shift ;;
     --validate) AGD_ACTION="validate-deployment"; shift ;;
+    --finalize) AGD_ACTION="finalize"; shift ;;
     -h|--help)
       echo "Usage: $0 [OPTIONS]"
       echo ""
       echo "Options:"
-      echo "  --guid GUID        Deployment GUID (reads from config.yml if not set)"
+      echo "  --guid GUID        Mode 1: OpenEnv sandbox. Mode 2: sandbox if --sandbox omitted"
+      echo "  --sandbox ID      Mode 2: OpenEnv sandbox (5-char). agd GUID becomes {region}-{sandbox} (cen not central)"
       echo "  --account ACCOUNT  Secrets account name (default: openenv-gcp)"
       echo "  --mode MODE        Deployment mode: single-hub (default) or multi-hub"
-      echo "  --tier TIER        Mode 2 only: global (default) or regional (see agnosticd/gcp/MODE2.md)"
+      echo "  --tier TIER        Mode 2: global (default), east, central, west (regional aliases east)"
       echo "  --action ACTION    AgnosticD action: provision, destroy, stop, start, status"
       echo "  --destroy          Shorthand for --action destroy"
       echo "  --stop             Shorthand for --action stop"
       echo "  --start            Shorthand for --action start"
       echo "  --status           Shorthand for --action status"
       echo "  --validate         Run post-deploy validation checks"
+      echo "  --finalize         Mode 2: import hubs + patch workarounds (auto-runs when last tier provisions)"
       echo "  -h, --help         Show this help message"
       echo ""
       echo "Examples:"
       echo "  $0 --guid 725j2 --account openenv-gcp"
-      echo "  $0 --mode multi-hub --tier global --guid 725j2 --account openenv-gcp"
-      echo "  $0 --mode multi-hub --tier regional --guid east01 --account openenv-gcp"
+      echo "  $0 --mode multi-hub --tier global --sandbox abc12 --account openenv-gcp"
+      echo "  $0 --mode multi-hub --tier east --sandbox abc12 --account openenv-gcp"
       echo "  $0 --destroy --guid 725j2"
       echo "  $0  # reads GUID and mode from config.yml"
       exit 0
@@ -92,9 +99,44 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# Mode 2: one OpenEnv sandbox; agd GUID is {region}-{sandbox} so output_dir
+# and bastion-{{ guid }} do not collide. hub-{tier}-{sandbox} exceeds systemd's
+# 64-character hostname (bastion-{{ guid }}.{{ guid }}.{{ base_domain }}).
+# Central token is cen: central-{sandbox} FQDN is 65 characters.
+# Secrets stay on openenv-${SANDBOX}.
+if [[ "${DEPLOY_MODE}" == "multi-hub" ]]; then
+  if [[ "${HUB_TIER}" == "regional" ]]; then
+    HUB_TIER="east"
+  fi
+  SANDBOX="${SANDBOX:-${AGD_GUID}}"
+  if [[ -z "${SANDBOX}" ]]; then
+    echo "ERROR: Mode 2 needs --sandbox <OpenEnv id> (or --guid / config.yml agd_guid as the sandbox)." >&2
+    exit 1
+  fi
+  if [[ ! "${SANDBOX}" =~ ^[a-z0-9]{5}$ ]]; then
+    echo "ERROR: sandbox '${SANDBOX}' is not a 5-character OpenEnv id." >&2
+    echo "Pass --sandbox abc12, not a composed agd GUID like east-abc12." >&2
+    exit 1
+  fi
+  case "${HUB_TIER}" in
+    global) TIER_TOKEN="global" ;;
+    east) TIER_TOKEN="east" ;;
+    central) TIER_TOKEN="cen" ;;
+    west) TIER_TOKEN="west" ;;
+    *)
+      echo "ERROR: Unknown --tier '${HUB_TIER}'. Use: global, east, central, west (regional aliases east)" >&2
+      exit 1
+      ;;
+  esac
+  AGD_GUID="${TIER_TOKEN}-${SANDBOX}"
+elif [[ -n "${SANDBOX}" ]]; then
+  echo "ERROR: --sandbox is Mode 2 only. For Mode 1 use --guid <sandbox>." >&2
+  exit 1
+fi
+
 # Require GUID
 if [[ -z "${AGD_GUID}" ]]; then
-  echo "ERROR: GUID required. Use --guid <id>, set AGD_GUID, or run bootstrap.sh first." >&2
+  echo "ERROR: GUID required. Use --guid <id>, --sandbox <id> (Mode 2), set AGD_GUID, or run bootstrap.sh first." >&2
   exit 1
 fi
 
@@ -106,9 +148,11 @@ case "${DEPLOY_MODE}" in
   multi-hub)
     case "${HUB_TIER}" in
       global) AGD_CONFIG="artemis-edge-gcp-multihub" ;;
-      regional) AGD_CONFIG="artemis-edge-gcp-multihub-regional" ;;
+      east) AGD_CONFIG="artemis-edge-gcp-multihub-regional" ;;
+      central) AGD_CONFIG="artemis-edge-gcp-multihub-central" ;;
+      west) AGD_CONFIG="artemis-edge-gcp-multihub-west" ;;
       *)
-        echo "ERROR: Unknown --tier '${HUB_TIER}'. Use: global, regional" >&2
+        echo "ERROR: Unknown --tier '${HUB_TIER}'. Use: global, east, central, west (regional aliases east)" >&2
         exit 1
         ;;
     esac
@@ -130,6 +174,14 @@ fi
 # Validate action
 case "${AGD_ACTION}" in
   provision|destroy|stop|start|status) ;;
+  finalize)
+    if [[ "${DEPLOY_MODE}" != "multi-hub" ]]; then
+      echo "ERROR: --finalize is only for multi-hub mode." >&2
+      exit 1
+    fi
+    echo "=== Artemis Edge ACM Demo — Post-Provision Finalize ==="
+    exec "${SCRIPT_DIR}/post-provision-multihub.sh" --sandbox "${SANDBOX}"
+    ;;
   validate-deployment)
     echo "=== Artemis Edge ACM Demo — Post-Deploy Validation ==="
     KUBECONFIG_FILE="${AGD_ROOT}/../agnosticd-v2-output/${AGD_GUID}/openshift-cluster_${AGD_GUID}_kubeconfig"
@@ -147,6 +199,9 @@ echo "=== Artemis Edge ACM Demo — ${AGD_ACTION^} ==="
 echo "Action:      ${AGD_ACTION}"
 echo "Mode:        ${DEPLOY_MODE}"
 echo "Hub tier:    ${HUB_TIER}"
+if [[ "${DEPLOY_MODE}" == "multi-hub" ]]; then
+  echo "Sandbox:     ${SANDBOX}"
+fi
 echo "GUID:        ${AGD_GUID}"
 echo "Config:      ${AGD_CONFIG}"
 echo "Account:     ${AGD_ACCOUNT}"
@@ -178,6 +233,32 @@ if [[ "${AGD_ACTION}" == "provision" ]]; then
   echo "=== Patching Showroom terminal HOME for Maven... ==="
   "${SCRIPT_DIR}/patch-showroom-home.sh" "${AGD_GUID}" "${KUBECONFIG_FILE}" \
     || echo "WARN: patch-showroom-home.sh failed (non-fatal)"
+
+  # Mode 2: auto-finalize when all 4 tiers are provisioned
+  if [[ "${DEPLOY_MODE}" == "multi-hub" ]]; then
+    echo ""
+    echo "=== Checking if all Mode 2 tiers are provisioned... ==="
+    AGD_OUTPUT="${AGD_ROOT}/../agnosticd-v2-output"
+    ALL_READY=true
+    for _token in global east cen west; do
+      _kc="${AGD_OUTPUT}/${_token}-${SANDBOX}/openshift-cluster_${_token}-${SANDBOX}_kubeconfig"
+      if [[ ! -f "$_kc" ]]; then
+        ALL_READY=false
+        echo "  Waiting on: ${_token}-${SANDBOX} (kubeconfig not found)"
+      fi
+    done
+
+    if $ALL_READY; then
+      echo "  All 4 tiers provisioned — running post-provision finalize..."
+      echo ""
+      "${SCRIPT_DIR}/post-provision-multihub.sh" --sandbox "${SANDBOX}" \
+        || echo "WARN: post-provision-multihub.sh failed (non-fatal)"
+    else
+      echo "  Not all tiers ready yet. When all 4 are done, run:"
+      echo "    ./scripts/post-provision-multihub.sh --sandbox ${SANDBOX}"
+    fi
+  fi
+
   exit $AGD_EXIT
 else
   exec ./bin/agd "${AGD_ACTION}" -g "${AGD_GUID}" -c "${AGD_CONFIG}" -a "${AGD_ACCOUNT}"
