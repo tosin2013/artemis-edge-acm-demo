@@ -51,8 +51,9 @@ ArgoCD's *App of Apps* pattern replaces the single `field-content` Application w
 
 === Three-layer GitOps architecture
 
-.Mode 2 three-layer GitOps: root composition, domain apps, and inter-cluster fleet
-image::app-of-apps-architecture.svg[App of Apps three-layer architecture,width=100%]
+.Mode 2 three-layer GitOps: root composition, domain apps, and inter-cluster fleet — _click to enlarge_
+[link=_images/app-of-apps-architecture.svg,window=_blank]
+image::app-of-apps-architecture.svg[App of Apps three-layer architecture,1200]
 
 ifdef::mode_multi_hub[]
 .Layer details (Mode 2)
