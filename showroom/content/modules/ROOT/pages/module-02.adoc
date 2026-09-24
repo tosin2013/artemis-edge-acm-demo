@@ -202,6 +202,7 @@ oc get placement -n edge-broker-policies
 ----
 
 .Expected output
+ifndef::mode_multi_hub[]
 [source,text]
 ----
 NAME                                       SUCCEEDED   REASON                    SELECTEDCLUSTERS
@@ -212,6 +213,19 @@ policy-amq-broker-spoke-03-placement       False       NoManagedClusterMatched
 ----
 
 `spoke-03` (CT) stays unmatched unless a third SNO exists.
+endif::[]
+
+ifdef::mode_multi_hub[]
+[source,text]
+----
+NAME                                       SUCCEEDED   REASON                    SELECTEDCLUSTERS
+policy-amq-broker-operator-sno-placement   True        AllDecisionsScheduled     2
+policy-amq-broker-spoke-01-placement       True        AllDecisionsScheduled     1
+policy-amq-broker-spoke-02-placement       True        AllDecisionsScheduled     1
+----
+
+First pass is NY and NJ on *east* only. A CT spoke-03 placement appears only if configured in `edgeBrokers[]`.
+endif::[]
 
 Confirm `ztp-policies` is **not** bound:
 
@@ -234,6 +248,7 @@ oc get policy -n edge-broker-policies
 ----
 
 .Expected output
+ifndef::mode_multi_hub[]
 [source,text]
 ----
 NAME                             REMEDIATION ACTION   COMPLIANCE STATE
@@ -243,6 +258,21 @@ policy-amq-broker-spoke-02       enforce              Compliant
 policy-amq-broker-spoke-03       enforce
 policy-block-spoke-01-federation  enforce
 ----
+endif::[]
+
+ifdef::mode_multi_hub[]
+[source,text]
+----
+NAME                               REMEDIATION ACTION   COMPLIANCE STATE
+policy-amq-broker-operator-sno     enforce              Compliant
+policy-amq-broker-spoke-01         enforce              Compliant
+policy-amq-broker-spoke-02         enforce              Compliant
+policy-block-spoke-01-federation   enforce
+policy-sno-uwl-amq-metrics         enforce              Compliant
+----
+
+Only spoke-01 (NY) and spoke-02 (NJ) are configured on east. `policy-block-spoke-01-federation` stays **disabled** until xref:module-06.adoc[Module 6]. `policy-sno-uwl-amq-metrics` is the SNO user-workload metrics allowlist (xref:module-08.adoc[Module 8]).
+endif::[]
 
 .RHACM Governance — Helm-generated edge broker policies
 image::rhacm-governance-policies.png[RHACM Governance Policies table in the OpenShift console. policy-amq-broker-operator-sno, spoke-01, and spoke-02 show Compliant; spoke-03 is unmatched without a CT SNO.,link=self,window=blank,width=800]

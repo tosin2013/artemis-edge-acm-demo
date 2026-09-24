@@ -33,13 +33,19 @@ image::m3-oc-get-hub-01-pod.png[CLI output of oc get pods for hub-01-broker-app.
 
 === 2. Hub still has colocated spoke-* brokers
 
+ifndef::mode_multi_hub[]
 The hub namespace also has `spoke-01` / `spoke-02` / `spoke-03` brokers. Those are **not** the ACM edge brokers. Leave them alone.
+endif::[]
+ifdef::mode_multi_hub[]
+The hub namespace also has `spoke-01` / `spoke-02` brokers. Those are **not** the ACM edge brokers. Leave them alone.
+endif::[]
 
 [source,bash,role=execute]
 ----
 oc get pods -n artemis -l ActiveMQArtemis
 ----
 
+ifndef::mode_multi_hub[]
 .Expected output
 [source,text]
 ----
@@ -51,12 +57,27 @@ spoke-03-broker-ss-0   1/1     Running   0          3d22h
 ----
 
 `spoke-01` / `spoke-02` / `spoke-03` here are **hub-colocated**. The NY/NJ exercise brokers run **on the SNOs**. You cannot list those pods as `{user}`. Use policy status instead:
+endif::[]
+
+ifdef::mode_multi_hub[]
+.Expected output
+[source,text]
+----
+NAME                   READY   STATUS    RESTARTS   AGE
+hub-01-broker-ss-0     1/1     Running   0          3d21h
+spoke-01-broker-ss-0   1/1     Running   0          3d22h
+spoke-02-broker-ss-0   1/1     Running   0          3d22h
+----
+
+`spoke-01` / `spoke-02` here are **hub-colocated**. The NY/NJ exercise brokers run **on the SNOs**. You cannot list those pods as `{user}`. Use policy status instead:
+endif::[]
 
 [source,bash,role=execute]
 ----
 oc get policy -n edge-broker-policies
 ----
 
+ifndef::mode_multi_hub[]
 .Expected output
 [source,text]
 ----
@@ -70,6 +91,22 @@ policy-sno-uwl-amq-metrics         enforce              Compliant          2d21h
 ----
 
 `policy-amq-broker-operator-sno`, `spoke-01`, and `spoke-02` should be `Compliant`. `spoke-03` stays unmatched without a CT SNO. `policy-block-spoke-01-federation` stays blank (disabled) until xref:module-06.adoc[Module 6]. `policy-sno-uwl-amq-metrics` is the SNO user-workload metrics allowlist (xref:module-08.adoc[Module 8]).
+endif::[]
+
+ifdef::mode_multi_hub[]
+.Expected output
+[source,text]
+----
+NAME                               REMEDIATION ACTION   COMPLIANCE STATE   AGE
+policy-amq-broker-operator-sno     enforce              Compliant          3d22h
+policy-amq-broker-spoke-01         enforce              Compliant          3d22h
+policy-amq-broker-spoke-02         enforce              Compliant          3d22h
+policy-block-spoke-01-federation   enforce                                 3d21h
+policy-sno-uwl-amq-metrics         enforce              Compliant          2d21h
+----
+
+`policy-amq-broker-operator-sno`, `spoke-01`, and `spoke-02` should be `Compliant`. Only NY and NJ spokes are configured on east. `policy-block-spoke-01-federation` stays blank (disabled) until xref:module-06.adoc[Module 6]. `policy-sno-uwl-amq-metrics` is the SNO user-workload metrics allowlist (xref:module-08.adoc[Module 8]).
+endif::[]
 
 .CLI — `oc get policy` in edge-broker-policies (not the ACM console)
 image::m3-oc-get-policy.png[CLI output of oc get policy in edge-broker-policies. Operator, spoke-01, spoke-02, and sno-uwl metrics are Compliant; spoke-03 and the partition policy have empty COMPLIANCE STATE.,link=self,window=blank,width=800]

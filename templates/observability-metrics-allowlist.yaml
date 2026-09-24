@@ -1,4 +1,4 @@
-{{- if and .Values.monitoring.enabled (index .Values.monitoring "acmObservability" | default dict).enabled }}
+{{- if and .Values.monitoring.enabled (index .Values.monitoring "acmObservability" | default dict).enabled (ne (.Values.global.mode | default "") "multi-hub") }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
