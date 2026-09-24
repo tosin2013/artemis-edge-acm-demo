@@ -1,0 +1,299 @@
+= App of Apps: GitOps Architecture for Hub-of-Hubs
+
+This page explains *why* a Mode 2 hub-of-hubs deployment benefits from decomposing the monolithic Helm chart into an ArgoCD App of Apps pattern with Kustomize composition and Helm templating where each tool fits best.
+
+This is architecture guidance, not a lab exercise. It documents the rationale behind the target-state GitOps structure for multi-hub deployments at fleet scale.
+
+== The problem: one chart, many roles
+
+ifdef::mode_multi_hub[]
+Your Mode 2 deployment has four OpenShift clusters. Each plays a different role:
+
+* *Global Hub* -- ACM governance, Global Hub Operator, fleet observability (Thanos Query federation). No AMQ Broker, no Keycloak, no workshop.
+* *Regional Hubs* (east, central, west) -- AMQ hub brokers, Keycloak OIDC, regional MCO observability, ACM management of local SNOs, Showroom workshop.
+endif::[]
+ifndef::mode_multi_hub[]
+In single-hub Mode 1, one cluster runs everything. When scaling to Mode 2 (hub-of-hubs), the same Helm chart must serve four different cluster roles -- global hub, and three regional hubs -- each needing a different subset of resources.
+endif::[]
+
+Today, a single Helm chart (`artemis-edge-acm-demo`, 39 templates, 7 sync waves) is deployed as one ArgoCD Application (`field-content`). The chart uses conditional blocks to switch behavior:
+
+[source,yaml]
+----
+{{- if .Values.globalHub.enabled }}       # global hub only
+{{- if .Values.keycloak.enabled }}        # regional hubs only
+{{- if .Values.spokeProvisioning.enabled }} # regional hubs only
+{{- if .Values.amqBrokerOperator.enabled }} # regional hubs only
+----
+
+This creates four problems at scale:
+
+[cols="1,3"]
+|===
+| Problem | Impact
+
+| *CRD ordering failures*
+| Operators install at wave 1. CRDs take minutes to register. A `wait-for-crds` Job hack at wave 3 polls until CRDs appear, but ArgoCD exhausts its retry budget before the job completes. The entire sync fails.
+
+| *No independent lifecycle*
+| Updating a Grafana dashboard resyncs all 39 resources -- brokers, Keycloak, policies. A small observability change risks disrupting messaging.
+
+| *Mode divergence in conditionals*
+| The global hub and regional hubs share almost no resources. Branching with `if/else` makes one chart behave like five different charts. This is composition, not templating.
+
+| *Scale ceiling*
+| xref:scale-considerations.adoc[Scale Considerations] documents Mode 2 for >2,000 clusters and PolicyGenerator for fleet parameterization. PolicyGenerator is a Kustomize plugin -- it cannot consume Helm templates directly.
+|===
+
+== The solution: App of Apps with domain separation
+
+ArgoCD's *App of Apps* pattern replaces the single `field-content` Application with a root Application that renders child Applications -- one per operational domain.
+
+=== Three-layer GitOps architecture
+
+ifdef::mode_multi_hub[]
+.Mode 2 three-layer GitOps: root composition, domain apps, and inter-cluster fleet
+[source,text]
+----
+Layer 1 — Root App of Apps (Kustomize)
+  Selects WHICH child apps deploy on each cluster role.
+  apps/overlays/global-hub/       → operators (subset) + observability (fleet-tier)
+  apps/overlays/regional-hub/     → operators + messaging + auth + observability + workshop
+
+Layer 2 — Domain Apps (Kustomize or Helm per domain)
+  Each child app manages ONE concern:
+  components/operators/            Kustomize — static Subscriptions, Namespaces
+  components/messaging/            Helm      — broker CRs (range loops over broker list)
+  components/auth/                 Helm      — Keycloak CR, realm import, secrets
+  components/observability/        Kustomize — dashboard CM, allowlist, two-tier overlays
+  components/workshop/             Helm      — Showroom, per-user RBAC
+
+Layer 3 — Inter-Cluster Fleet (Kustomize + ApplicationSets) [already exists]
+  fleet-gitops/applicationsets/    Global Hub → pushes config to regional hubs
+  fleet-gitops/hubs/               Regional Hub → pulls broker config to SNOs
+  fleet-gitops/amq/                Site broker manifests for SNO edge clusters
+----
+endif::[]
+ifndef::mode_multi_hub[]
+.GitOps architecture layers
+[source,text]
+----
+Layer 1 — Root App of Apps (Kustomize)
+  Selects WHICH child apps deploy on this cluster.
+  apps/overlays/mode1-hub/        → all 5 child apps
+
+Layer 2 — Domain Apps (Kustomize or Helm per domain)
+  components/operators/            Kustomize — static Subscriptions, Namespaces
+  components/messaging/            Helm      — broker CRs (range loops)
+  components/auth/                 Helm      — Keycloak CR, realm import
+  components/observability/        Kustomize — dashboard, allowlist
+  components/workshop/             Helm      — Showroom, per-user RBAC
+
+Layer 3 — Inter-Cluster Fleet (Kustomize + ApplicationSets) [Mode 2 only]
+  fleet-gitops/                    Global Hub → regional hubs → SNOs
+----
+endif::[]
+
+=== How CRD ordering works without hacks
+
+The current chart uses a `wait-for-crds` Job (sync wave 3) that polls until AMQ Broker and Keycloak CRDs are registered. This is fragile -- the Job has a backoff limit and active deadline, and ArgoCD has a separate retry budget. When either runs out, the entire sync fails.
+
+With App of Apps, ordering is built in:
+
+[source,yaml]
+----
+# Child Application at wave 0 — installs operators
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: operators
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  source:
+    path: components/operators/base
+
+# Child Application at wave 1 — creates broker CRs
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: messaging
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  source:
+    path: components/messaging
+----
+
+ArgoCD waits for the `operators` Application to reach *Healthy* status (meaning the operators are installed and their CRDs are registered) before it syncs `messaging`. No Job hack. No retry budget race. The ordering is declarative.
+
+== Kustomize vs Helm: which tool where
+
+The design principle: *Kustomize for composition and static resources; Helm for dynamic resources that need loops or conditionals.*
+
+[cols="2,1,3"]
+|===
+| Component | Tool | Rationale
+
+| `apps/` (root composition)
+| Kustomize
+| Selects which child Applications exist per cluster role. Overlays add/remove entire Application CRs.
+
+| `components/operators/`
+| Kustomize
+| Namespaces, OperatorGroups, and Subscriptions are static YAML. Overlays include or exclude operators per role (AMQ Broker on regional hubs, not on global hub).
+
+| `components/messaging/`
+| Helm
+| Broker CRs iterate over a list (`range .Values.hubBrokers`). Broker count, names, connection topology, and address patterns are all parameterized. Kustomize cannot generate N resources from a list.
+
+| `components/auth/`
+| Helm
+| Keycloak realm import contains templated passwords and client secrets. TLS conditionals. Kustomize `secretGenerator` cannot handle the realm import JSON.
+
+| `components/observability/`
+| Kustomize
+| Dashboard ConfigMap and metrics allowlist are static. Two-tier overlays (regional vs fleet) select which monitoring scope applies. xref:scale-considerations.adoc[Scale Considerations] discusses metric cardinality -- tiered observability keeps each regional Thanos handling local scrape volume.
+
+| `components/workshop/`
+| Helm
+| Per-user RBAC generation (`range .Values.workshop.users`). Showroom configuration with templated URLs.
+
+| `fleet-gitops/`
+| Kustomize
+| Already uses this pattern. ApplicationSets and ACM Policies are static manifests with region overlays.
+
+| `ztp/policygenerator/`
+| Kustomize
+| PolicyGenerator is a Kustomize plugin. With domain components extracted, it can reference `components/messaging/` directly for fleet-scale policy generation.
+|===
+
+=== Why not pure Kustomize?
+
+Generating three broker CRs from a list requires copy-paste or external generators. Helm's `range` is cleaner:
+
+[source,yaml]
+----
+{{- range .Values.hubBrokers }}
+apiVersion: broker.amq.io/v1beta1
+kind: ActiveMQArtemis
+metadata:
+  name: {{ .name }}-broker
+spec:
+  deploymentPlan:
+    size: {{ .replicas }}
+{{- end }}
+----
+
+Per-user RBAC, conditional OIDC JAAS configuration, and Keycloak realm import all benefit from Helm templating. Kustomize strategic merge patches become complex when the objects themselves are dynamic.
+
+=== Why not pure Helm?
+
+The monolithic chart is already pure Helm -- and that is the root cause of the problems listed above. Specifically:
+
+* *Composition via conditionals is an anti-pattern.* When `if .Values.globalHub.enabled` removes 80% of the templates, you have two charts masquerading as one. Kustomize overlays express this cleanly: the global hub overlay simply does not include `app-messaging.yaml`.
+
+* *Sync waves across 39 resources in one ArgoCD Application* create the CRD ordering problem. Splitting into child Applications gives ArgoCD native health-based ordering.
+
+* *PolicyGenerator cannot consume Helm.* The `ztp/policygenerator/` scaffold (see xref:policygenerator-at-scale.adoc[PolicyGenerator at Scale]) needs plain YAML or Kustomize bases as input manifests.
+
+ifdef::mode_multi_hub[]
+== How it maps to RHACM governance
+
+The App of Apps boundaries align with RHACM governance boundaries. Each tier manages its own ArgoCD root app and its own ACM scope:
+
+.Mode 2 ArgoCD + RHACM boundary alignment
+[source,text]
+----
+GLOBAL HUB                              REGIONAL HUB (east/central/west)
+ArgoCD root:                            ArgoCD root:
+  apps/overlays/global-hub/               apps/overlays/regional-hub/
+  ├── app-operators (subset)              ├── app-operators
+  └── app-observability (fleet-tier)      ├── app-messaging
+                                          ├── app-auth
+ACM scope:                                ├── app-observability (regional-tier)
+  fleet-gitops/hubs/ → push to           └── app-workshop
+    regional hubs
+  fleet-gitops/platform/ → policies      ACM scope:
+    for managed hubs                       fleet-gitops/amq/ → pull to SNOs
+                                           ACM Policies → enforce operator +
+                                             broker config on managed SNOs
+----
+
+The inter-cluster layer (`fleet-gitops/`) does not change. The `hubs` ApplicationSet on the global hub still pushes Kustomize overlays to each regional hub. The `amq-fleet` ApplicationSet on each regional hub still pulls broker manifests to SNOs via ACM Placement.
+
+== Observability tiering
+
+xref:scale-considerations.adoc[Scale Considerations] notes that at 1,800 clusters scraping 6 AMQ metrics every 30 seconds, metric cardinality becomes significant. The App of Apps pattern enables two observability tiers via Kustomize overlays:
+
+* *Regional tier* (`components/observability/overlays/regional-tier/`): ServiceMonitors scrape the local hub broker. MCO aggregates metrics from local SNOs. Each regional Grafana shows only its own clusters.
+
+* *Fleet tier* (`components/observability/overlays/fleet-tier/`): Thanos Query on the global hub federates to regional Thanos gRPC endpoints. A fleet dashboard aggregates `artemis_*` metrics across all regions without duplicating the scrape load.
+
+This keeps each regional Thanos instance handling local scrape volume. Only aggregated queries flow to the global hub -- the same pattern described in the xref:module-08.adoc[Module 8] background section.
+endif::[]
+
+== Connection to existing patterns
+
+This architecture does not invent new concepts. It extends patterns already proven in this repository:
+
+[cols="1,2"]
+|===
+| Existing pattern | How App of Apps extends it
+
+| `fleet-gitops/` Kustomize + ApplicationSets
+| Already an App of Apps for the *inter-cluster* layer. The refactor applies the same approach to the *intra-cluster* layer.
+
+| `ztp/policygenerator/` scaffold
+| xref:policygenerator-at-scale.adoc[PolicyGenerator at Scale] shows how Kustomize bases become ACM policy sources. Extracting `components/messaging/` means PolicyGenerator can reference broker manifests directly.
+
+| Git tag promotion (`fleet-east`, `fleet-central`, `fleet-west`)
+| Region-specific Kustomize overlays in `apps/overlays/regional-hub-east/` use the same promotion model.
+
+| RHACM `fromClusterClaim` templating
+| Per-site broker parameters resolve from managed cluster metadata at policy evaluation time, not from a central `values.yaml`. This scales to 3,500 SNOs (ACM 2.17 tested limit).
+|===
+
+== Target directory layout
+
+[source,text]
+----
+apps/                                 Root App of Apps (Kustomize)
+  base/
+    kustomization.yaml
+    app-operators.yaml
+    app-messaging.yaml
+    app-auth.yaml
+    app-observability.yaml
+    app-workshop.yaml
+  overlays/
+    mode1-hub/                        Single hub (all 5 apps)
+    global-hub/                       Operators (subset) + observability (fleet)
+    regional-hub/                     All 5 apps (regional overlays)
+    regional-hub-east/                Region-specific messaging values
+    regional-hub-central/
+    regional-hub-west/
+
+components/                           Domain Kustomize bases / Helm charts
+  operators/   (Kustomize)            Namespaces, OGs, Subscriptions
+  messaging/   (Helm)                 Hub + edge broker CRs, OIDC, certs
+  auth/        (Helm)                 Keycloak, PostgreSQL, realm, secrets
+  observability/ (Kustomize)          Dashboard, allowlist, tiered overlays
+  workshop/    (Helm)                 Showroom, user RBAC, userinfo
+
+fleet-gitops/                         Inter-cluster GitOps (unchanged)
+  applicationsets/                    Global Hub → regional hubs
+  hubs/                               Regional Hub → SNOs
+  amq/                                Site broker manifests
+  platform/                           ACM operator + UWM policies
+
+ztp/policygenerator/                  Fleet-scale policy generation (enhanced)
+----
+
+== Further reading
+
+* xref:scale-considerations.adoc[Scale and Production Considerations] -- hub sizing, Mode 1 vs Mode 2 decision criteria, observability at scale
+* xref:policygenerator-at-scale.adoc[PolicyGenerator at Scale] -- N-site broker parameterization with `fromClusterClaim`
+* xref:migration-path.adoc[Migration Path: AMQ-on-RHEL to AMQ-on-SNO] -- incremental migration pattern
+* https://argo-cd.readthedocs.io/en/stable/operator-manual/cluster-bootstrapping/#app-of-apps-pattern[ArgoCD App of Apps pattern (upstream docs)]
+* https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes/2.17/html/applications/managing-apps-with-argo-cd[Managing apps with ArgoCD (ACM 2.17)]

@@ -123,7 +123,7 @@ setup_steps:
 
   - name: "Sync vars to agnosticd-v2-vars"
     check: "diff -q agnosticd/gcp/vars.yml ${agnosticd_root}/../agnosticd-v2-vars/artemis-edge-gcp.yml 2>/dev/null"
-    action: "mkdir -p ${agnosticd_root}/../agnosticd-v2-vars && cp agnosticd/gcp/vars.yml ${agnosticd_root}/../agnosticd-v2-vars/artemis-edge-gcp.yml && cp agnosticd/gcp/vars-multihub.yml ${agnosticd_root}/../agnosticd-v2-vars/artemis-edge-gcp-multihub.yml && cp agnosticd/gcp/vars-multihub-regional.yml ${agnosticd_root}/../agnosticd-v2-vars/artemis-edge-gcp-multihub-regional.yml"
+    action: "mkdir -p ${agnosticd_root}/../agnosticd-v2-vars && cp agnosticd/gcp/vars.yml ${agnosticd_root}/../agnosticd-v2-vars/artemis-edge-gcp.yml && cp agnosticd/gcp/vars-multihub.yml ${agnosticd_root}/../agnosticd-v2-vars/artemis-edge-gcp-multihub.yml && cp agnosticd/gcp/vars-multihub-regional.yml ${agnosticd_root}/../agnosticd-v2-vars/artemis-edge-gcp-multihub-regional.yml && cp agnosticd/gcp/vars-multihub-central.yml ${agnosticd_root}/../agnosticd-v2-vars/artemis-edge-gcp-multihub-central.yml && cp agnosticd/gcp/vars-multihub-west.yml ${agnosticd_root}/../agnosticd-v2-vars/artemis-edge-gcp-multihub-west.yml"
 
   - name: "Copy GCP key to secrets"
     check: "test -f ${agnosticd_root}/../agnosticd-v2-secrets/gcp-key-${agd_guid}.json"

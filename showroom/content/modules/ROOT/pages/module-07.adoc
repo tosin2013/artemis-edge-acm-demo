@@ -15,6 +15,9 @@ IMPORTANT: Global Hub Grafana is **compliance only**. It does not merge `artemis
 ifdef::mode_multi_hub[]
 .Control plane Grafana surfaces — GH compliance vs regional MCO vs fleet Thanos Query
 image::mode2-control-plane.png[Mode 2 control plane. Global Hub Grafana is compliance (PostgreSQL). Each regional ACM hub has MCO Grafana. Fleet AMQ is Thanos Query on Global Hub. You are on ACM east.,link=self,window=blank,width=800]
+
+.RHACM Fleet management — all regional hubs imported and Ready (prerequisite for compliance dashboards)
+image::rhacm-fleet-clusters-all-ready.png[RHACM Fleet management Clusters page showing three regional hubs plus local-cluster all Ready on OpenShift 4.22,link=self,window=blank,width=800]
 endif::[]
 
 ifndef::mode_multi_hub[]
@@ -29,6 +32,27 @@ ACM east/central/west   MCO Grafana = that region's clusters only
 endif::[]
 
 == Steps
+
+=== 0. Verify All Regional Hubs Are Visible
+
+Before viewing compliance dashboards, confirm the Global Hub has inventory of all three regional hubs:
+
+[source,bash]
+----
+oc get managedclusters
+----
+
+.Expected output
+[source,text]
+----
+NAME            HUB ACCEPTED   MANAGED CLUSTER URLS                                        JOINED   AVAILABLE   AGE
+cen-ctbz4       true           https://api.hub-central.ctbz4.gcp.redhatworkshops.io:6443   True     True        11m
+east-ctbz4      true           https://api.hub-east.ctbz4.gcp.redhatworkshops.io:6443      True     True        11m
+local-cluster   true           https://api.hub.ctbz4.gcp.redhatworkshops.io:6443           True     True        17h
+west-ctbz4      true           https://api.hub-west.ctbz4.gcp.redhatworkshops.io:6443      True     True        11m
+----
+
+All three regional hubs (`east`, `cen`, `west`) must show `JOINED=True` and `AVAILABLE=True`. If a hub is missing, the compliance dashboard will not show its policies. See xref:hub-of-hubs-verify.adoc[Facilitator: Verify Hub-of-Hubs] for troubleshooting.
 
 === 1. Access Global Hub Grafana
 

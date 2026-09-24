@@ -1,0 +1,30 @@
+{
+  "authority_id": "94",
+  "title": "docs: Add Showroom module — App of Apps GitOps architecture for Mode 2 hub-of-hubs",
+  "criteria": [
+    {
+      "check": "file_exists",
+      "target": "showroom/content/modules/ROOT/pages/app-of-apps-architecture.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'app-of-apps-architecture.adoc' showroom/content/modules/ROOT/nav.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'source,text' showroom/content/modules/ROOT/pages/app-of-apps-architecture.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'scale-considerations.adoc' showroom/content/modules/ROOT/pages/app-of-apps-architecture.adoc && grep -q 'policygenerator-at-scale.adoc' showroom/content/modules/ROOT/pages/app-of-apps-architecture.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'ifdef::mode_multi_hub' showroom/content/modules/ROOT/pages/app-of-apps-architecture.adoc"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'Kustomize' showroom/content/modules/ROOT/pages/app-of-apps-architecture.adoc && grep -q 'App of Apps' showroom/content/modules/ROOT/pages/app-of-apps-architecture.adoc && grep -q 'wait-for-crds' showroom/content/modules/ROOT/pages/app-of-apps-architecture.adoc"
+    }
+  ]
+}

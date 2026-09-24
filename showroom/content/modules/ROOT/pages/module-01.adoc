@@ -116,6 +116,27 @@ Managed clusters: **only `local-cluster` until Module 2**. `local-cluster` is th
 NAME            HUB ACCEPTED   MANAGED CLUSTER URLS                                      JOINED   AVAILABLE
 local-cluster   true           https://api.hub.<guid>.gcp.redhatworkshops.io:6443    True     True
 ----
+
+[NOTE]
+====
+*Facilitator view — Global Hub sees all four clusters*
+
+Your regional hub only shows `local-cluster`. The facilitator's Global Hub console shows a fleet-wide view of all four clusters:
+
+.RHACM Fleet management on the Global Hub — all regional hubs imported and Ready
+image::rhacm-fleet-clusters-all-ready.png[RHACM Fleet management Clusters page on the Global Hub showing three regional hubs plus local-cluster all Ready,link=self,window=blank,width=800]
+
+[source,text]
+----
+NAME            HUB ACCEPTED   MANAGED CLUSTER URLS                                        JOINED   AVAILABLE   AGE
+cen-ctbz4       true           https://api.hub-central.ctbz4.gcp.redhatworkshops.io:6443   True     True        11m
+east-ctbz4      true           https://api.hub-east.ctbz4.gcp.redhatworkshops.io:6443      True     True        11m
+local-cluster   true           https://api.hub.ctbz4.gcp.redhatworkshops.io:6443           True     True        17h
+west-ctbz4      true           https://api.hub-west.ctbz4.gcp.redhatworkshops.io:6443      True     True        11m
+----
+
+The regional hubs (east, central, west) appear as `Standalone` clusters. `local-cluster` is the Global Hub itself (type `Hub`). After you complete Module 2, the SNOs you provision join *your regional hub* — they do not appear on the Global Hub directly.
+====
 endif::[]
 
 TIP: `field-content` in ArgoCD may stay `Progressing` because ApplicationSet `artemis-edge-workloads` has no child apps. That is expected — AMQ on SNOs is delivered by ACM policies in `edge-broker-policies`, not by ArgoCD apps on the spokes.

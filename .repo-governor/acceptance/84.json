@@ -1,0 +1,34 @@
+{
+  "$comment": "Mode 2 same OpenEnv: compose agd GUID hub-{region}-{sandbox} (#84). Do not continue #77 or stretch #82. Do not use 7d2ft. Do not run onboard prod deploy. Do not collapse T0+T1. Live provision is uncovered until a human pastes a new OpenEnv GUID.",
+  "authority_id": "84",
+  "covers": {
+    "declared": "Wrapper, secrets guard, central/west vars, onboard copies, and MODE2.md for one sandbox plus composed agd GUIDs.",
+    "uncovered": "Live four-cluster agd provision, regional import, and fleet-gitops ApplicationSet. Those need a human-pasted OpenEnv GUID and confirmed secrets."
+  },
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "scripts/generate-secrets.sh /nonexistent hub-east-abc12 openenv-gcp /tmp 2>&1 | grep -Eqi 'sandbox|composed|5-char|hub-east'"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q -- '--sandbox)' scripts/deploy.sh && grep -q 'AGD_GUID=\"${TIER_TOKEN}-${SANDBOX}\"' scripts/deploy.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "test -f agnosticd/gcp/vars-multihub-central.yml && grep -q 'cluster_name: hub-central' agnosticd/gcp/vars-multihub-central.yml && grep -q 'gcp_region: us-central1' agnosticd/gcp/vars-multihub-central.yml && ! grep -q ocp4_workload_showroom agnosticd/gcp/vars-multihub-central.yml"
+    },
+    {
+      "check": "command_exit",
+      "target": "test -f agnosticd/gcp/vars-multihub-west.yml && grep -q 'cluster_name: hub-west' agnosticd/gcp/vars-multihub-west.yml && grep -q 'gcp_region: us-west1' agnosticd/gcp/vars-multihub-west.yml && ! grep -q ocp4_workload_showroom agnosticd/gcp/vars-multihub-west.yml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q vars-multihub-central.yml onboard.yml && grep -q vars-multihub-west.yml onboard.yml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'hub-global-' agnosticd/gcp/MODE2.md && grep -q 'hub-east-' agnosticd/gcp/MODE2.md"
+    }
+  ]
+}

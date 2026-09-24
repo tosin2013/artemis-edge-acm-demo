@@ -1,0 +1,22 @@
+{
+  "$comment": "Mode 2 composed GUID {region}-{sandbox} on brh5d (#85). Do not use 7d2ft. Central agd token is cen not central (FQDN 64-char). Do not run onboard prod deploy. Do not collapse T0+T1. Live four-cluster provision is uncovered until clusters exist.",
+  "authority_id": "85",
+  "covers": {
+    "declared": "deploy.sh compose {region}-{sandbox} with cen for central; MODE2.md; generate-secrets error text.",
+    "uncovered": "Live four-cluster agd provision on openenv-brh5d, regional import, and fleet-gitops ApplicationSet."
+  },
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'AGD_GUID=\"${TIER_TOKEN}-${SANDBOX}\"' scripts/deploy.sh && grep -q 'TIER_TOKEN=\"cen\"' scripts/deploy.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'global-<SANDBOX>' agnosticd/gcp/MODE2.md && grep -q 'cen-<SANDBOX>' agnosticd/gcp/MODE2.md"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'east-<sandbox>' scripts/generate-secrets.sh"
+    }
+  ]
+}

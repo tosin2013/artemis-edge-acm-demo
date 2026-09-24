@@ -1,0 +1,17 @@
+{
+  "authority_id": "88",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'multi-hub' scripts/save-deployment-info.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'sandbox' scripts/save-deployment-info.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "bash scripts/save-deployment-info.sh --mode multi-hub --sandbox ctbz4 && grep -q 'mode: multi-hub' deployment-info.yml"
+    }
+  ]
+}

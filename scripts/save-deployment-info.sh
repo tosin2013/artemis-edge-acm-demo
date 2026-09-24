@@ -8,15 +8,175 @@ set -euo pipefail
 # data from provision-user-data.yaml and picks the newest kubeconfig.
 #
 # Usage:
-#   ./scripts/save-deployment-info.sh [GUID]
+#   Single-hub (original):
+#     ./scripts/save-deployment-info.sh [GUID]
 #
-# GUID is read from the first argument, AGD_GUID env var, or config.yml.
+#   Multi-hub (Mode 2):
+#     ./scripts/save-deployment-info.sh --mode multi-hub --sandbox <SANDBOX_ID>
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+AGD_BASE="${AGD_OUTPUT_DIR:-${HOME}/Development/agnosticd-v2-output}"
+DEST="${PROJECT_ROOT}/deployment-info.yml"
 
-if [[ -n "${1:-}" ]]; then
-  GUID="$1"
+MODE=""
+SANDBOX=""
+
+# ── Argument parsing ──────────────────────────────────────────────────
+args=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --mode)
+      MODE="$2"; shift 2 ;;
+    --sandbox)
+      SANDBOX="$2"; shift 2 ;;
+    *)
+      args+=("$1"); shift ;;
+  esac
+done
+
+if ! command -v python3 &>/dev/null; then
+  echo "ERROR: python3 is required" >&2
+  exit 1
+fi
+
+# ── Multi-hub mode ────────────────────────────────────────────────────
+if [[ "${MODE}" == "multi-hub" ]]; then
+  if [[ -z "${SANDBOX}" ]]; then
+    echo "ERROR: --sandbox <SANDBOX_ID> is required with --mode multi-hub" >&2
+    exit 1
+  fi
+
+  # Discover all hub directories matching *-<SANDBOX>
+  HUB_DIRS=()
+  for d in "${AGD_BASE}"/*-"${SANDBOX}"; do
+    [[ -d "$d" ]] && HUB_DIRS+=("$d")
+  done
+
+  if [[ ${#HUB_DIRS[@]} -eq 0 ]]; then
+    echo "ERROR: No hub directories matching *-${SANDBOX} found in ${AGD_BASE}" >&2
+    exit 1
+  fi
+
+  # Build a space-separated list of dir paths for the Python script
+  python3 - "${DEST}" "${SANDBOX}" "${HUB_DIRS[@]}" <<'PYEOF'
+import sys, yaml, os, glob
+
+dest_path  = sys.argv[1]
+sandbox_id = sys.argv[2]
+hub_dirs   = sys.argv[3:]
+
+# Role mapping: directory-name prefix → human role label
+ROLE_MAP = {
+    "global": "global",
+    "east":   "east",
+    "cen":    "central",
+    "west":   "west",
+}
+
+def extract_hub_info(user_data_path, output_dir):
+    """Extract the same fields as single-hub mode for one hub."""
+    with open(user_data_path) as f:
+        data = yaml.safe_load(f)
+
+    guid = data.get("guid", "")
+    info = {
+        "guid": guid,
+        "cloud_provider": data.get("cloud_provider", ""),
+        "openshift_api_url": data.get("openshift_api_url", ""),
+        "openshift_console_url": data.get("openshift_console_url",
+                                 data.get("openshift_cluster_console_url", "")),
+        "openshift_cluster_ingress_domain": data.get("openshift_cluster_ingress_domain", ""),
+        "openshift_cluster_admin_username": data.get("openshift_cluster_admin_username", "kubeadmin"),
+        "openshift_cluster_admin_password": data.get("openshift_cluster_admin_password",
+                                           data.get("openshift_kubeadmin_password", "")),
+        "bastion_public_hostname": data.get("bastion_public_hostname", ""),
+        "bastion_ssh_user_name": data.get("bastion_ssh_user_name", ""),
+        "bastion_ssh_password": data.get("bastion_ssh_password", ""),
+        "openshift_gitops_server": data.get("openshift_gitops_server", ""),
+    }
+
+    # RHACM console URL
+    rhacm_url = data.get("rhacm_console_url", "")
+    if not rhacm_url:
+        domain = data.get("openshift_cluster_ingress_domain", "")
+        if domain:
+            rhacm_url = f"https://multicloud-console.apps.{domain.removeprefix('apps.')}"
+    info["rhacm_console_url"] = rhacm_url
+    info["rhacm_namespace"] = "open-cluster-management"
+
+    # Showroom URL
+    showroom_url = data.get("showroom_url", "")
+    users = data.get("users", {})
+    if not showroom_url and users:
+        first_user = next(iter(users.values()), {})
+        showroom_url = first_user.get("showroom_primary_view_url",
+                       first_user.get("lab_ui_url", ""))
+    info["showroom_url"] = showroom_url
+
+    # GCP info
+    if data.get("gcp_project_id"):
+        info["gcp_project_id"] = data["gcp_project_id"]
+        info["gcp_region"] = data.get("gcp_region", "")
+        info["gcp_console_url"] = data.get("gcp_console_url", "")
+
+    # Users section
+    if users:
+        info["users"] = {}
+        for name, u in users.items():
+            user_info = {
+                "password": u.get("password", ""),
+                "login_command": u.get("login_command", ""),
+            }
+            if u.get("showroom_primary_view_url"):
+                user_info["showroom_url"] = u["showroom_primary_view_url"]
+            if u.get("lab_ui_url"):
+                user_info["lab_ui_url"] = u["lab_ui_url"]
+            info["users"][name] = user_info
+
+    # Kubeconfig
+    kubeconfig_matches = glob.glob(os.path.join(output_dir, f"*_{guid}_kubeconfig"))
+    if kubeconfig_matches:
+        info["kubeconfig_path"] = max(kubeconfig_matches, key=os.path.getmtime)
+
+    return info
+
+def role_from_dirname(dirname, sandbox_id):
+    """Derive the role label from a directory name like 'global-ctbz4'."""
+    prefix = dirname.removesuffix(f"-{sandbox_id}")
+    return ROLE_MAP.get(prefix, prefix)
+
+hubs = {}
+for hub_dir in sorted(hub_dirs):
+    dirname = os.path.basename(hub_dir)
+    user_data = os.path.join(hub_dir, "provision-user-data.yaml")
+    if not os.path.isfile(user_data):
+        print(f"WARNING: {user_data} not found, skipping {dirname}", file=sys.stderr)
+        continue
+    role = role_from_dirname(dirname, sandbox_id)
+    hubs[role] = extract_hub_info(user_data, hub_dir)
+
+output = {
+    "mode": "multi-hub",
+    "sandbox": sandbox_id,
+    "hubs": hubs,
+}
+
+with open(dest_path, "w") as f:
+    f.write("# Generated by scripts/save-deployment-info.sh — DO NOT COMMIT\n")
+    f.write("# Re-run the script to refresh after a new deployment\n")
+    yaml.dump(output, f, default_flow_style=False, sort_keys=False)
+
+print(f"Multi-hub deployment info saved to: {dest_path}")
+print(f"  Hubs discovered: {', '.join(sorted(hubs.keys()))}")
+PYEOF
+
+  exit 0
+fi
+
+# ── Single-hub mode (original behaviour) ─────────────────────────────
+if [[ ${#args[@]} -gt 0 ]]; then
+  GUID="${args[0]}"
 elif [[ -n "${AGD_GUID:-}" ]]; then
   GUID="$AGD_GUID"
 elif [[ -f "${PROJECT_ROOT}/config.yml" ]]; then
@@ -26,18 +186,12 @@ if [[ -z "${GUID:-}" ]]; then
   echo "ERROR: GUID required. Pass as argument, set AGD_GUID, or run bootstrap.sh first." >&2
   exit 1
 fi
-OUTPUT_DIR="${AGD_OUTPUT_DIR:-${HOME}/Development/agnosticd-v2-output/${GUID}}"
+OUTPUT_DIR="${AGD_BASE}/${GUID}"
 USER_DATA="${OUTPUT_DIR}/provision-user-data.yaml"
-DEST="${PROJECT_ROOT}/deployment-info.yml"
 
 if [[ ! -f "${USER_DATA}" ]]; then
   echo "ERROR: ${USER_DATA} not found." >&2
   echo "Run 'agd provision' first, or set AGD_OUTPUT_DIR." >&2
-  exit 1
-fi
-
-if ! command -v python3 &>/dev/null; then
-  echo "ERROR: python3 is required" >&2
   exit 1
 fi
 
