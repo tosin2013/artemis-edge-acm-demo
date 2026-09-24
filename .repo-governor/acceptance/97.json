@@ -1,4 +1,6 @@
 {
+  "authority_id": "97",
+  "title": "docs: Add architecture diagram to App of Apps reference page",
   "criteria": [
     {
       "check": "command_exit",
