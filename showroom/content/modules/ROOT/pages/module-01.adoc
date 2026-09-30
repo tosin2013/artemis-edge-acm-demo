@@ -20,6 +20,17 @@ endif::[]
 
 == Steps
 
+ifdef::mode_multi_hub[]
+TIP: If you just completed the Hub-of-Hubs module, make sure you are logged back into your **regional hub**:
+
+[source,bash,subs="attributes",role=execute]
+----
+{login_command}
+----
+
+Verify with `oc whoami --show-server` — you should see your regional hub API URL, not the Global Hub.
+endif::[]
+
 === 1. Verify RHACM MultiClusterHub
 
 [source,bash,role=execute]

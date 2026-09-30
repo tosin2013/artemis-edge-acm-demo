@@ -1,0 +1,16 @@
+{
+  "authority_id": "108",
+  "$comment": "Module 1 should remind Mode 2 students to log back into the regional hub after hub-of-hubs-verify.",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'login_command' showroom/content/modules/ROOT/pages/module-01.adoc && grep -q 'mode_multi_hub' showroom/content/modules/ROOT/pages/module-01.adoc",
+      "$comment": "Module 1 has a login_command block guarded by mode_multi_hub"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'whoami.*show-server' showroom/content/modules/ROOT/pages/module-01.adoc",
+      "$comment": "Module 1 includes a whoami verification hint"
+    }
+  ]
+}
