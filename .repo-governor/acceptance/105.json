@@ -25,12 +25,12 @@
     {
       "id": "rbac-applied",
       "description": "RBAC applied to global-sbhtd cluster — workshop-global-hub-reader ClusterRole exists",
-      "met": false
+      "met": true
     },
     {
       "id": "user-login-verified",
       "description": "user1 can oc login to Global Hub API and run oc get managedclusters successfully",
-      "met": false
+      "met": true
     }
   ]
 }
