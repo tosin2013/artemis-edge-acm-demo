@@ -103,7 +103,7 @@ The `hubs` ApplicationSet uses a `clusters` generator with the label selector `h
 
 [source,bash]
 ----
-oc get applicationsets -n openshift-gitops
+oc get applicationsets.argoproj.io -n openshift-gitops
 ----
 
 .Expected output
