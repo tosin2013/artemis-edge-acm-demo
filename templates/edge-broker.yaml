@@ -34,4 +34,14 @@ spec:
     {{- include "artemis-edge.brokerAcceptorsWithSecret" (dict "Values" $.Values "tlsSecretName" (printf "%s-broker-tls-secret" .name)) | nindent 4 }}
   console:
     expose: {{ .exposeConsole | default true }}
+  resourceTemplates:
+    - selector:
+        kind: Route
+        name: {{ .name }}-broker-wconsj-0-svc-rte
+      patch:
+        kind: Route
+        spec:
+          tls:
+            termination: edge
+            insecureEdgeTerminationPolicy: Redirect
 {{- end }}

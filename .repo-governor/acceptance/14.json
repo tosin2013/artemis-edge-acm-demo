@@ -1,0 +1,21 @@
+{
+  "authority_id": "14",
+  "$comment": "Add TLS edge termination to AMQ Console routes. Operator creates wconsj routes without TLS; resourceTemplates patches them with edge termination so the router uses the cert-manager wildcard cert.",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "helm template . --values values.yaml --show-only templates/hub-broker.yaml 2>/dev/null | grep -q 'termination: edge'",
+      "$comment": "hub-broker template renders with TLS edge termination in resourceTemplates"
+    },
+    {
+      "check": "command_exit",
+      "target": "helm template . --values values.yaml --show-only templates/edge-broker.yaml 2>/dev/null | grep -q 'termination: edge'",
+      "$comment": "edge-broker template renders with TLS edge termination in resourceTemplates"
+    },
+    {
+      "check": "command_exit",
+      "target": "helm template . --values values.yaml --show-only templates/hub-broker.yaml 2>/dev/null | grep -q 'insecureEdgeTerminationPolicy: Redirect'",
+      "$comment": "HTTP-to-HTTPS redirect is configured"
+    }
+  ]
+}

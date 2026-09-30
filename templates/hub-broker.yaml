@@ -43,13 +43,24 @@ spec:
   {{- if and $.Values.spokeProvisioning.enabled (not $.Values.tls.enabled) }}
   brokerProperties:
     - "acceptorConfigurations.amqps-acceptor.params.sslAutoReload=true"
+  {{- end }}
   resourceTemplates:
+    {{- if and $.Values.spokeProvisioning.enabled (not $.Values.tls.enabled) }}
     - selector:
         kind: Service
         name: {{ .name }}-broker-amqps-acceptor-0-svc
       annotations:
         service.beta.openshift.io/serving-cert-secret-name: amqps-acceptor-ptls
-  {{- end }}
+    {{- end }}
+    - selector:
+        kind: Route
+        name: {{ .name }}-broker-wconsj-0-svc-rte
+      patch:
+        kind: Route
+        spec:
+          tls:
+            termination: edge
+            insecureEdgeTerminationPolicy: Redirect
   console:
     expose: {{ .exposeConsole | default true }}
 {{- end }}
