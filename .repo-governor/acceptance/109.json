@@ -1,0 +1,41 @@
+{
+  "authority_id": "109",
+  "title": "workshop-demo-reader RBAC for all demo modules",
+  "criteria": [
+    {
+      "check": "file_exists",
+      "path": "templates/workshop-user-rbac.yaml",
+      "description": "RBAC template exists"
+    },
+    {
+      "check": "command_exit",
+      "command": "grep -q 'workshop-demo-reader' templates/workshop-user-rbac.yaml",
+      "description": "workshop-demo-reader ClusterRole defined"
+    },
+    {
+      "check": "command_exit",
+      "command": "grep -q 'workshop-users-demo-reader' templates/workshop-user-rbac.yaml",
+      "description": "workshop-users-demo-reader ClusterRoleBinding defined"
+    },
+    {
+      "check": "command_exit",
+      "command": "grep -q 'policy.open-cluster-management.io' templates/workshop-user-rbac.yaml",
+      "description": "policy API group in ClusterRole rules"
+    },
+    {
+      "check": "command_exit",
+      "command": "grep -q 'broker.amq.io' templates/workshop-user-rbac.yaml",
+      "description": "broker.amq.io API group in ClusterRole rules"
+    },
+    {
+      "check": "command_exit",
+      "command": "grep -q 'route.openshift.io' templates/workshop-user-rbac.yaml",
+      "description": "route.openshift.io API group in ClusterRole rules"
+    },
+    {
+      "check": "command_exit",
+      "command": "helm template . --values values.yaml --show-only templates/workshop-user-rbac.yaml 2>/dev/null | grep -q 'workshop-demo-reader'",
+      "description": "Helm template renders without error"
+    }
+  ]
+}
