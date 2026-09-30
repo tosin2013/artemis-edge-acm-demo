@@ -1,41 +1,41 @@
 {
   "authority_id": "109",
-  "title": "workshop-demo-reader RBAC for all demo modules",
+  "$comment": "workshop-demo-reader RBAC for all demo modules — policies, AMQ CRDs, routes, etc.",
   "criteria": [
     {
       "check": "file_exists",
-      "path": "templates/workshop-user-rbac.yaml",
-      "description": "RBAC template exists"
+      "target": "templates/workshop-user-rbac.yaml",
+      "$comment": "RBAC template exists"
     },
     {
       "check": "command_exit",
-      "command": "grep -q 'workshop-demo-reader' templates/workshop-user-rbac.yaml",
-      "description": "workshop-demo-reader ClusterRole defined"
+      "target": "grep -q 'workshop-demo-reader' templates/workshop-user-rbac.yaml",
+      "$comment": "workshop-demo-reader ClusterRole defined"
     },
     {
       "check": "command_exit",
-      "command": "grep -q 'workshop-users-demo-reader' templates/workshop-user-rbac.yaml",
-      "description": "workshop-users-demo-reader ClusterRoleBinding defined"
+      "target": "grep -q 'workshop-users-demo-reader' templates/workshop-user-rbac.yaml",
+      "$comment": "workshop-users-demo-reader ClusterRoleBinding defined"
     },
     {
       "check": "command_exit",
-      "command": "grep -q 'policy.open-cluster-management.io' templates/workshop-user-rbac.yaml",
-      "description": "policy API group in ClusterRole rules"
+      "target": "grep -q 'policy.open-cluster-management.io' templates/workshop-user-rbac.yaml",
+      "$comment": "policy API group in ClusterRole rules"
     },
     {
       "check": "command_exit",
-      "command": "grep -q 'broker.amq.io' templates/workshop-user-rbac.yaml",
-      "description": "broker.amq.io API group in ClusterRole rules"
+      "target": "grep -q 'broker.amq.io' templates/workshop-user-rbac.yaml",
+      "$comment": "broker.amq.io API group in ClusterRole rules"
     },
     {
       "check": "command_exit",
-      "command": "grep -q 'route.openshift.io' templates/workshop-user-rbac.yaml",
-      "description": "route.openshift.io API group in ClusterRole rules"
+      "target": "grep -q 'route.openshift.io' templates/workshop-user-rbac.yaml",
+      "$comment": "route.openshift.io API group in ClusterRole rules"
     },
     {
       "check": "command_exit",
-      "command": "helm template . --values values.yaml --show-only templates/workshop-user-rbac.yaml 2>/dev/null | grep -q 'workshop-demo-reader'",
-      "description": "Helm template renders without error"
+      "target": "helm template . --values values.yaml --show-only templates/workshop-user-rbac.yaml 2>/dev/null | grep -q 'workshop-demo-reader'",
+      "$comment": "Helm template renders without error"
     }
   ]
 }
