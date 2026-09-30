@@ -87,29 +87,31 @@ stringData:
     AMQPConnections.{{ $conn.hub }}-connection.retryInterval=5000
     AMQPConnections.{{ $conn.hub }}-connection.reconnectAttempts=-1
 
+    # Bridge configurations
+    AMQPConnections.{{ $conn.hub }}-connection.bridges.{{ $spoke.name }}-bridge.type=BRIDGE
+
+    # Bridge from policy: pull messages.ALL.# and messages.{{ $spoke.region }}.# from hub
+    AMQPConnections.{{ $conn.hub }}-connection.bridges.{{ $spoke.name }}-bridge.bridgeFromAddressPolicies.{{ $conn.hub }}-to-{{ $spoke.name }}-bridge-policy.useDurableSubscriptions=true
+    AMQPConnections.{{ $conn.hub }}-connection.bridges.{{ $spoke.name }}-bridge.bridgeFromAddressPolicies.{{ $conn.hub }}-to-{{ $spoke.name }}-bridge-policy.includeDivertBindings=false
+    AMQPConnections.{{ $conn.hub }}-connection.bridges.{{ $spoke.name }}-bridge.bridgeFromAddressPolicies.{{ $conn.hub }}-to-{{ $spoke.name }}-bridge-policy.includes.all.addressMatch=messages.ALL.#
+    AMQPConnections.{{ $conn.hub }}-connection.bridges.{{ $spoke.name }}-bridge.bridgeFromAddressPolicies.{{ $conn.hub }}-to-{{ $spoke.name }}-bridge-policy.includes.region.addressMatch=messages.{{ $spoke.region }}.#
+    AMQPConnections.{{ $conn.hub }}-connection.bridges.{{ $spoke.name }}-bridge.bridgeFromAddressPolicies.{{ $conn.hub }}-to-{{ $spoke.name }}-bridge-policy.excludes.5604.addressMatch=messages.{{ $spoke.region }}.5604
+
+    # Bridge to policy: push everything except own region + ALL to hub
+    AMQPConnections.{{ $conn.hub }}-connection.bridges.{{ $spoke.name }}-bridge.bridgeToAddressPolicies.{{ $spoke.name }}-to-{{ $conn.hub }}-bridge-policy.useDurableSubscriptions=true
+    AMQPConnections.{{ $conn.hub }}-connection.bridges.{{ $spoke.name }}-bridge.bridgeToAddressPolicies.{{ $spoke.name }}-to-{{ $conn.hub }}-bridge-policy.includeDivertBindings=false
+    AMQPConnections.{{ $conn.hub }}-connection.bridges.{{ $spoke.name }}-bridge.bridgeToAddressPolicies.{{ $spoke.name }}-to-{{ $conn.hub }}-bridge-policy.includes.wild.addressMatch=messages.#
+    AMQPConnections.{{ $conn.hub }}-connection.bridges.{{ $spoke.name }}-bridge.bridgeToAddressPolicies.{{ $spoke.name }}-to-{{ $conn.hub }}-bridge-policy.excludes.all.addressMatch=messages.ALL.#
+    AMQPConnections.{{ $conn.hub }}-connection.bridges.{{ $spoke.name }}-bridge.bridgeToAddressPolicies.{{ $spoke.name }}-to-{{ $conn.hub }}-bridge-policy.excludes.region.addressMatch=messages.{{ $spoke.region }}.#
+
+    # Federation configurations
     AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.type=FEDERATION
 
-    # Local policy: pull messages.ALL.# and messages.{{ $spoke.region }}.# from hub
-    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.localAddressPolicies.local-policy.autoDelete=true
-    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.localAddressPolicies.local-policy.autoDeleteDelay=0
-    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.localAddressPolicies.local-policy.autoDeleteMessageCount=1000
-    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.localAddressPolicies.local-policy.includes.all.addressMatch=messages.ALL.#
-    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.localAddressPolicies.local-policy.includes.region.addressMatch=messages.{{ $spoke.region }}.#
-    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.localAddressPolicies.local-policy.excludes.5604.addressMatch=messages.*.5604
-
-    # Remote policy: push everything except own region + ALL to hub
-    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.remoteAddressPolicies.remote-policy.autoDelete=true
-    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.remoteAddressPolicies.remote-policy.autoDeleteDelay=0
-    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.remoteAddressPolicies.remote-policy.autoDeleteMessageCount=1000
-    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.remoteAddressPolicies.remote-policy.includes.wild.addressMatch=messages.#
-    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.remoteAddressPolicies.remote-policy.excludes.all.addressMatch=messages.ALL.#
-    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.remoteAddressPolicies.remote-policy.excludes.region.addressMatch=messages.{{ $spoke.region }}.#
-
     # Remote policy: 5604 with maxHops=1
-    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.remoteAddressPolicies.remote-policy-5604.autoDelete=true
-    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.remoteAddressPolicies.remote-policy-5604.autoDeleteDelay=0
-    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.remoteAddressPolicies.remote-policy-5604.autoDeleteMessageCount=1000
-    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.remoteAddressPolicies.remote-policy-5604.maxHops=1
-    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.remoteAddressPolicies.remote-policy-5604.includes.5604.addressMatch=messages.*.5604
+    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.remoteAddressPolicies.{{ $spoke.name }}-to-{{ $conn.hub }}-federation-policy.autoDelete=true
+    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.remoteAddressPolicies.{{ $spoke.name }}-to-{{ $conn.hub }}-federation-policy.autoDeleteDelay=0
+    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.remoteAddressPolicies.{{ $spoke.name }}-to-{{ $conn.hub }}-federation-policy.autoDeleteMessageCount=1000
+    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.remoteAddressPolicies.{{ $spoke.name }}-to-{{ $conn.hub }}-federation-policy.maxHops=1
+    AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.remoteAddressPolicies.{{ $spoke.name }}-to-{{ $conn.hub }}-federation-policy.includes.5604.addressMatch=messages.{{ $spoke.region }}.5604
     {{- end }}
 {{- end }}
