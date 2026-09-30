@@ -1,0 +1,21 @@
+{
+  "authority_id": "86",
+  "$comment": "GCP SA JSON PEM wrap validator — fail closed on 62-char middle line. Exit 0 on valid key, exit 1 with line-length report on damaged PEM.",
+  "criteria": [
+    {
+      "check": "file_exists",
+      "target": "scripts/validate-gcp-key.py",
+      "$comment": "Validator script exists"
+    },
+    {
+      "check": "command_exit",
+      "target": "python3 scripts/validate-gcp-key.py --help 2>&1 | grep -qi 'usage\\|validate'",
+      "$comment": "Script has a help message"
+    },
+    {
+      "check": "command_exit",
+      "target": "python3 -c \"import json,tempfile,os; f=tempfile.NamedTemporaryFile(mode='w',suffix='.json',delete=False); json.dump({'type':'service_account','project_id':'test','client_email':'a@b.iam','private_key':'not-a-pem'},f); f.close(); rc=os.system('python3 scripts/validate-gcp-key.py ' + f.name + ' >/dev/null 2>&1'); os.unlink(f.name); exit(0 if rc!=0 else 1)\"",
+      "$comment": "Rejects invalid PEM (exit 1 on bad key)"
+    }
+  ]
+}

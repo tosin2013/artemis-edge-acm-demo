@@ -265,6 +265,11 @@ validation:
     required: true
     fail_message: "GCP service account JSON key not found in agnosticd-v2-secrets/"
 
+  - name: "GCP service account key PEM integrity"
+    command: "python3 scripts/validate-gcp-key.py ${agnosticd_root}/../agnosticd-v2-secrets/gcp-key-${agd_guid}.json"
+    required: true
+    fail_message: "GCP key PEM is damaged (likely rewrapped by an editor). Run: python3 scripts/validate-gcp-key.py <key.json> for details. Do not hand-edit the PEM — re-download from GCP console."
+
   - name: "OpenShift login"
     command: "oc whoami"
     required: false
