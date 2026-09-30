@@ -1,0 +1,31 @@
+{
+  "authority_id": "36",
+  "$comment": "Mode-aware deploy script and Showroom content wiring (single-hub / multi-hub). All five acceptance criteria from the issue.",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'multi-hub)' scripts/deploy.sh && grep -q 'artemis-edge-gcp-multihub' scripts/deploy.sh",
+      "$comment": "deploy.sh --mode multi-hub selects vars-multihub.yml config"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'ifndef::mode_multi_hub' showroom/content/modules/ROOT/pages/index.adoc",
+      "$comment": "Showroom content renders Mode 1 content when mode_multi_hub is unset (ifndef guards exist)"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'mode_multi_hub' templates/showroom.yaml && grep -q 'ifdef::mode_multi_hub' showroom/content/modules/ROOT/pages/index.adoc",
+      "$comment": "Showroom content renders Mode 2 content when mode_multi_hub is set (Helm template sets it, ifdef guards exist)"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'spokeProvisioning' values-mode2.yaml && grep -q 'enabled: true' values-mode2.yaml",
+      "$comment": "values-mode2.yaml has spokeProvisioning.enabled: true with parameterized fields"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'DEPLOY_MODE:=single-hub' scripts/deploy.sh && grep -q 'AGD_CONFIG=\"artemis-edge-gcp\"' scripts/deploy.sh",
+      "$comment": "No breaking change to existing single-hub deployments (default mode is single-hub)"
+    }
+  ]
+}
