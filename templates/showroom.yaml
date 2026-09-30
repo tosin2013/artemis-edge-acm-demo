@@ -23,6 +23,8 @@ data:
     "password": "admin"
     {{- if eq (default "" .Values.global.mode) "multi-hub" }}
     "mode_multi_hub": "true"
+    "global_hub_api_url": {{ .Values.globalHub.apiUrl | default "" | quote }}
+    "global_hub_console_url": {{ .Values.globalHub.consoleUrl | default "" | quote }}
     {{- end }}
 ---
 apiVersion: v1

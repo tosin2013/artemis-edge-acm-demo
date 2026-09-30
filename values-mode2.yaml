@@ -21,6 +21,10 @@ hubBrokers:
 
 globalHub:
   enabled: false
+  # Global Hub API URL and console for hub-of-hubs-verify module.
+  # Set at deploy time: --set globalHub.apiUrl=https://api.hub.<sandbox>.gcp.redhatworkshops.io:6443
+  apiUrl: ""
+  consoleUrl: ""
 
 fleetThanosQuery:
   enabled: false

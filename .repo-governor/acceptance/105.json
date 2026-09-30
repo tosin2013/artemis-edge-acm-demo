@@ -1,0 +1,36 @@
+{
+  "authority_id": 105,
+  "title": "fix: hub-of-hubs-verify module assumes facilitator kubeconfig — add student Global Hub access",
+  "conditions": [
+    {
+      "id": "clusterrole",
+      "description": "workshop-global-hub-reader ClusterRole + ClusterRoleBinding exists in templates/workshop-user-rbac.yaml, guarded by global.mode == multi-hub",
+      "met": true
+    },
+    {
+      "id": "showroom-userdata",
+      "description": "global_hub_api_url and global_hub_console_url wired into showroom.yaml userdata under the multi-hub conditional",
+      "met": true
+    },
+    {
+      "id": "values-mode2",
+      "description": "globalHub.apiUrl and globalHub.consoleUrl declared in values-mode2.yaml with comments",
+      "met": true
+    },
+    {
+      "id": "adoc-rewrite",
+      "description": "hub-of-hubs-verify.adoc uses oc login with {user}/{password}/{global_hub_api_url} instead of export KUBECONFIG; title no longer says 'Facilitator Pre-Check'",
+      "met": true
+    },
+    {
+      "id": "rbac-applied",
+      "description": "RBAC applied to global-sbhtd cluster — workshop-global-hub-reader ClusterRole exists",
+      "met": false
+    },
+    {
+      "id": "user-login-verified",
+      "description": "user1 can oc login to Global Hub API and run oc get managedclusters successfully",
+      "met": false
+    }
+  ]
+}

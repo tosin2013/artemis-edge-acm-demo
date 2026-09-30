@@ -1,4 +1,4 @@
-= Verify Hub-of-Hubs Control Plane (Mode 2 Facilitator Pre-Check)
+= Verify Hub-of-Hubs Control Plane (Mode 2)
 
 ifdef::mode_multi_hub[]
 
@@ -9,7 +9,7 @@ ifdef::mode_multi_hub[]
 * Confirm the Multicluster Global Hub Operator is running
 * Understand what lives on each tier before students begin
 
-IMPORTANT: This is a **facilitator module**. These commands run from a terminal with the **Global Hub kubeconfig**, not the student Showroom terminal. Students start at xref:module-00.adoc[Module 0].
+NOTE: These commands run against the **Global Hub** cluster. You will log in with your workshop credentials — the same username/password you use on the regional hub, but against a different API endpoint.
 
 == Background
 
@@ -38,14 +38,14 @@ image::mode2-control-plane.png[Mode 2 three-tier control plane. Global Hub is Ti
 
 == Prerequisites
 
-Set the Global Hub kubeconfig in your facilitator terminal:
+Log in to the Global Hub cluster using your workshop credentials:
 
-[source,bash]
+[source,bash,subs="attributes"]
 ----
-export KUBECONFIG=~/Development/agnosticd-v2-output/global-<sandbox>/openshift-cluster_global-<sandbox>_kubeconfig
+oc login --insecure-skip-tls-verify=false -u {user} -p {password} {global_hub_api_url}
 ----
 
-Replace `<sandbox>` with your sandbox ID (e.g., `ctbz4`).
+TIP: Your Showroom terminal is logged in to the **regional hub** by default. The commands in this module target the **Global Hub** — a separate cluster. After completing this module, log back in to your regional hub with `{login_command}` before continuing to xref:module-01.adoc[Module 1].
 
 == Steps
 
@@ -231,7 +231,14 @@ After import completes, the `hubs` ApplicationSet detects the new clusters and p
 
 == Next Steps
 
-Once all checks pass, students can begin at xref:module-00.adoc[Module 0: Access Your Environment] on the **east regional hub** Showroom terminal.
+Log back in to your **regional hub** before continuing:
+
+[source,bash,subs="attributes"]
+----
+{login_command}
+----
+
+Once all checks pass, proceed to xref:module-01.adoc[Module 1: Verify Hub + RHACM] on the regional hub.
 
 endif::mode_multi_hub[]
 
