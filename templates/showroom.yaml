@@ -25,6 +25,7 @@ data:
     "mode_multi_hub": "true"
     "global_hub_api_url": {{ .Values.globalHub.apiUrl | default "" | quote }}
     "global_hub_console_url": {{ .Values.globalHub.consoleUrl | default "" | quote }}
+    "global_hub_password": {{ .Values.globalHub.password | default "" | quote }}
     {{- end }}
 ---
 apiVersion: v1

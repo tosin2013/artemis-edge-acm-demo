@@ -25,6 +25,9 @@ globalHub:
   # Set at deploy time: --set globalHub.apiUrl=https://api.hub.<sandbox>.gcp.redhatworkshops.io:6443
   apiUrl: ""
   consoleUrl: ""
+  # Global Hub user password (differs from regional hub passwords).
+  # Set at deploy time: --set globalHub.password=<global-hub-user1-password>
+  password: ""
 
 fleetThanosQuery:
   enabled: false

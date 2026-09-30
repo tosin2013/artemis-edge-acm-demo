@@ -1,0 +1,21 @@
+{
+  "authority_id": "107",
+  "$comment": "Fix hub-of-hubs-verify expected output columns (STATUS on multiclusterglobalhub, MESSAGE on multiclusterhub) and remove Facilitator from nav title.",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'STATUS.*AGE' showroom/content/modules/ROOT/pages/hub-of-hubs-verify.adoc && grep -q 'multiclusterglobalhub.*Running' showroom/content/modules/ROOT/pages/hub-of-hubs-verify.adoc",
+      "$comment": "multiclusterglobalhub expected output includes STATUS column"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'MESSAGE' showroom/content/modules/ROOT/pages/hub-of-hubs-verify.adoc && grep -q 'All hub components ready' showroom/content/modules/ROOT/pages/hub-of-hubs-verify.adoc",
+      "$comment": "multiclusterhub expected output includes MESSAGE column"
+    },
+    {
+      "check": "command_exit",
+      "target": "! grep -q 'Facilitator' showroom/content/modules/ROOT/nav.adoc",
+      "$comment": "nav.adoc no longer says Facilitator"
+    }
+  ]
+}

@@ -42,7 +42,7 @@ Log in to the Global Hub cluster using your workshop credentials:
 
 [source,bash,subs="attributes"]
 ----
-oc login --insecure-skip-tls-verify=false -u {user} -p {password} {global_hub_api_url}
+oc login --insecure-skip-tls-verify=false -u {user} -p {global_hub_password} {global_hub_api_url}
 ----
 
 TIP: Your Showroom terminal is logged in to the **regional hub** by default. The commands in this module target the **Global Hub** — a separate cluster. After completing this module, log back in to your regional hub with `{login_command}` before continuing to xref:module-01.adoc[Module 1].
@@ -165,8 +165,8 @@ oc get multiclusterglobalhub -n open-cluster-management
 .Expected output
 [source,text]
 ----
-NAME                    AGE
-multiclusterglobalhub   ...
+NAME                    STATUS    AGE
+multiclusterglobalhub   Running   ...
 ----
 
 Check the operator subscription is healthy:
@@ -195,8 +195,8 @@ oc get multiclusterhub -A
 .Expected output
 [source,text]
 ----
-NAMESPACE                 NAME              STATUS    AGE    CURRENTVERSION   DESIREDVERSION
-open-cluster-management   multiclusterhub   Running   ...    2.17.2           2.17.2
+NAMESPACE                 NAME              STATUS    AGE    CURRENTVERSION   DESIREDVERSION   MESSAGE
+open-cluster-management   multiclusterhub   Running   ...    2.17.2           2.17.2           All hub components ready.
 ----
 
 If STATUS is `Pending`, check for stuck hypershift-addon:

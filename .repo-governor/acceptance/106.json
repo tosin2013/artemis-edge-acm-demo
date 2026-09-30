@@ -1,0 +1,21 @@
+{
+  "authority_id": "106",
+  "$comment": "Fix hub-of-hubs-verify login: add global_hub_password to Showroom userdata so the oc login command uses the correct Global Hub password.",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "helm template . --values values.yaml --values values-mode2.yaml --set globalHub.password=test --show-only templates/showroom.yaml 2>/dev/null | grep -q 'global_hub_password'",
+      "$comment": "global_hub_password appears in showroom userdata"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'global_hub_password' showroom/content/modules/ROOT/pages/hub-of-hubs-verify.adoc",
+      "$comment": "adoc uses {global_hub_password} attribute"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'globalHub' values-mode2.yaml && grep -q 'password:' values-mode2.yaml",
+      "$comment": "values-mode2.yaml declares globalHub.password"
+    }
+  ]
+}
