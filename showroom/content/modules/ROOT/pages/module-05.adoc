@@ -93,7 +93,7 @@ ifndef::mode_multi_hub[]
 oc -n artemis run producer-ny -ti \
   --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
   --rm=true --restart=Never -- /opt/amq/bin/artemis producer \
-  --url='amqps://spoke-01-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-01.{guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
+  --url='amqps://spoke-01-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-01.{sandbox_guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
   --protocol=AMQP --user=admin --password=admin \
   --message-count=5 --message='hello from NY SNO' \
   --destination=topic://messages.NY.test --verbose
@@ -122,7 +122,7 @@ ifdef::mode_multi_hub[]
 oc -n artemis run producer-ny -ti \
   --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
   --rm=true --restart=Never -- /opt/amq/bin/artemis producer \
-  --url='amqps://spoke-01-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-01.{guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
+  --url='amqps://spoke-01-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-01.{sandbox_guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
   --protocol=AMQP --user=admin --password=admin \
   --message-count=5 --message='hello from NY SNO' \
   --destination=topic://messages.NY.5604 --verbose
@@ -145,36 +145,37 @@ endif::[]
 ifdef::mode_multi_hub[]
 === 3. Prove 5603 stays on the SNO
 
-Start a **new** hub consumer on `topic://messages.NY.5603`, then produce that address on the NY SNO. The hub consumer must print **no** `Received` lines (`Consumed: 0 messages` after the timeout). `messages.*.5603` is excluded from both local and remote federation.
-
-[source,bash,subs="attributes+"]
-----
-oc -n artemis run consumer-5603 -ti \
-  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
-  --rm=true --restart=Never -- /opt/amq/bin/artemis consumer \
-  --url=amqp://hub-01-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672 \
-  --protocol=AMQP --user={consumer_user} --password={consumer_password} \
-  --destination=topic://messages.NY.5603 --message-count=5 --receive-timeout=15000 --verbose
-----
-
-In a second terminal, produce while that consumer is waiting:
+Produce five messages to `messages.NY.5603` on the NY SNO. Because `*.5603` is excluded from federation, these messages stay on the edge broker and never reach hub-01. Use Jolokia `MessageCount` to prove it.
 
 [source,bash,subs="attributes+"]
 ----
 oc -n artemis run producer-5603 -ti \
   --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
   --rm=true --restart=Never -- /opt/amq/bin/artemis producer \
-  --url='amqps://spoke-01-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-01.{guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
+  --url='amqps://spoke-01-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-01.{sandbox_guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
   --protocol=AMQP --user=admin --password=admin \
   --message-count=5 --message='stays on NY SNO' \
   --destination=topic://messages.NY.5603 --verbose
 ----
 
-.Expected output (hub consumer — nothing arrives)
-[source,text]
+Now query the SNO broker — the messages should be there:
+
+[source,bash,role=execute,subs="attributes+"]
 ----
-Consumer messages.NY.5603, thread=0 Consumed: 0 messages
+curl -sS -u admin:admin \
+  'http://spoke-01-broker-wconsj-0-svc-rte-artemis.apps.sno-edge-01.{sandbox_guid}.gcp.redhatworkshops.io/console/jolokia/read/org.apache.activemq.artemis:broker=%22amq-broker%22,component=addresses,address=%22messages.NY.5603%22/RoutedMessageCount' \
+  | python3 -m json.tool
 ----
+
+.Expected output
+[source,json]
+----
+{
+    "value": 5
+}
+----
+
+`RoutedMessageCount >= 5` on the SNO confirms the messages were accepted. They stay on the edge because `*.5603` has no federation address match.
 
 The 5604 consumer from step 1 also receives **nothing** from this produce — 5603 is a different address and is excluded from federation.
 endif::[]
@@ -192,7 +193,7 @@ ifndef::mode_multi_hub[]
 oc -n artemis run producer-nj -ti \
   --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
   --rm=true --restart=Never -- /opt/amq/bin/artemis producer \
-  --url='amqps://spoke-02-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-02.{guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
+  --url='amqps://spoke-02-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-02.{sandbox_guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
   --protocol=AMQP --user=admin --password=admin \
   --message-count=5 --message='hello from NJ SNO' \
   --destination=topic://messages.NJ.test --verbose
@@ -234,6 +235,8 @@ endif::[]
 ifdef::mode_multi_hub[]
 NJ uses `messages.NJ.5604`. Start a hub consumer on that address first.
 
+NOTE: After starting the NJ consumer, wait ~30 seconds before producing. Federation needs time to propagate the address demand from hub-01 to sno-edge-02. If the first produce shows no messages on the consumer, produce again — the demand is now active.
+
 [source,bash,subs="attributes+"]
 ----
 /opt/amq/bin/artemis consumer \
@@ -247,7 +250,7 @@ NJ uses `messages.NJ.5604`. Start a hub consumer on that address first.
 oc -n artemis run producer-nj -ti \
   --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
   --rm=true --restart=Never -- /opt/amq/bin/artemis producer \
-  --url='amqps://spoke-02-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-02.{guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
+  --url='amqps://spoke-02-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-02.{sandbox_guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
   --protocol=AMQP --user=admin --password=admin \
   --message-count=5 --message='hello from NJ SNO' \
   --destination=topic://messages.NJ.5604 --verbose

@@ -1,0 +1,31 @@
+{
+  "authority_id": "110",
+  "$comment": "sandbox_guid attribute added — SNO route URLs use {sandbox_guid} not {guid}",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'sandbox_guid' templates/showroom.yaml",
+      "$comment": "sandbox_guid in showroom.yaml userdata"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'sandbox_guid' showroom/content/antora.yml",
+      "$comment": "sandbox_guid in antora.yml attributes"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'sandboxGuid' values-mode2.yaml",
+      "$comment": "deployer.sandboxGuid in values-mode2.yaml"
+    },
+    {
+      "check": "command_exit",
+      "target": "! grep -q 'sno-edge-0.\\.{guid}' showroom/content/modules/ROOT/pages/module-05.adoc",
+      "$comment": "No SNO URLs using {guid} in module-05"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'sno-edge-01.{sandbox_guid}' showroom/content/modules/ROOT/pages/module-05.adoc",
+      "$comment": "SNO URLs use {sandbox_guid} in module-05"
+    }
+  ]
+}

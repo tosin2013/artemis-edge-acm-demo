@@ -1,0 +1,16 @@
+{
+  "authority_id": "114",
+  "$comment": "NJ producer wait note added to module-05",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'wait.*30 seconds\\|30 seconds.*wait' showroom/content/modules/ROOT/pages/module-05.adoc",
+      "$comment": "Wait 30 seconds note before NJ producer"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'produce again' showroom/content/modules/ROOT/pages/module-05.adoc",
+      "$comment": "Retry guidance for NJ producer"
+    }
+  ]
+}

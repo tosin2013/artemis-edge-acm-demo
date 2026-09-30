@@ -63,7 +63,7 @@ ifndef::mode_multi_hub[]
 [source,bash,subs="attributes+"]
 ----
 /opt/amq/bin/artemis producer \
-  --url='amqps://spoke-01-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-01.{guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
+  --url='amqps://spoke-01-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-01.{sandbox_guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
   --protocol=AMQP --user=admin --password=admin \
   --message-count=10 --message='hello from NY SNO' \
   --destination=topic://messages.NY.test --verbose
@@ -95,7 +95,7 @@ The required destination is `topic://messages.NY.5604` so the message reaches **
 [source,bash,subs="attributes+"]
 ----
 /opt/amq/bin/artemis producer \
-  --url='amqps://spoke-01-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-01.{guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
+  --url='amqps://spoke-01-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-01.{sandbox_guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
   --protocol=AMQP --user=admin --password=admin \
   --message-count=10 --message='hello from NY SNO' \
   --destination=topic://messages.NY.5604 --verbose

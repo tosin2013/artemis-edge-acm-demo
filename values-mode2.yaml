@@ -4,6 +4,13 @@ global:
   # Overlay per region: east | central | west
   region: east
 
+# deployer section — set by AgnosticD at deploy time
+deployer:
+  # sandboxGuid: the sandbox-level GUID (e.g. "sbhtd").
+  # In Mode 2, deployer.guid is the regional GUID (e.g. "east-sbhtd") but
+  # SNO DNS uses the sandbox GUID. Falls back to guid if unset.
+  sandboxGuid: ""
+
 # One AMQ hub broker on this regional ACM hub (not on Global Hub).
 hubBrokers:
   - name: hub-01

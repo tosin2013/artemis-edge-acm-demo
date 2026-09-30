@@ -1,0 +1,16 @@
+{
+  "authority_id": "113",
+  "$comment": "Jolokia MessageCount checks added to Modules 5 and 6",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'jolokia.*MessageCount\\|MessageCount.*jolokia\\|RoutedMessageCount' showroom/content/modules/ROOT/pages/module-05.adoc",
+      "$comment": "Jolokia MessageCount or RoutedMessageCount in module-05"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'MessageCount' showroom/content/modules/ROOT/pages/module-06.adoc",
+      "$comment": "Jolokia MessageCount in module-06"
+    }
+  ]
+}

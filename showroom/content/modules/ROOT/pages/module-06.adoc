@@ -112,7 +112,7 @@ ifndef::mode_multi_hub[]
 oc -n artemis run producer-m6 -ti \
   --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
   --rm=true --restart=Never -- /opt/amq/bin/artemis producer \
-  --url='amqps://spoke-01-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-01.{guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
+  --url='amqps://spoke-01-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-01.{sandbox_guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
   --protocol=AMQP --user=admin --password=admin \
   --message-count=20 --message='queued during SNO partition' \
   --destination=topic://messages.NY.test --verbose
@@ -125,12 +125,31 @@ ifdef::mode_multi_hub[]
 oc -n artemis run producer-m6 -ti \
   --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
   --rm=true --restart=Never -- /opt/amq/bin/artemis producer \
-  --url='amqps://spoke-01-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-01.{guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
+  --url='amqps://spoke-01-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-01.{sandbox_guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
   --protocol=AMQP --user=admin --password=admin \
   --message-count=20 --message='queued during SNO partition' \
   --destination=topic://messages.NY.5604 --verbose
 ----
 endif::[]
+
+Verify the messages are queued on the SNO and have **not** reached the hub:
+
+[source,bash,role=execute,subs="attributes+"]
+----
+curl -sS -u admin:admin \
+  'http://spoke-01-broker-wconsj-0-svc-rte-artemis.apps.sno-edge-01.{sandbox_guid}.gcp.redhatworkshops.io/console/jolokia/read/org.apache.activemq.artemis:broker=%22amq-broker%22,component=addresses,address=%22messages.NY.5604%22/MessageCount' \
+  | python3 -m json.tool
+----
+
+.Expected output — 20 messages stored on the edge
+[source,json]
+----
+{
+    "value": 20
+}
+----
+
+`MessageCount: 20` on the SNO proves store-and-forward is working — the messages are in the Artemis journal, waiting for federation to resume.
 
 === 4. Restore Connectivity
 
@@ -170,14 +189,31 @@ No resources found in artemis namespace.
 
 === 5. Observe Store-and-Forward Flush
 
-Watch the hub consumer terminal. The intended outcome is that the 20 queued messages arrive after federation resumes.
-
-The proof that the SNO→hub link is up again is Jolokia `hub-01-connection` with `started: true` (same check as xref:module-03.adoc[Module 3]):
+After restoring the link, federation resumes and the SNO flushes queued messages to hub-01. The primary proof is the Jolokia `MessageCount` dropping to zero on the SNO:
 
 [source,bash,role=execute,subs="attributes+"]
 ----
 curl -sS -u admin:admin \
-  'http://spoke-01-broker-wconsj-0-svc-rte-artemis.apps.sno-edge-01.{guid}.gcp.redhatworkshops.io/console/jolokia/exec/org.apache.activemq.artemis:broker=%22amq-broker%22/listBrokerConnections' \
+  'http://spoke-01-broker-wconsj-0-svc-rte-artemis.apps.sno-edge-01.{sandbox_guid}.gcp.redhatworkshops.io/console/jolokia/read/org.apache.activemq.artemis:broker=%22amq-broker%22,component=addresses,address=%22messages.NY.5604%22/MessageCount' \
+  | python3 -m json.tool
+----
+
+.Expected output — messages flushed
+[source,json]
+----
+{
+    "value": 0
+}
+----
+
+`MessageCount: 0` means all 20 messages have been forwarded off the SNO. If the count is still > 0, wait 30 seconds and re-run — federation reconnect takes time.
+
+Verify the federation link itself is back up (same check as xref:module-03.adoc[Module 3]):
+
+[source,bash,role=execute,subs="attributes+"]
+----
+curl -sS -u admin:admin \
+  'http://spoke-01-broker-wconsj-0-svc-rte-artemis.apps.sno-edge-01.{sandbox_guid}.gcp.redhatworkshops.io/console/jolokia/exec/org.apache.activemq.artemis:broker=%22amq-broker%22/listBrokerConnections' \
   | python3 -m json.tool
 ----
 
@@ -196,7 +232,9 @@ curl -sS -u admin:admin \
 }
 ----
 
-`timestamp` will differ. `value` is a JSON *string*; parse it if you want a structured array. `started: true` is the federation proof — not a count of flushed consumer lines.
+`started: true` confirms federation is live. `timestamp` will differ.
+
+NOTE: The hub consumer terminal may or may not show the 20 `Received` lines. Multicast topic delivery to the consumer depends on subscription timing during the reconnect. The Jolokia `MessageCount` drop from 20 to 0 is the definitive proof of store-and-forward.
 
 ifndef::mode_multi_hub[]
 .Jolokia — hub-01-connection started

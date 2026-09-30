@@ -1,0 +1,16 @@
+{
+  "authority_id": "112",
+  "$comment": "consumer-5603 replaced with Jolokia check — no blocking consumer pod",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "! grep -q 'consumer-5603' showroom/content/modules/ROOT/pages/module-05.adoc",
+      "$comment": "consumer-5603 pod removed from module-05"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'RoutedMessageCount' showroom/content/modules/ROOT/pages/module-05.adoc",
+      "$comment": "Jolokia RoutedMessageCount check replaces consumer"
+    }
+  ]
+}

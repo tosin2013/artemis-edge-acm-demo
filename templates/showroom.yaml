@@ -19,6 +19,7 @@ data:
     "openshift_api_url": {{ .Values.global.clusterApiUrl | default (printf "https://api.%s:6443" (.Values.global.clusterDomain | replace "apps." "")) | quote }}
     "console_url": {{ printf "https://console-openshift-console.%s" .Values.global.clusterDomain | quote }}
     "guid": {{ ((.Values.deployer).guid) | default "demo" | quote }}
+    "sandbox_guid": {{ ((.Values.deployer).sandboxGuid) | default (((.Values.deployer).guid) | default "demo") | quote }}
     "user": "admin"
     "password": "admin"
     {{- if eq (default "" .Values.global.mode) "multi-hub" }}

@@ -1,0 +1,21 @@
+{
+  "authority_id": "111",
+  "$comment": "Module 6 uses Jolokia MessageCount as primary store-and-forward proof",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'MessageCount' showroom/content/modules/ROOT/pages/module-06.adoc",
+      "$comment": "Jolokia MessageCount check exists in module-06"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -c 'role=execute' showroom/content/modules/ROOT/pages/module-06.adoc | grep -q '[4-9]'",
+      "$comment": "At least 4 role=execute blocks in module-06 (was 3, added MessageCount)"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'value.*20' showroom/content/modules/ROOT/pages/module-06.adoc",
+      "$comment": "Expected MessageCount 20 in module-06"
+    }
+  ]
+}

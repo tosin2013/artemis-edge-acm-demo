@@ -167,13 +167,13 @@ IMPORTANT: This table does *not* show the configured name `hub-01-connection`. T
 
 The NY broker console is on sno-edge-01 (not the hub ingress domain):
 
-* URL: http://spoke-01-broker-wconsj-0-svc-rte-artemis.apps.sno-edge-01.{guid}.gcp.redhatworkshops.io
+* URL: http://spoke-01-broker-wconsj-0-svc-rte-artemis.apps.sno-edge-01.{sandbox_guid}.gcp.redhatworkshops.io
 * Login: `admin` / `admin`
 
 [source,bash,role=execute,subs="attributes+"]
 ----
 curl -sS -u admin:admin \
-  'http://spoke-01-broker-wconsj-0-svc-rte-artemis.apps.sno-edge-01.{guid}.gcp.redhatworkshops.io/console/jolokia/exec/org.apache.activemq.artemis:broker=%22amq-broker%22/listBrokerConnections'
+  'http://spoke-01-broker-wconsj-0-svc-rte-artemis.apps.sno-edge-01.{sandbox_guid}.gcp.redhatworkshops.io/console/jolokia/exec/org.apache.activemq.artemis:broker=%22amq-broker%22/listBrokerConnections'
 ----
 
 .Expected output (JSON `value` field)
@@ -182,4 +182,4 @@ curl -sS -u admin:admin \
 [{"name":"hub-01-connection","protocol":"AMQP","started":true}]
 ----
 
-`hub-01-connection` with `started: true` is the SNO→hub federation link. Repeat against sno-edge-02 (`spoke-02-broker`, `apps.sno-edge-02.{guid}.gcp.redhatworkshops.io`) if you want NJ as well.
+`hub-01-connection` with `started: true` is the SNO→hub federation link. Repeat against sno-edge-02 (`spoke-02-broker`, `apps.sno-edge-02.{sandbox_guid}.gcp.redhatworkshops.io`) if you want NJ as well.
