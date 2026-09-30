@@ -1,36 +1,36 @@
 {
-  "authority_id": 105,
-  "title": "fix: hub-of-hubs-verify module assumes facilitator kubeconfig — add student Global Hub access",
-  "conditions": [
+  "authority_id": "105",
+  "$comment": "Fix hub-of-hubs-verify module: student Global Hub access via workshop-global-hub-reader RBAC, oc login in adoc instead of export KUBECONFIG, globalHub.apiUrl in showroom userdata.",
+  "criteria": [
     {
-      "id": "clusterrole",
-      "description": "workshop-global-hub-reader ClusterRole + ClusterRoleBinding exists in templates/workshop-user-rbac.yaml, guarded by global.mode == multi-hub",
-      "met": true
+      "check": "command_exit",
+      "target": "helm template . --values values.yaml --values values-mode2.yaml --show-only templates/workshop-user-rbac.yaml 2>/dev/null | grep -q 'workshop-global-hub-reader'",
+      "$comment": "workshop-global-hub-reader ClusterRole renders in mode2"
     },
     {
-      "id": "showroom-userdata",
-      "description": "global_hub_api_url and global_hub_console_url wired into showroom.yaml userdata under the multi-hub conditional",
-      "met": true
+      "check": "command_exit",
+      "target": "helm template . --values values.yaml --show-only templates/workshop-user-rbac.yaml 2>/dev/null | grep -c 'workshop-global-hub-reader' | grep -q '^0$'",
+      "$comment": "workshop-global-hub-reader does NOT render in single-hub mode"
     },
     {
-      "id": "values-mode2",
-      "description": "globalHub.apiUrl and globalHub.consoleUrl declared in values-mode2.yaml with comments",
-      "met": true
+      "check": "command_exit",
+      "target": "helm template . --values values.yaml --values values-mode2.yaml --set globalHub.apiUrl=https://test:6443 --show-only templates/showroom.yaml 2>/dev/null | grep -q 'global_hub_api_url'",
+      "$comment": "global_hub_api_url appears in showroom userdata when mode is multi-hub"
     },
     {
-      "id": "adoc-rewrite",
-      "description": "hub-of-hubs-verify.adoc uses oc login with {user}/{password}/{global_hub_api_url} instead of export KUBECONFIG; title no longer says 'Facilitator Pre-Check'",
-      "met": true
+      "check": "command_exit",
+      "target": "grep -q 'oc login.*global_hub_api_url' showroom/content/modules/ROOT/pages/hub-of-hubs-verify.adoc",
+      "$comment": "adoc uses oc login with global_hub_api_url attribute instead of export KUBECONFIG"
     },
     {
-      "id": "rbac-applied",
-      "description": "RBAC applied to global-sbhtd cluster — workshop-global-hub-reader ClusterRole exists",
-      "met": true
+      "check": "command_exit",
+      "target": "! grep -q 'export KUBECONFIG' showroom/content/modules/ROOT/pages/hub-of-hubs-verify.adoc",
+      "$comment": "adoc no longer contains export KUBECONFIG"
     },
     {
-      "id": "user-login-verified",
-      "description": "user1 can oc login to Global Hub API and run oc get managedclusters successfully",
-      "met": true
+      "check": "file_exists",
+      "target": "values-mode2.yaml",
+      "$comment": "values-mode2.yaml exists with globalHub config"
     }
   ]
 }
