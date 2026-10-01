@@ -1,4 +1,5 @@
 {{- if .Values.monitoring.enabled }}
+{{- if not .Values.spokeProvisioning.enabled }}
 {{- range .Values.edgeBrokers }}
 ---
 kind: Service
@@ -24,5 +25,6 @@ spec:
     ActiveMQArtemis: {{ .name }}-broker
     application: {{ .name }}-broker-app
     statefulset.kubernetes.io/pod-name: {{ .name }}-broker-ss-0
+{{- end }}
 {{- end }}
 {{- end }}

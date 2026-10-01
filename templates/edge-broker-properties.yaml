@@ -1,3 +1,4 @@
+{{- if not .Values.spokeProvisioning.enabled }}
 {{- range $spoke := .Values.edgeBrokers }}
 ---
 apiVersion: v1
@@ -114,4 +115,5 @@ stringData:
     AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.remoteAddressPolicies.{{ $spoke.name }}-to-{{ $conn.hub }}-federation-policy.maxHops=1
     AMQPConnections.{{ $conn.hub }}-connection.federations.{{ $spoke.name }}-federation.remoteAddressPolicies.{{ $spoke.name }}-to-{{ $conn.hub }}-federation-policy.includes.5604.addressMatch=messages.{{ $spoke.region }}.5604
     {{- end }}
+{{- end }}
 {{- end }}

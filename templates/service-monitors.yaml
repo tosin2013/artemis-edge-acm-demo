@@ -3,8 +3,10 @@
 {{- range .Values.hubBrokers }}
 {{- $allBrokers = append $allBrokers .name }}
 {{- end }}
+{{- if not $.Values.spokeProvisioning.enabled }}
 {{- range .Values.edgeBrokers }}
 {{- $allBrokers = append $allBrokers .name }}
+{{- end }}
 {{- end }}
 {{- range $allBrokers }}
 ---

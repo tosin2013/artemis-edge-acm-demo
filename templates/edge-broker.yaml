@@ -1,3 +1,4 @@
+{{- if not .Values.spokeProvisioning.enabled }}
 {{- $defaults := .Values.edgeBrokerDefaults }}
 {{- range .Values.edgeBrokers }}
 ---
@@ -44,4 +45,5 @@ spec:
           tls:
             termination: edge
             insecureEdgeTerminationPolicy: Redirect
+{{- end }}
 {{- end }}

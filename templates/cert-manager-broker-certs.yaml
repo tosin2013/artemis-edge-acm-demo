@@ -41,6 +41,7 @@ spec:
     kind: Issuer
     group: cert-manager.io
 {{- end }}
+{{- if not $.Values.spokeProvisioning.enabled }}
 {{- range .Values.edgeBrokers }}
 ---
 apiVersion: cert-manager.io/v1
@@ -82,6 +83,7 @@ spec:
     name: {{ $issuerName }}
     kind: Issuer
     group: cert-manager.io
+{{- end }}
 {{- end }}
 ---
 apiVersion: v1

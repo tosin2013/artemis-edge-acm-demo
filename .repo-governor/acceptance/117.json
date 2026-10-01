@@ -1,0 +1,36 @@
+{
+  "$comment": "Spoke brokers removed from hub in Mode 2: no direct spoke ActiveMQArtemis CRs rendered when spokeProvisioning.enabled=true. Mode 1 still renders them.",
+  "authority_id": "117",
+  "criteria": [
+    {
+      "$comment": "Mode 2 helm template renders exactly one direct ActiveMQArtemis (hub-01-broker), not spoke-01 or spoke-02",
+      "check": "command_exit",
+      "target": "helm template test . -f values.yaml -f values-mode2.yaml 2>&1 | awk '/^kind: ActiveMQArtemis/{found=1} found && /^  name:/{print; found=0}' | grep -q hub-01-broker && ! helm template test . -f values.yaml -f values-mode2.yaml 2>&1 | awk '/^kind: ActiveMQArtemis/{found=1} found && /^  name:/{print; found=0}' | grep -q spoke"
+    },
+    {
+      "$comment": "Mode 1 still renders spoke broker CRs",
+      "check": "command_exit",
+      "target": "helm template test . -f values.yaml 2>&1 | awk '/^kind: ActiveMQArtemis/{found=1} found && /^  name:/{print; found=0}' | grep -q spoke-01-broker"
+    },
+    {
+      "$comment": "ACM policies for spoke brokers still rendered in Mode 2",
+      "check": "command_exit",
+      "target": "helm template test . -f values.yaml -f values-mode2.yaml 2>&1 | grep -q policy-amq-broker-spoke-01"
+    },
+    {
+      "$comment": "Guard added to edge-broker.yaml",
+      "check": "command_exit",
+      "target": "grep -q 'if not .Values.spokeProvisioning.enabled' templates/edge-broker.yaml"
+    },
+    {
+      "$comment": "Guard added to edge-broker-properties.yaml",
+      "check": "command_exit",
+      "target": "grep -q 'if not .Values.spokeProvisioning.enabled' templates/edge-broker-properties.yaml"
+    },
+    {
+      "$comment": "Guard added to edge-broker-prometheus-svc.yaml",
+      "check": "command_exit",
+      "target": "grep -q 'if not .Values.spokeProvisioning.enabled' templates/edge-broker-prometheus-svc.yaml"
+    }
+  ]
+}
