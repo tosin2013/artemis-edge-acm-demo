@@ -1,0 +1,31 @@
+{
+  "authority_id": "116",
+  "$comment": "Module 7 has Global Hub login, role=execute blocks, correct route command, generic expected output",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'global_hub_password' showroom/content/modules/ROOT/pages/module-07.adoc",
+      "$comment": "Global Hub login using global_hub_password attribute"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -c 'role=execute' showroom/content/modules/ROOT/pages/module-07.adoc | grep -q '[6-9]'",
+      "$comment": "At least 6 role=execute blocks"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'multicluster-global-hub-grafana' showroom/content/modules/ROOT/pages/module-07.adoc",
+      "$comment": "Route name used directly (not stale label selector)"
+    },
+    {
+      "check": "command_exit",
+      "target": "! grep -q 'ctbz4' showroom/content/modules/ROOT/pages/module-07.adoc",
+      "$comment": "No hardcoded ctbz4 in expected output"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'login_command' showroom/content/modules/ROOT/pages/module-07.adoc",
+      "$comment": "Return to regional hub step at end"
+    }
+  ]
+}

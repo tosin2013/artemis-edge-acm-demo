@@ -33,11 +33,42 @@ endif::[]
 
 == Steps
 
-=== 0. Verify All Regional Hubs Are Visible
+ifdef::mode_multi_hub[]
+=== 0. Log In to the Global Hub
 
-Before viewing compliance dashboards, confirm the Global Hub has inventory of all three regional hubs:
+Your Showroom terminal is logged in to the **regional hub** by default. This module targets the **Global Hub** — a separate cluster.
+
+[source,bash,role=execute,subs="attributes+"]
+----
+oc login --insecure-skip-tls-verify=false -u {user} -p {global_hub_password} {global_hub_api_url}
+----
+
+Verify you are on the Global Hub:
+
+[source,bash,role=execute]
+----
+oc whoami --show-server
+----
+
+You should see the Global Hub API URL, not your regional hub.
+endif::[]
+
+ifndef::mode_multi_hub[]
+=== 0. Log In to the Global Hub
+
+As a facilitator, switch to the Global Hub kubeconfig:
 
 [source,bash]
+----
+export KUBECONFIG=/path/to/global-hub-kubeconfig
+----
+endif::[]
+
+=== 1. Verify All Regional Hubs Are Visible
+
+Confirm the Global Hub has inventory of all three regional hubs:
+
+[source,bash,role=execute]
 ----
 oc get managedclusters
 ----
@@ -45,25 +76,27 @@ oc get managedclusters
 .Expected output
 [source,text]
 ----
-NAME            HUB ACCEPTED   MANAGED CLUSTER URLS                                        JOINED   AVAILABLE   AGE
-cen-ctbz4       true           https://api.hub-central.ctbz4.gcp.redhatworkshops.io:6443   True     True        11m
-east-ctbz4      true           https://api.hub-east.ctbz4.gcp.redhatworkshops.io:6443      True     True        11m
-local-cluster   true           https://api.hub.ctbz4.gcp.redhatworkshops.io:6443           True     True        17h
-west-ctbz4      true           https://api.hub-west.ctbz4.gcp.redhatworkshops.io:6443      True     True        11m
+NAME            HUB ACCEPTED   MANAGED CLUSTER URLS   JOINED   AVAILABLE   AGE
+cen-<guid>      true           https://api...         True     True        ...
+east-<guid>     true           https://api...         True     True        ...
+local-cluster   true           https://api...         True     True        ...
+west-<guid>     true           https://api...         True     True        ...
 ----
 
-All three regional hubs (`east`, `cen`, `west`) must show `JOINED=True` and `AVAILABLE=True`. If a hub is missing, the compliance dashboard will not show its policies. See xref:hub-of-hubs-verify.adoc[Facilitator: Verify Hub-of-Hubs] for troubleshooting.
+All three regional hubs (`east`, `cen`, `west`) must show `JOINED=True` and `AVAILABLE=True`. If a hub is missing, the compliance dashboard will not show its policies. See xref:hub-of-hubs-verify.adoc[Verify Hub-of-Hubs (Mode 2)] for troubleshooting.
 
-=== 1. Access Global Hub Grafana
+=== 2. Access Global Hub Grafana
 
-From a kubeconfig for the **Global Hub** (facilitator), not this regional hub:
+Get the Grafana route:
 
-[source,bash]
+[source,bash,role=execute]
 ----
-oc get route -n open-cluster-management -l app=multicluster-global-hub
+echo "https://$(oc get route multicluster-global-hub-grafana -n open-cluster-management -o jsonpath='{.spec.host}')"
 ----
 
-=== 2. View Fleet Compliance
+Open the URL in your browser and log in with OpenShift credentials.
+
+=== 3. View Fleet Compliance
 
 In the Grafana dashboard:
 
@@ -71,21 +104,38 @@ In the Grafana dashboard:
 * Observe compliance across regional hubs east, central, and west
 * After Module 2, the NY/NJ SNOs appear in inventory *under* the east managed hub — they are not Global Hub managed clusters
 
-=== 3. Cross-Hub Cluster Inventory
+=== 4. Cross-Hub Cluster Inventory
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc get managedclusterset -A
+----
+
+[source,bash,role=execute]
+----
 oc get placement -A
 ----
 
 The Global Hub aggregates cluster inventory from the three regional hubs. Sites never talk to Global Hub.
 
-=== 4. Verify there is no AMQ broker on Global Hub
+=== 5. Verify there is no AMQ broker on Global Hub
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc get activemqartemis -A
 ----
 
 Expected: no `hub-01-broker` (or any AMQ CR) on Global Hub. The AMQ hub for east is on *this* regional cluster (`oc get activemqartemis -n artemis` here).
+
+ifdef::mode_multi_hub[]
+=== 6. Return to Regional Hub
+
+Log back in to your **regional hub** before continuing to Module 8:
+
+[source,bash,role=execute,subs="attributes+"]
+----
+{login_command}
+----
+
+Verify with `oc whoami --show-server` — you should see your regional hub API URL, not the Global Hub.
+endif::[]
