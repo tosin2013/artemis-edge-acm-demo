@@ -78,12 +78,18 @@ if [[ -z "${MODE}" && ${#args[@]} -eq 0 ]]; then
         _detected_count="${_suffix_counts["$suffix"]}"
       fi
     done
-    unset _suffix_counts
   fi
 
   if (( _detected_count >= 2 )); then
     MODE="multi-hub"
-    SANDBOX="${_detected_sandbox}"
+    # Prefer config.yml agd_guid when it matches a valid multi-hub suffix
+    # (disambiguates ties when multiple sandboxes exist in the output dir)
+    if [[ -n "${CONFIG_GUID}" ]] && (( ${_suffix_counts["${CONFIG_GUID}"]:-0} >= 2 )); then
+      SANDBOX="${CONFIG_GUID}"
+    else
+      SANDBOX="${_detected_sandbox}"
+    fi
+    unset _suffix_counts
     echo "Auto-detected multi-hub mode (sandbox: ${SANDBOX}, ${_detected_count} hubs found)" >&2
   elif [[ -n "${CONFIG_GUID}" ]]; then
     # Single-hub: use the GUID from config.yml

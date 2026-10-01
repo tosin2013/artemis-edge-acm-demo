@@ -1,0 +1,11 @@
+{
+  "authority_id": "115",
+  "$comment": "save-deployment-info.sh prefers config.yml agd_guid to disambiguate multi-hub ties",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'CONFIG_GUID' scripts/save-deployment-info.sh && grep -q 'suffix_counts.*CONFIG_GUID' scripts/save-deployment-info.sh",
+      "$comment": "Script uses CONFIG_GUID to disambiguate multi-hub suffix ties"
+    }
+  ]
+}
