@@ -155,11 +155,11 @@ Call with: include "artemis-edge.snoFederationBrokerProperties" (dict "spoke" . 
 {{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy.excludes.all.addressMatch=messages.ALL.#" $hub $spoke.name | quote) -}}
 {{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy.excludes.region.addressMatch=messages.%s.#" $hub $spoke.name $spoke.region | quote) -}}
 {{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy.excludes.5603.addressMatch=messages.*.5603" $hub $spoke.name | quote) -}}
-{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy-5604.autoDelete=true" $hub $spoke.name | quote) -}}
-{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy-5604.autoDeleteDelay=0" $hub $spoke.name | quote) -}}
-{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy-5604.autoDeleteMessageCount=1000" $hub $spoke.name | quote) -}}
-{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy-5604.maxHops=1" $hub $spoke.name | quote) -}}
-{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy-5604.includes.5604.addressMatch=messages.*.5604" $hub $spoke.name | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.%s-to-%s-federation-policy.autoDelete=true" $hub $spoke.name $spoke.name $hub | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.%s-to-%s-federation-policy.autoDeleteDelay=0" $hub $spoke.name $spoke.name $hub | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.%s-to-%s-federation-policy.autoDeleteMessageCount=1000" $hub $spoke.name $spoke.name $hub | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.%s-to-%s-federation-policy.maxHops=1" $hub $spoke.name $spoke.name $hub | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.%s-to-%s-federation-policy.includes.5604.addressMatch=messages.*.5604" $hub $spoke.name $spoke.name $hub | quote) -}}
 {{- end }}
 {{- end }}
 

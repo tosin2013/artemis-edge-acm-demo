@@ -1,0 +1,16 @@
+{
+  "$comment": "SNO federation remote policy naming aligned with contributor convention (6e4e761): remote-policy-5604 renamed to <spoke>-to-<hub>-federation-policy in _helpers.tpl",
+  "authority_id": "118",
+  "criteria": [
+    {
+      "$comment": "Mode 2 renders spoke-01-to-hub-01-federation-policy (not remote-policy-5604)",
+      "check": "command_exit",
+      "target": "helm template test . -f values.yaml -f values-mode2.yaml 2>&1 | grep -q 'spoke-01-to-hub-01-federation-policy'"
+    },
+    {
+      "$comment": "Old remote-policy-5604 naming no longer rendered in Mode 2",
+      "check": "command_exit",
+      "target": "! helm template test . -f values.yaml -f values-mode2.yaml 2>&1 | grep -q 'remote-policy-5604'"
+    }
+  ]
+}
