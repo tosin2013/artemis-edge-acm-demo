@@ -90,7 +90,7 @@ This is facilitator guidance, not a lab exercise. Read it *before* running the d
 | IdP | Status in demo | Production path
 
 | Keycloak (OIDC) | Shown in lab | Works but adds a component customers may not want
-| Active Directory (LDAP) | Not shown | AMQ Broker `LDAPLoginModule` supports direct AD authentication — documented in AMQ 7.12 with explicit Microsoft AD example
+| Active Directory (LDAP) | Not shown | AMQ Broker `LDAPLoginModule` supports direct AD authentication — documented in AMQ 7.14 with explicit Microsoft AD example
 | Kerberos/GSSAPI | Not shown | AMQ Broker supports `Krb5LoginModule` + `LDAPLoginModule` chain
 |===
 

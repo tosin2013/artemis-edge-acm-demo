@@ -44,7 +44,7 @@ ifndef::mode_multi_hub[]
 [source,bash,subs="attributes+"]
 ----
 oc -n artemis run consumer-m6 -ti \
-  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
+  --image=registry.redhat.io/amq7/amq-broker-rhel9:7.14 \
   --rm=true --restart=Never -- /opt/amq/bin/artemis consumer \
   --url=amqp://hub-01-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672 \
   --protocol=AMQP --user={consumer_user} --password={consumer_password} \
@@ -56,7 +56,7 @@ ifdef::mode_multi_hub[]
 [source,bash,subs="attributes+"]
 ----
 oc -n artemis run consumer-m6 -ti \
-  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
+  --image=registry.redhat.io/amq7/amq-broker-rhel9:7.14 \
   --rm=true --restart=Never -- /opt/amq/bin/artemis consumer \
   --url=amqp://hub-01-broker-amqp-acceptor-0-svc.artemis.svc.cluster.local:5672 \
   --protocol=AMQP --user={consumer_user} --password={consumer_password} \
@@ -110,7 +110,7 @@ ifndef::mode_multi_hub[]
 [source,bash,subs="attributes+"]
 ----
 oc -n artemis run producer-m6 -ti \
-  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
+  --image=registry.redhat.io/amq7/amq-broker-rhel9:7.14 \
   --rm=true --restart=Never -- /opt/amq/bin/artemis producer \
   --url='amqps://spoke-01-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-01.{sandbox_guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
   --protocol=AMQP --user=admin --password=admin \
@@ -123,7 +123,7 @@ ifdef::mode_multi_hub[]
 [source,bash,subs="attributes+"]
 ----
 oc -n artemis run producer-m6 -ti \
-  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
+  --image=registry.redhat.io/amq7/amq-broker-rhel9:7.14 \
   --rm=true --restart=Never -- /opt/amq/bin/artemis producer \
   --url='amqps://spoke-01-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-01.{sandbox_guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
   --protocol=AMQP --user=admin --password=admin \

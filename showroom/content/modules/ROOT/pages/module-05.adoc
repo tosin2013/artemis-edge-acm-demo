@@ -24,7 +24,7 @@ Open a terminal and run:
 [source,bash,role=execute]
 ----
 oc -n artemis run consumer -ti \
-  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
+  --image=registry.redhat.io/amq7/amq-broker-rhel9:7.14 \
   --rm=true --restart=Never -- /bin/bash
 ----
 
@@ -91,7 +91,7 @@ ifndef::mode_multi_hub[]
 [source,bash,subs="attributes+"]
 ----
 oc -n artemis run producer-ny -ti \
-  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
+  --image=registry.redhat.io/amq7/amq-broker-rhel9:7.14 \
   --rm=true --restart=Never -- /opt/amq/bin/artemis producer \
   --url='amqps://spoke-01-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-01.{sandbox_guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
   --protocol=AMQP --user=admin --password=admin \
@@ -120,7 +120,7 @@ ifdef::mode_multi_hub[]
 [source,bash,subs="attributes+"]
 ----
 oc -n artemis run producer-ny -ti \
-  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
+  --image=registry.redhat.io/amq7/amq-broker-rhel9:7.14 \
   --rm=true --restart=Never -- /opt/amq/bin/artemis producer \
   --url='amqps://spoke-01-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-01.{sandbox_guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
   --protocol=AMQP --user=admin --password=admin \
@@ -150,7 +150,7 @@ Produce five messages to `messages.NY.5603` on the NY SNO. Because `*.5603` is e
 [source,bash,subs="attributes+"]
 ----
 oc -n artemis run producer-5603 -ti \
-  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
+  --image=registry.redhat.io/amq7/amq-broker-rhel9:7.14 \
   --rm=true --restart=Never -- /opt/amq/bin/artemis producer \
   --url='amqps://spoke-01-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-01.{sandbox_guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
   --protocol=AMQP --user=admin --password=admin \
@@ -191,7 +191,7 @@ ifndef::mode_multi_hub[]
 [source,bash,subs="attributes+"]
 ----
 oc -n artemis run producer-nj -ti \
-  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
+  --image=registry.redhat.io/amq7/amq-broker-rhel9:7.14 \
   --rm=true --restart=Never -- /opt/amq/bin/artemis producer \
   --url='amqps://spoke-02-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-02.{sandbox_guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
   --protocol=AMQP --user=admin --password=admin \
@@ -248,7 +248,7 @@ NOTE: After starting the NJ consumer, wait ~30 seconds before producing. Federat
 [source,bash,subs="attributes+"]
 ----
 oc -n artemis run producer-nj -ti \
-  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
+  --image=registry.redhat.io/amq7/amq-broker-rhel9:7.14 \
   --rm=true --restart=Never -- /opt/amq/bin/artemis producer \
   --url='amqps://spoke-02-broker-amqps-acceptor-0-svc-rte-artemis.apps.sno-edge-02.{sandbox_guid}.gcp.redhatworkshops.io:443?sslEnabled=true&transport.trustAll=true&transport.verifyHost=false&useTopologyForLoadBalancing=false' \
   --protocol=AMQP --user=admin --password=admin \

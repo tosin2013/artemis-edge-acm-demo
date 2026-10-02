@@ -1,0 +1,21 @@
+{
+  "$comment": "Update workshop modules for AMQ Broker 7.14.1 (amq-broker-rhel9)",
+  "authority_id": "121",
+  "criteria": [
+    {
+      "$comment": "No amq-broker-rhel8 references remain in .adoc files",
+      "check": "command_exit",
+      "target": "! grep -rq 'amq-broker-rhel8' showroom/"
+    },
+    {
+      "$comment": "No 7.12 image tag references remain in .adoc files",
+      "check": "command_exit",
+      "target": "! grep -rq 'amq-broker-rhel8:7.12' showroom/"
+    },
+    {
+      "$comment": "amq-broker-rhel9 references exist in module-01",
+      "check": "command_exit",
+      "target": "grep -q 'amq-broker-rhel9' showroom/content/modules/ROOT/pages/module-01.adoc"
+    }
+  ]
+}

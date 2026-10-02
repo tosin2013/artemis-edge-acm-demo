@@ -71,14 +71,14 @@ oc get sub -n artemis
 oc get sub -n keycloak
 ----
 
-Confirm `amq-broker-rhel8` and `rhbk-operator` (Red Hat Build of Keycloak) subscriptions exist. The output shows the `PACKAGE`, `SOURCE`, and `CHANNEL` columns.
+Confirm `amq-broker-rhel9` and `rhbk-operator` (Red Hat Build of Keycloak) subscriptions exist. The output shows the `PACKAGE`, `SOURCE`, and `CHANNEL` columns.
 
 ifndef::mode_multi_hub[]
 .Expected output
 [source,text]
 ----
 NAME               PACKAGE            SOURCE             CHANNEL
-amq-broker-rhel8   amq-broker-rhel8   redhat-operators   7.12.x
+amq-broker-rhel9   amq-broker-rhel9   redhat-operators   7.14.x
 
 NAME              PACKAGE        SOURCE             CHANNEL
 rhbk-operator     rhbk-operator  redhat-operators   stable-v26
@@ -90,7 +90,7 @@ ifdef::mode_multi_hub[]
 [source,text]
 ----
 NAME               PACKAGE            SOURCE             CHANNEL
-amq-broker-rhel8   amq-broker-rhel8   redhat-operators   7.12.x
+amq-broker-rhel9   amq-broker-rhel9   redhat-operators   7.14.x
 
 NAME              PACKAGE        SOURCE             CHANNEL
 rhbk-operator     rhbk-operator  redhat-operators   stable-v26

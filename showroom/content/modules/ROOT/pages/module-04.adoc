@@ -53,7 +53,7 @@ This is the ACM edge path: `{user}` runs a producer *pod on the hub* whose AMQP 
 [source,bash,role=execute]
 ----
 oc -n artemis run producer -ti \
-  --image=registry.redhat.io/amq7/amq-broker-rhel8:7.12 \
+  --image=registry.redhat.io/amq7/amq-broker-rhel9:7.14 \
   --rm=true --restart=Never -- /bin/bash
 ----
 

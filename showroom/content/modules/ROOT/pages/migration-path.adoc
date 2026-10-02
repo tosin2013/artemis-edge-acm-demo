@@ -54,7 +54,7 @@ The migration is incremental — site by site or wave by wave. No site goes offl
 | Component | Migration impact
 
 | AMQ Broker version
-| Same — AMQ Broker 7.12 on both RHEL and SNO (Operator-managed on SNO)
+| Same — AMQ Broker 7.14 on both RHEL and SNO (Operator-managed on SNO)
 
 | Broker configuration
 | Same — `brokerProperties` in the `ActiveMQArtemis` CR maps directly to `broker.xml` settings

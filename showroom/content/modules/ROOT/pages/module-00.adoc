@@ -123,7 +123,7 @@ endif::[]
 
 == Messaging Users (OIDC)
 
-NOTE: This lab uses Keycloak for broker authentication as a self-contained lab convenience. In production, AMQ Broker supports direct Active Directory / LDAP authentication via `LDAPLoginModule` in the JAAS `login.config` — no Keycloak intermediary is required. The `LDAPLoginModule` configuration can be pushed to edge SNOs via the same ACM ConfigurationPolicy mechanism used for the broker CR. See the https://docs.redhat.com/en/documentation/red_hat_amq_broker/7.12/html/configuring_amq_broker/assembly-br-securing-brokers_configuring[AMQ Broker 7.12 LDAP integration docs] for a Microsoft Active Directory example.
+NOTE: This lab uses Keycloak for broker authentication as a self-contained lab convenience. In production, AMQ Broker supports direct Active Directory / LDAP authentication via `LDAPLoginModule` in the JAAS `login.config` — no Keycloak intermediary is required. The `LDAPLoginModule` configuration can be pushed to edge SNOs via the same ACQ ConfigurationPolicy mechanism used for the broker CR. See the https://docs.redhat.com/en/documentation/red_hat_amq_broker/7.14/html/configuring_amq_broker/assembly-br-securing-brokers_configuring[AMQ Broker 7.14 LDAP integration docs] for a Microsoft Active Directory example.
 
 These users are configured in the Keycloak realm for broker authentication:
 
