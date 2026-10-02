@@ -160,6 +160,18 @@ Call with: include "artemis-edge.snoFederationBrokerProperties" (dict "spoke" . 
 {{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.%s-to-%s-federation-policy.autoDeleteMessageCount=1000" $hub $spoke.name $spoke.name $hub | quote) -}}
 {{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.%s-to-%s-federation-policy.maxHops=1" $hub $spoke.name $spoke.name $hub | quote) -}}
 {{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.%s-to-%s-federation-policy.includes.5604.addressMatch=messages.*.5604" $hub $spoke.name $spoke.name $hub | quote) -}}
+{{- /* Bridge configurations: always-on deterministic routing (complement to demand-driven federation) */ -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.bridges.%s-bridge.type=BRIDGE" $hub $spoke.name | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.bridges.%s-bridge.bridgeFromAddressPolicies.%s-to-%s-bridge-policy.useDurableSubscriptions=true" $hub $spoke.name $hub $spoke.name | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.bridges.%s-bridge.bridgeFromAddressPolicies.%s-to-%s-bridge-policy.includeDivertBindings=false" $hub $spoke.name $hub $spoke.name | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.bridges.%s-bridge.bridgeFromAddressPolicies.%s-to-%s-bridge-policy.includes.all.addressMatch=messages.ALL.#" $hub $spoke.name $hub $spoke.name | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.bridges.%s-bridge.bridgeFromAddressPolicies.%s-to-%s-bridge-policy.includes.region.addressMatch=messages.%s.#" $hub $spoke.name $hub $spoke.name $spoke.region | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.bridges.%s-bridge.bridgeFromAddressPolicies.%s-to-%s-bridge-policy.excludes.5604.addressMatch=messages.%s.5604" $hub $spoke.name $hub $spoke.name $spoke.region | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.bridges.%s-bridge.bridgeToAddressPolicies.%s-to-%s-bridge-policy.useDurableSubscriptions=true" $hub $spoke.name $spoke.name $hub | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.bridges.%s-bridge.bridgeToAddressPolicies.%s-to-%s-bridge-policy.includeDivertBindings=false" $hub $spoke.name $spoke.name $hub | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.bridges.%s-bridge.bridgeToAddressPolicies.%s-to-%s-bridge-policy.includes.wild.addressMatch=messages.#" $hub $spoke.name $spoke.name $hub | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.bridges.%s-bridge.bridgeToAddressPolicies.%s-to-%s-bridge-policy.excludes.all.addressMatch=messages.ALL.#" $hub $spoke.name $spoke.name $hub | quote) -}}
+{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.bridges.%s-bridge.bridgeToAddressPolicies.%s-to-%s-bridge-policy.excludes.region.addressMatch=messages.%s.#" $hub $spoke.name $spoke.name $hub $spoke.region | quote) -}}
 {{- end }}
 {{- end }}
 

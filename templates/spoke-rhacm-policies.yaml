@@ -45,12 +45,12 @@ spec:
                 apiVersion: operators.coreos.com/v1alpha1
                 kind: Subscription
                 metadata:
-                  name: amq-broker-rhel8
+                  name: {{ .Values.amqBrokerOperator.name }}
                   namespace: {{ .Values.global.namespace }}
                 spec:
                   channel: {{ .Values.amqBrokerOperator.channel | quote }}
                   installPlanApproval: Automatic
-                  name: amq-broker-rhel8
+                  name: {{ .Values.amqBrokerOperator.name }}
                   source: {{ .Values.amqBrokerOperator.source }}
                   sourceNamespace: openshift-marketplace
 ---

@@ -1,0 +1,46 @@
+{
+  "$comment": "Upgrade AMQ Broker to 7.14.1 (amq-broker-rhel9) and add AMQP bridge properties to Mode 2 SNO helper",
+  "authority_id": "120",
+  "criteria": [
+    {
+      "$comment": "values.yaml has amqBrokerOperator.name set to amq-broker-rhel9",
+      "check": "command_exit",
+      "target": "grep -q 'name: \"amq-broker-rhel9\"' values.yaml"
+    },
+    {
+      "$comment": "values.yaml has amqBrokerOperator.channel set to 7.14.x",
+      "check": "command_exit",
+      "target": "grep -q 'channel: \"7.14.x\"' values.yaml"
+    },
+    {
+      "$comment": "amq-broker-operator-sub.yaml uses .Values.amqBrokerOperator.name",
+      "check": "command_exit",
+      "target": "grep -q 'amqBrokerOperator.name' templates/amq-broker-operator-sub.yaml"
+    },
+    {
+      "$comment": "edge-broker-policies.yaml uses .Values.amqBrokerOperator.name",
+      "check": "command_exit",
+      "target": "grep -q 'amqBrokerOperator.name' templates/edge-broker-policies.yaml"
+    },
+    {
+      "$comment": "spoke-rhacm-policies.yaml uses .Values.amqBrokerOperator.name",
+      "check": "command_exit",
+      "target": "grep -q 'amqBrokerOperator.name' templates/spoke-rhacm-policies.yaml"
+    },
+    {
+      "$comment": "_helpers.tpl snoFederationBrokerProperties generates bridge properties",
+      "check": "command_exit",
+      "target": "grep -q 'bridges' templates/_helpers.tpl"
+    },
+    {
+      "$comment": "No hard-coded amq-broker-rhel8 references remain in templates",
+      "check": "command_exit",
+      "target": "! grep -rq 'amq-broker-rhel8' templates/"
+    },
+    {
+      "$comment": "Internal blog document exists",
+      "check": "command_exit",
+      "target": "test -f docs/amq-bridge-version-compatibility.md"
+    }
+  ]
+}
