@@ -1,0 +1,21 @@
+{
+  "authority_id": "158",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'Creating certificates with corrected ClusterIssuer' scripts/deploy.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'Waiting for certificates to become Ready' scripts/deploy.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'cert-manager-ingress-cert' scripts/deploy.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "bash -n scripts/deploy.sh"
+    }
+  ]
+}

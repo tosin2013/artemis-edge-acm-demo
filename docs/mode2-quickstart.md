@@ -139,8 +139,11 @@ Key milestones to watch for:
 zone is `dns-zone-<sandbox>`. When guid is `east-m28l2`, the template
 produces `dns-zone-east-m28l2` (wrong).
 
-**Recovery:** `deploy.sh` auto-detects and fixes this, then retries. If it
-still fails, run the tier again — `agd provision` is idempotent.
+**Recovery:** `deploy.sh` auto-detects the mismatch after the first failure,
+patches the ClusterIssuer, creates certificates with the correct DNS zone,
+waits for them to become Ready (~30-90s), and retries provision. The retry
+succeeds because the cert-manager workload finds existing Ready certs.
+No manual intervention needed.
 
 ### Quota exceeded
 

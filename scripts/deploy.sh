@@ -264,11 +264,22 @@ if [[ "${AGD_ACTION}" == "provision" ]]; then
   ./bin/agd "${AGD_ACTION}" -g "${AGD_GUID}" -c "${AGD_CONFIG}" -a "${AGD_ACCOUNT}"
   AGD_EXIT=$?
 
+  # ---------------------------------------------------------------------------
   # Mode 2 cert-manager zone fix + retry
-  # The upstream cert-manager template hardcodes dns-zone-{{ guid }}, but the
-  # GCP Cloud DNS zone is dns-zone-{sandbox}. When guid is a composite like
-  # east-sbhtd, the template produces dns-zone-east-sbhtd (wrong). If provision
-  # failed and a kubeconfig exists, fix the zone and re-run provision.
+  # ---------------------------------------------------------------------------
+  # The upstream ocp4_workload_cert_manager role template hardcodes:
+  #   hostedZoneName: {{ ocp4_workload_cert_manager_gcp_dns_zone_name
+  #                      | default('dns-zone-' ~ guid) }}
+  # Our vars override doesn't evaluate in the AgnosticD EE, so it falls back
+  # to dns-zone-{guid} (e.g. dns-zone-east-m28l2). The real GCP zone is
+  # dns-zone-{sandbox} (dns-zone-m28l2). A naive retry that just re-runs agd
+  # provision doesn't help because it recreates the ClusterIssuer from the
+  # template, undoing any patch.
+  #
+  # Fix: patch the ClusterIssuer, create certificates manually, wait for them
+  # to become Ready, THEN re-run provision. The cert-manager workload sees
+  # Ready certs and passes, even though it recreates the wrong ClusterIssuer.
+  # ---------------------------------------------------------------------------
   if [[ $AGD_EXIT -ne 0 && "${DEPLOY_MODE}" == "multi-hub" ]]; then
     KUBECONFIG_FILE="${AGD_ROOT}/../agnosticd-v2-output/${AGD_GUID}/openshift-cluster_${AGD_GUID}_kubeconfig"
     if [[ -f "$KUBECONFIG_FILE" ]]; then
@@ -278,15 +289,17 @@ if [[ "${AGD_ACTION}" == "provision" ]]; then
       if [[ -n "$CURRENT_ZONE" && "$CURRENT_ZONE" != "$CORRECT_ZONE" ]]; then
         echo ""
         echo "=== Cert-manager zone mismatch detected: ${CURRENT_ZONE} != ${CORRECT_ZONE} ==="
-        echo "    Applying fix and retrying provision..."
+        echo "    Fixing ClusterIssuer, issuing certs, then retrying provision..."
         echo ""
 
-        # Patch ClusterIssuer with correct zone
+        # Step 1: Patch ClusterIssuer with correct zone
+        echo "  [1/5] Patching ClusterIssuer..."
         KUBECONFIG="$KUBECONFIG_FILE" oc patch clusterissuer letsencrypt-production-gcp --type=json \
           -p "[{\"op\":\"replace\",\"path\":\"/spec/acme/solvers/0/dns01/cloudDNS/hostedZoneName\",\"value\":\"${CORRECT_ZONE}\"}]" \
           2>&1 || true
 
-        # Remove stale challenges (patch off finalizers so they can be deleted)
+        # Step 2: Remove finalizers from stuck challenges so they can be deleted
+        echo "  [2/5] Cleaning stale challenges and certificate requests..."
         for _ns in openshift-ingress openshift-config; do
           for _ch in $(KUBECONFIG="$KUBECONFIG_FILE" oc get challenges -n "$_ns" \
               -o jsonpath='{.items[*].metadata.name}' 2>/dev/null); do
@@ -294,16 +307,88 @@ if [[ "${AGD_ACTION}" == "provision" ]]; then
               --type=merge -p '{"metadata":{"finalizers":null}}' 2>/dev/null || true
           done
         done
+        KUBECONFIG="$KUBECONFIG_FILE" oc delete challenges -A --all --force --grace-period=0 2>/dev/null || true
+        KUBECONFIG="$KUBECONFIG_FILE" oc delete certificaterequests -A --all --force --grace-period=0 2>/dev/null || true
+        KUBECONFIG="$KUBECONFIG_FILE" oc delete certificates -A --all --force --grace-period=0 2>/dev/null || true
+        sleep 5
 
-        # Delete stale certificates so they are recreated with the correct zone
-        KUBECONFIG="$KUBECONFIG_FILE" oc delete certificates -A --all 2>/dev/null || true
-        KUBECONFIG="$KUBECONFIG_FILE" oc delete certificaterequests -A --all 2>/dev/null || true
-        KUBECONFIG="$KUBECONFIG_FILE" oc delete orders -A --all 2>/dev/null || true
-        KUBECONFIG="$KUBECONFIG_FILE" oc delete challenges -A --all 2>/dev/null || true
-        sleep 10
+        # Step 3: Create fresh Certificate objects
+        echo "  [3/5] Creating certificates with corrected ClusterIssuer..."
+        _INGRESS_DOMAIN=$(KUBECONFIG="$KUBECONFIG_FILE" oc get ingress.config.openshift.io cluster \
+          -o jsonpath='{.spec.domain}' 2>/dev/null)
+        _API_HOST=$(KUBECONFIG="$KUBECONFIG_FILE" oc whoami --show-server 2>/dev/null \
+          | sed 's|https://||;s|:.*||')
 
+        if [[ -n "$_INGRESS_DOMAIN" && -n "$_API_HOST" ]]; then
+          KUBECONFIG="$KUBECONFIG_FILE" oc apply -f - <<CERT_EOF
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: cert-manager-ingress-cert
+  namespace: openshift-ingress
+spec:
+  secretName: cert-manager-ingress-cert
+  duration: 2160h
+  renewBefore: 360h
+  commonName: "*.${_INGRESS_DOMAIN}"
+  dnsNames:
+    - "*.${_INGRESS_DOMAIN}"
+    - "${_INGRESS_DOMAIN}"
+  issuerRef:
+    name: letsencrypt-production-gcp
+    kind: ClusterIssuer
+    group: cert-manager.io
+  usages:
+    - server auth
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: cert-manager-api-cert
+  namespace: openshift-config
+spec:
+  secretName: cert-manager-api-cert
+  duration: 2160h
+  renewBefore: 360h
+  commonName: "${_API_HOST}"
+  dnsNames:
+    - "${_API_HOST}"
+  issuerRef:
+    name: letsencrypt-production-gcp
+    kind: ClusterIssuer
+    group: cert-manager.io
+  usages:
+    - server auth
+CERT_EOF
+
+          # Step 4: Wait for certificates to become Ready (up to 5 min)
+          echo "  [4/5] Waiting for certificates to become Ready..."
+          _CERT_TIMEOUT=300
+          _CERT_ELAPSED=0
+          while [[ $_CERT_ELAPSED -lt $_CERT_TIMEOUT ]]; do
+            _INGRESS_READY=$(KUBECONFIG="$KUBECONFIG_FILE" oc get certificate cert-manager-ingress-cert \
+              -n openshift-ingress -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)
+            _API_READY=$(KUBECONFIG="$KUBECONFIG_FILE" oc get certificate cert-manager-api-cert \
+              -n openshift-config -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)
+            if [[ "$_INGRESS_READY" == "True" && "$_API_READY" == "True" ]]; then
+              echo "        Ingress: Ready, API: Ready (${_CERT_ELAPSED}s)"
+              break
+            fi
+            echo "        ${_CERT_ELAPSED}s — ingress=${_INGRESS_READY:-pending} api=${_API_READY:-pending}"
+            sleep 15
+            _CERT_ELAPSED=$((_CERT_ELAPSED + 15))
+          done
+
+          if [[ "$_INGRESS_READY" != "True" || "$_API_READY" != "True" ]]; then
+            echo "  [WARN] Certificates not Ready after ${_CERT_TIMEOUT}s. Retrying provision anyway."
+          fi
+        else
+          echo "  [WARN] Could not determine cluster domains. Retrying provision without pre-creating certs."
+        fi
+
+        # Step 5: Re-run provision. Cert-manager workload finds Ready certs and passes.
+        echo "  [5/5] Retrying agd provision..."
         echo ""
-        echo "=== Retrying agd provision (idempotent — resumes from failed step)... ==="
         ./bin/agd "${AGD_ACTION}" -g "${AGD_GUID}" -c "${AGD_CONFIG}" -a "${AGD_ACCOUNT}"
         AGD_EXIT=$?
       fi
