@@ -1,5 +1,8 @@
 # Architecture
 
+> See also: [Delivery Mechanisms](delivery-mechanisms.md) — comparison of the
+> four AMQ deployment methods (`templates/`, `acm/`, `ztp/`, `fleet-gitops/`).
+
 Two planes. Do not use “hub” for both.
 
 - **ACM hub** — a management cluster (Global Hub or a regional ACM hub).

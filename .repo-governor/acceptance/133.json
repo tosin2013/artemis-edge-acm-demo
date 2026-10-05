@@ -1,0 +1,17 @@
+{
+  "authority_id": "133",
+  "criteria": [
+    {
+      "check": "file_exists",
+      "target": "CHANGELOG.md"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'version: 0.3.0' Chart.yaml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'appVersion.*7.14' Chart.yaml"
+    }
+  ]
+}

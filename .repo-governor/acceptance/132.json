@@ -1,0 +1,13 @@
+{
+  "authority_id": "132",
+  "criteria": [
+    {
+      "check": "file_exists",
+      "target": "docs/delivery-mechanisms.md"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'Delivery Mechanisms' docs/architecture.md"
+    }
+  ]
+}

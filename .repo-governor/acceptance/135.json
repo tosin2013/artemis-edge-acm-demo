@@ -1,0 +1,13 @@
+{
+  "authority_id": "135",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "test $(git branch | grep -v main | grep -v release/mode-1 | wc -l) -eq 0"
+    },
+    {
+      "check": "command_exit",
+      "target": "test $(git branch -r | grep -v origin/main | grep -v origin/HEAD | grep -v origin/release/mode-1 | wc -l) -eq 0"
+    }
+  ]
+}

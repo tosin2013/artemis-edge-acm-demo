@@ -1,3 +1,23 @@
+# ============================================================================
+# Azure values overlay — REFERENCE ONLY
+# ============================================================================
+# Azure deployment support is not yet implemented.  This file provides
+# Azure-specific machine types and storage classes for future use.
+#
+# What exists:
+#   - This overlay (values-azure.yaml)
+#   - ztp/siteconfigs/sno-azure-template.yaml
+#   - bootstrap.sh config prompt accepts "azure" as cloud_provider
+#
+# What is missing (not yet implemented):
+#   - agnosticd/azure/ vars directory (only agnosticd/gcp/ exists)
+#   - Azure-specific deploy scripts
+#   - scripts/generate-secrets.sh is GCP-specific (service account key)
+#   - Azure deployment documentation
+#
+# See docs/azure-status.md for details.
+# ============================================================================
+
 cloudProvider: azure
 sno:
   instanceType: Standard_D8s_v5

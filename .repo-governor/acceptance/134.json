@@ -1,0 +1,13 @@
+{
+  "authority_id": "134",
+  "criteria": [
+    {
+      "check": "file_exists",
+      "target": "docs/azure-status.md"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'REFERENCE ONLY' values-azure.yaml"
+    }
+  ]
+}
