@@ -19,6 +19,10 @@ Chart version follows SemVer: MAJOR (breaking topology changes) . MINOR
 - `.github/CODEOWNERS`, issue/PR templates, `dependabot.yml` (#131)
 - `CHANGELOG.md` and release/tag convention (#133)
 - `docs/delivery-mechanisms.md` — comparison of the four AMQ delivery mechanisms (#132)
+- `deploy.sh --tier all` — sequential 4-tier Mode 2 provisioning (global → east → central → west) (#155)
+- `scripts/patch-agnosticd-pre-infra.sh` — idempotent AgnosticD pre_infra.yml auto-patch (#157)
+- `docs/mode2-quickstart.md` — dedicated Mode 2 deployment guide with one-command deploy, recovery, and validation (#156)
+- `onboard.yml` setup step for AgnosticD patching, `post_validation_command_multihub` updated to use `--tier all` (#155, #157)
 
 ### Fixed
 - Removed phantom `hub-02` references from `values.yaml` and `generate-tls.sh` (#128)
