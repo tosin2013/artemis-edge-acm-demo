@@ -17,6 +17,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 KUBECONFIG_PATH="${KUBECONFIG:-}"
+DEPLOY_MODE=""
 PASSED=0
 FAILED=0
 WARNED=0
@@ -25,9 +26,16 @@ TOTAL=0
 while [[ $# -gt 0 ]]; do
   case $1 in
     --kubeconfig) KUBECONFIG_PATH="$2"; shift 2 ;;
+    --mode) DEPLOY_MODE="$2"; shift 2 ;;
     *) echo "Unknown option: $1"; exit 1 ;;
   esac
 done
+
+# Auto-detect mode from config.yml if not passed via CLI
+if [[ -z "$DEPLOY_MODE" && -f "${PROJECT_ROOT}/config.yml" ]]; then
+  DEPLOY_MODE=$(python3 -c "import yaml; print(yaml.safe_load(open('${PROJECT_ROOT}/config.yml')).get('mode','single-hub'))" 2>/dev/null) || true
+fi
+: "${DEPLOY_MODE:=single-hub}"
 
 if [[ -n "$KUBECONFIG_PATH" ]]; then
   export KUBECONFIG="$KUBECONFIG_PATH"
@@ -88,14 +96,20 @@ check "AMQ Broker operator Succeeded" true \
 check "hub-01-broker pod Running" true \
   "oc get pod -n artemis -l ActiveMQArtemis=hub-01-broker -o jsonpath='{.items[0].status.phase}' 2>/dev/null | grep -q Running"
 
-check "spoke-01-broker pod Running" true \
-  "oc get pod -n artemis -l ActiveMQArtemis=spoke-01-broker -o jsonpath='{.items[0].status.phase}' 2>/dev/null | grep -q Running"
+# Spoke broker checks: Mode 1 only. In Mode 2, edge brokers run on SNO
+# clusters — not on the hub — so checking for them here would be false failures.
+if [[ "$DEPLOY_MODE" == "single-hub" ]]; then
+  check "spoke-01-broker pod Running (Mode 1)" true \
+    "oc get pod -n artemis -l ActiveMQArtemis=spoke-01-broker -o jsonpath='{.items[0].status.phase}' 2>/dev/null | grep -q Running"
 
-check "spoke-02-broker pod Running" true \
-  "oc get pod -n artemis -l ActiveMQArtemis=spoke-02-broker -o jsonpath='{.items[0].status.phase}' 2>/dev/null | grep -q Running"
+  check "spoke-02-broker pod Running (Mode 1)" true \
+    "oc get pod -n artemis -l ActiveMQArtemis=spoke-02-broker -o jsonpath='{.items[0].status.phase}' 2>/dev/null | grep -q Running"
 
-check "spoke-03-broker pod Running" true \
-  "oc get pod -n artemis -l ActiveMQArtemis=spoke-03-broker -o jsonpath='{.items[0].status.phase}' 2>/dev/null | grep -q Running"
+  check "spoke-03-broker pod Running (Mode 1)" true \
+    "oc get pod -n artemis -l ActiveMQArtemis=spoke-03-broker -o jsonpath='{.items[0].status.phase}' 2>/dev/null | grep -q Running"
+else
+  echo "  [SKIP] spoke broker checks (Mode 2 — edge brokers run on SNO clusters)"
+fi
 
 check "keycloak namespace exists" true \
   "oc get ns keycloak"

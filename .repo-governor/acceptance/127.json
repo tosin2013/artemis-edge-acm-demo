@@ -1,0 +1,16 @@
+{
+  "$comment": "validate-deployment.sh must detect deployment mode and skip spoke broker checks in Mode 2 (multi-hub) where edge brokers run on SNO clusters, not the hub.",
+  "authority_id": "127",
+  "criteria": [
+    {
+      "$comment": "validate-deployment.sh accepts a --mode flag",
+      "check": "command_exit",
+      "target": "grep -q '\\-\\-mode.*DEPLOY_MODE' scripts/validate-deployment.sh"
+    },
+    {
+      "$comment": "spoke broker checks are conditional on single-hub mode",
+      "check": "command_exit",
+      "target": "grep -q 'DEPLOY_MODE.*single-hub' scripts/validate-deployment.sh"
+    }
+  ]
+}
