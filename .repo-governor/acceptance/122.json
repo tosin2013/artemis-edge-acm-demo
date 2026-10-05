@@ -1,0 +1,11 @@
+{
+  "$comment": "helm lint must pass (exit 0) — the fix removed aggressive whitespace trimming from a Helm comment block in workshop-user-rbac.yaml that collapsed a YAML document separator into the following apiVersion line.",
+  "authority_id": "122",
+  "criteria": [
+    {
+      "$comment": "helm lint exits 0 (no chart failures)",
+      "check": "command_exit",
+      "target": "helm lint ."
+    }
+  ]
+}

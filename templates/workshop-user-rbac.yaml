@@ -137,10 +137,10 @@ subjects:
   {{- include "artemis-edge.workshopUserSubjects" . | nindent 2 }}
 {{- end }}
 ---
-{{- /* Broad read-only ClusterRole for all demo modules (1–8).
-       Covers ACM policies, AMQ CRDs, routes, placements, Hive CDs,
-       operator subscriptions, ArgoCD apps, and core resources the
-       modules ask students to inspect. */ -}}
+{{/* Broad read-only ClusterRole for all demo modules (1–8).
+     Covers ACM policies, AMQ CRDs, routes, placements, Hive CDs,
+     operator subscriptions, ArgoCD apps, and core resources the
+     modules ask students to inspect. */ -}}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
