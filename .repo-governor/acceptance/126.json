@@ -1,0 +1,16 @@
+{
+  "$comment": "deploy.sh must read agnosticd_root from config.yml when AGD_ROOT env var is not set.",
+  "authority_id": "126",
+  "criteria": [
+    {
+      "$comment": "deploy.sh reads agnosticd_root from config.yml",
+      "check": "command_exit",
+      "target": "grep -q 'agnosticd_root' scripts/deploy.sh"
+    },
+    {
+      "$comment": "deploy.sh expands tilde from config.yml paths",
+      "check": "command_exit",
+      "target": "grep -q 'AGD_ROOT=.*HOME' scripts/deploy.sh"
+    }
+  ]
+}

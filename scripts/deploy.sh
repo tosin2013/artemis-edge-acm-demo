@@ -27,7 +27,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # AgnosticD v2 directory (where bin/agd lives)
+# Priority: $AGD_ROOT env var > config.yml agnosticd_root > default path
+if [[ -z "${AGD_ROOT:-}" && -f "${PROJECT_ROOT}/config.yml" ]]; then
+  AGD_ROOT=$(python3 -c "import yaml; print(yaml.safe_load(open('${PROJECT_ROOT}/config.yml')).get('agnosticd_root',''))" 2>/dev/null) || true
+fi
 AGD_ROOT="${AGD_ROOT:-${HOME}/Development/agnosticd-v2}"
+# Expand ~ if present (config.yml may store ~/Development/...)
+AGD_ROOT="${AGD_ROOT/#\~/$HOME}"
 
 # Config name used by agd to find the vars file in agnosticd-v2-vars/
 # Overridden below when --mode multi-hub is selected.
@@ -186,10 +192,10 @@ case "${AGD_ACTION}" in
     echo "=== Artemis Edge ACM Demo — Post-Deploy Validation ==="
     KUBECONFIG_FILE="${AGD_ROOT}/../agnosticd-v2-output/${AGD_GUID}/openshift-cluster_${AGD_GUID}_kubeconfig"
     if [[ -f "$KUBECONFIG_FILE" ]]; then
-      exec "${SCRIPT_DIR}/validate-deployment.sh" --kubeconfig "$KUBECONFIG_FILE"
+      exec "${SCRIPT_DIR}/validate-deployment.sh" --kubeconfig "$KUBECONFIG_FILE" --mode "${DEPLOY_MODE}"
     else
       echo "WARN: kubeconfig not found at ${KUBECONFIG_FILE}, using current KUBECONFIG"
-      exec "${SCRIPT_DIR}/validate-deployment.sh"
+      exec "${SCRIPT_DIR}/validate-deployment.sh" --mode "${DEPLOY_MODE}"
     fi
     ;;
   *) echo "ERROR: Unknown action '${AGD_ACTION}'. Use: provision, destroy, stop, start, status, validate-deployment" >&2; exit 1 ;;
