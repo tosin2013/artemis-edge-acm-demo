@@ -1,0 +1,17 @@
+{
+  "authority_id": "155",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'tier all' scripts/deploy.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q '\\-\\-tier all' onboard.yml"
+    },
+    {
+      "check": "command_exit",
+      "target": "bash -n scripts/deploy.sh"
+    }
+  ]
+}

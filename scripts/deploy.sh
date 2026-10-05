@@ -83,7 +83,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --sandbox ID      Mode 2: OpenEnv sandbox (5-char). agd GUID becomes {region}-{sandbox} (cen not central)"
       echo "  --account ACCOUNT  Secrets account name (default: openenv-gcp)"
       echo "  --mode MODE        Deployment mode: single-hub (default) or multi-hub"
-      echo "  --tier TIER        Mode 2: global (default), east, central, west (regional aliases east)"
+      echo "  --tier TIER        Mode 2: global (default), east, central, west, all (sequential)"
       echo "  --action ACTION    AgnosticD action: provision, destroy, stop, start, status"
       echo "  --destroy          Shorthand for --action destroy"
       echo "  --stop             Shorthand for --action stop"
@@ -95,6 +95,7 @@ while [[ $# -gt 0 ]]; do
       echo ""
       echo "Examples:"
       echo "  $0 --guid 725j2 --account openenv-gcp"
+      echo "  $0 --mode multi-hub --tier all --sandbox abc12 --account openenv-gcp"
       echo "  $0 --mode multi-hub --tier global --sandbox abc12 --account openenv-gcp"
       echo "  $0 --mode multi-hub --tier east --sandbox abc12 --account openenv-gcp"
       echo "  $0 --destroy --guid 725j2"
@@ -111,6 +112,41 @@ done
 # Central token is cen: central-{sandbox} FQDN is 65 characters.
 # Secrets stay on openenv-${SANDBOX}.
 if [[ "${DEPLOY_MODE}" == "multi-hub" ]]; then
+  # --tier all: provision all 4 tiers sequentially (global → east → central → west)
+  if [[ "${HUB_TIER}" == "all" ]]; then
+    _SANDBOX="${SANDBOX:-${AGD_GUID}}"
+    if [[ -z "${_SANDBOX}" ]]; then
+      echo "ERROR: --tier all needs --sandbox <OpenEnv id> (or --guid as sandbox)." >&2
+      exit 1
+    fi
+    echo "============================================================"
+    echo "  Mode 2 — Sequential provisioning of all 4 tiers"
+    echo "  Sandbox: ${_SANDBOX}  |  Action: ${AGD_ACTION}"
+    echo "  Order: global → east → central → west"
+    echo "============================================================"
+    echo ""
+    _ALL_EXIT=0
+    for _tier in global east central west; do
+      echo ">>> Tier: ${_tier} ($(date '+%H:%M:%S')) ..."
+      "$0" --mode multi-hub --tier "${_tier}" --sandbox "${_SANDBOX}" \
+           --account "${AGD_ACCOUNT}" --action "${AGD_ACTION}" || {
+        _ALL_EXIT=$?
+        echo ""
+        echo "ERROR: Tier '${_tier}' failed (exit ${_ALL_EXIT})."
+        echo "Fix the issue, then resume from the failed tier:"
+        echo "  $0 --mode multi-hub --tier ${_tier} --sandbox ${_SANDBOX} --account ${AGD_ACCOUNT}"
+        echo "Or re-run all remaining tiers from '${_tier}'."
+        exit ${_ALL_EXIT}
+      }
+      echo ">>> Tier ${_tier} complete ($(date '+%H:%M:%S'))"
+      echo ""
+    done
+    echo "============================================================"
+    echo "  All 4 tiers provisioned successfully!"
+    echo "============================================================"
+    exit 0
+  fi
+
   if [[ "${HUB_TIER}" == "regional" ]]; then
     HUB_TIER="east"
   fi

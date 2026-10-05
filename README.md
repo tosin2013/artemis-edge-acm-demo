@@ -88,6 +88,8 @@ Use this when switching to a new GCP sandbox — no manual editing needed.
 
 See [docs/architecture.md](docs/architecture.md) and [agnosticd/gcp/MODE2.md](agnosticd/gcp/MODE2.md). The architecture blueprint PDF is a local file (`AMQ_Fleet_Control_Blueprint.pdf`), not in git. SNOs are never created at `agd provision` time.
 
+> **Mode 2 users:** See the [Mode 2 Quickstart](docs/mode2-quickstart.md) for a dedicated multi-hub deployment guide.
+
 ## How It Works
 
 ```

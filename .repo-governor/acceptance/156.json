@@ -1,0 +1,13 @@
+{
+  "authority_id": "156",
+  "criteria": [
+    {
+      "check": "file_exists",
+      "target": "docs/mode2-quickstart.md"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'Mode 2 Quickstart' README.md"
+    }
+  ]
+}

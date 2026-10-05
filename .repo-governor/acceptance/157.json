@@ -1,0 +1,17 @@
+{
+  "authority_id": "157",
+  "criteria": [
+    {
+      "check": "file_exists",
+      "target": "scripts/patch-agnosticd-pre-infra.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "test -x scripts/patch-agnosticd-pre-infra.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'patch-agnosticd-pre-infra' onboard.yml"
+    }
+  ]
+}

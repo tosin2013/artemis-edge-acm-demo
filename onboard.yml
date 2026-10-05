@@ -133,6 +133,10 @@ setup_steps:
     check: "python3 -c \"import yaml; s=yaml.safe_load(open('${agnosticd_root}/../agnosticd-v2-secrets/secrets-${agd_account}.yml')); assert '${agd_guid}' in s.get('base_domain','')\""
     action: "scripts/generate-secrets.sh ${gcp_key_path} ${agd_guid} ${agd_account} ${agnosticd_root}"
 
+  - name: "Patch AgnosticD pre_infra.yml"
+    check: "grep -q 'svc-acct-creds.json' ${agnosticd_root}/ansible/configs/openshift-cluster/pre_infra.yml 2>/dev/null"
+    action: "scripts/patch-agnosticd-pre-infra.sh ${agnosticd_root}"
+
   - name: "Generate TLS certificates"
     check: "test -f artemis/tls/hub-01-broker-keystore.jks"
     action: "KC_DOMAIN=${hub_domain} HUB01_DOMAIN=${hub_domain} HUB02_DOMAIN=${hub02_domain:-${hub_domain}} ./scripts/generate-tls.sh"
@@ -472,4 +476,4 @@ modes:
     # Mode 1:
     post_validation_command: "./scripts/deploy.sh --guid ${agd_guid} --account ${agd_account}"
     # Mode 2 (when mode=multi-hub):
-    post_validation_command_multihub: "./scripts/deploy.sh --mode multi-hub --sandbox ${agd_guid} --account ${agd_account}"
+    post_validation_command_multihub: "./scripts/deploy.sh --mode multi-hub --tier all --sandbox ${agd_guid} --account ${agd_account}"
