@@ -133,7 +133,7 @@ ocp4_workload_cert_manager_install_ingress_certificates: true
 ocp4_workload_cert_manager_install_api_certificates: false
 # The GCP DNS zone is named after the sandbox ID (last segment of guid),
 # not the full composed guid. In Mode 2, guid is {tier}-{sandbox}.
-ocp4_workload_cert_manager_gcp_dns_zone_name: "dns-zone-{{ guid.split('-')[-1] if '-' in guid else guid }}"
+ocp4_workload_cert_manager_gcp_dns_zone_name: "dns-zone-{{ guid | regex_replace('^.*-', '') }}"
 
 # --- authentication ---
 ocp4_workload_authentication_htpasswd_user_count: 2
