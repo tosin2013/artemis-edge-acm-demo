@@ -620,13 +620,27 @@ run_quota_checks() {
     echo ""
 
     local total=0 passed=0
-    local i label needed limit_cmd usage_cmd fail_message
+    local i label needed limit_cmd usage_cmd fail_message condition
     for (( i=0; i<count; i++ )); do
         label="$(manifest_get ".quota_checks[$i].label")"
         needed="$(manifest_get ".quota_checks[$i].needed")"
         limit_cmd="$(manifest_get ".quota_checks[$i].limit_command")"
         usage_cmd="$(manifest_get ".quota_checks[$i].usage_command")"
         fail_message="$(manifest_get ".quota_checks[$i].fail_message")"
+        condition="$(manifest_get ".quota_checks[$i].condition")"
+
+        # Evaluate condition — skip this check if condition is set and not met.
+        # Condition format: "${var} == value" (after variable substitution).
+        if [[ -n "$condition" ]]; then
+            condition="$(substitute_vars "$condition")"
+            local cond_lhs cond_rhs
+            cond_lhs="$(echo "$condition" | sed 's/ *==.*//' | xargs)"
+            cond_rhs="$(echo "$condition" | sed 's/.*== *//' | xargs)"
+            if [[ "$cond_lhs" != "$cond_rhs" ]]; then
+                skip "${label} (condition not met: ${VARS[mode]:-single-hub} != ${cond_rhs})"
+                continue
+            fi
+        fi
 
         limit_cmd="$(substitute_vars "$limit_cmd")"
         usage_cmd="$(substitute_vars "$usage_cmd")"
@@ -739,8 +753,15 @@ main() {
     show_post_setup
 
     if [[ "$MODE" == "prod" && "$validation_passed" == "true" && "$quota_passed" == "true" ]]; then
-        local deploy_cmd
-        deploy_cmd="$(manifest_get ".modes.prod.post_validation_command")"
+        local deploy_cmd=""
+        # Select mode-aware deploy command: multi-hub uses a separate command
+        # if declared in onboard.yml, falling back to the default command.
+        if [[ "${VARS[mode]:-single-hub}" == "multi-hub" ]]; then
+            deploy_cmd="$(manifest_get ".modes.prod.post_validation_command_multihub")"
+        fi
+        if [[ -z "$deploy_cmd" ]]; then
+            deploy_cmd="$(manifest_get ".modes.prod.post_validation_command")"
+        fi
         if [[ -n "$deploy_cmd" ]]; then
             deploy_cmd="$(substitute_vars "$deploy_cmd")"
             echo ""

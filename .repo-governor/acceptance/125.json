@@ -1,0 +1,16 @@
+{
+  "$comment": "bootstrap.sh must evaluate quota_checks condition field (skip when mode != multi-hub) and dispatch to post_validation_command_multihub when mode is multi-hub.",
+  "authority_id": "125",
+  "criteria": [
+    {
+      "$comment": "bootstrap.sh reads the condition field from quota checks",
+      "check": "command_exit",
+      "target": "grep -q 'condition.*manifest_get.*condition' bootstrap.sh"
+    },
+    {
+      "$comment": "bootstrap.sh reads post_validation_command_multihub for multi-hub deploy",
+      "check": "command_exit",
+      "target": "grep -q 'post_validation_command_multihub' bootstrap.sh"
+    }
+  ]
+}
