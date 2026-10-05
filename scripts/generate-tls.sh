@@ -10,7 +10,7 @@ mkdir -p "$TLS_DIR" "$KC_TLS_DIR"
 
 : "${KC_DOMAIN:?KC_DOMAIN must be set}"
 : "${HUB01_DOMAIN:?HUB01_DOMAIN must be set}"
-: "${HUB02_DOMAIN:=${HUB01_DOMAIN}}"
+: "${HUB02_DOMAIN:=}"  # hub-02 removed from demo topology; kept for backward compat if set
 : "${SPOKE01_DOMAIN:=${HUB01_DOMAIN}}"
 : "${SPOKE02_DOMAIN:=${HUB01_DOMAIN}}"
 : "${SPOKE03_DOMAIN:=${HUB01_DOMAIN}}"
@@ -61,7 +61,9 @@ generate_broker_tls() {
 
 # --- Hub brokers ---
 generate_broker_tls "hub-01" "$HUB01_DOMAIN"
-generate_broker_tls "hub-02" "$HUB02_DOMAIN"
+if [[ -n "${HUB02_DOMAIN}" ]]; then
+  generate_broker_tls "hub-02" "$HUB02_DOMAIN"
+fi
 
 # --- Spoke brokers ---
 generate_broker_tls "spoke-01" "$SPOKE01_DOMAIN"
@@ -69,8 +71,10 @@ generate_broker_tls "spoke-02" "$SPOKE02_DOMAIN"
 generate_broker_tls "spoke-03" "$SPOKE03_DOMAIN"
 
 # Import hub certs into spoke truststores
+HUBS=(hub-01)
+[[ -n "${HUB02_DOMAIN}" ]] && HUBS+=(hub-02)
 for SPOKE in spoke-01 spoke-02 spoke-03; do
-  for HUB in hub-01 hub-02; do
+  for HUB in "${HUBS[@]}"; do
     keytool -import -noprompt -alias "${HUB}-broker" \
       -keystore "${TLS_DIR}/${SPOKE}-broker-truststore.jks" -storepass "password" \
       -file "${TLS_DIR}/${HUB}-broker-certificate.crt" 2>/dev/null
@@ -79,7 +83,8 @@ done
 echo "[OK] Hub certificates imported into spoke truststores"
 
 # --- Client truststore ---
-for BROKER in hub-01 hub-02 spoke-01 spoke-02 spoke-03; do
+BROKERS=("${HUBS[@]}" spoke-01 spoke-02 spoke-03)
+for BROKER in "${BROKERS[@]}"; do
   keytool -import -noprompt -alias "${BROKER}-broker" \
     -keystore "${TLS_DIR}/client-truststore.jks" -storepass "password" \
     -file "${TLS_DIR}/${BROKER}-broker-certificate.crt" 2>/dev/null

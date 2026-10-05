@@ -1,0 +1,17 @@
+{
+  "authority_id": "128",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "! grep -q 'hub-02' values.yaml"
+    },
+    {
+      "check": "command_exit",
+      "target": "helm lint . 2>&1 | grep -q '0 chart(s) failed'"
+    },
+    {
+      "check": "command_exit",
+      "target": "bash -n scripts/generate-tls.sh"
+    }
+  ]
+}

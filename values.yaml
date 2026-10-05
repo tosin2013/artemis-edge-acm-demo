@@ -30,22 +30,16 @@ edgeBrokers:
     hubConnections:
       - hub: hub-01
         autoStart: true
-      - hub: hub-02
-        autoStart: false
   - name: spoke-02
     region: NJ
     hubConnections:
       - hub: hub-01
         autoStart: true
-      - hub: hub-02
-        autoStart: false
   - name: spoke-03
     region: CT
     hubConnections:
       - hub: hub-01
         autoStart: true
-      - hub: hub-02
-        autoStart: false
 
 edgeBrokerDefaults:
   adminUser: admin
