@@ -1,0 +1,21 @@
+{
+  "$comment": ".helmignore must exclude gcp-key*.json, config.yml, bootstrap.sh, onboard.yml, and TLS directories so that helm package does not bundle secrets or non-chart files into the chart tarball.",
+  "authority_id": "124",
+  "criteria": [
+    {
+      "$comment": "gcp-key exclusion is in .helmignore",
+      "check": "command_exit",
+      "target": "grep -q 'gcp-key' .helmignore"
+    },
+    {
+      "$comment": "config.yml exclusion is in .helmignore",
+      "check": "command_exit",
+      "target": "grep -q 'config.yml' .helmignore"
+    },
+    {
+      "$comment": "bootstrap.sh exclusion is in .helmignore",
+      "check": "command_exit",
+      "target": "grep -q 'bootstrap.sh' .helmignore"
+    }
+  ]
+}

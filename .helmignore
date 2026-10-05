@@ -18,3 +18,27 @@ acm/
 *.adoc
 .venv/
 .cache/
+
+# Secrets and local config (not in chart package)
+gcp-key*.json
+config.yml
+deployment-info.*
+notes.md
+
+# Operational tooling (not chart artifacts)
+bootstrap.sh
+onboard.yml
+
+# TLS certificate material
+artemis/
+keycloak/
+
+# Content directories
+blogs/
+
+# Symlinks
+site.yml
+
+# Repo metadata
+.repo-governor.json
+.gitignore
