@@ -153,13 +153,11 @@ subjects:
     apiGroup: policy.open-cluster-management.io
     kind: Policy
 ---
-{{- /*
-Mode 1 ApplicationSet does not generate spoke apps (Placement has no
+{{/* Mode 1 ApplicationSet does not generate spoke apps (Placement has no
 ManagedClusterSetBinding in ztp-policies). Do not bind ztp-policies: that
 would also deploy the full hub Helm chart onto SNOs via ApplicationSet.
 AMQ on SNOs is ConfigurationPolicy in edge-broker-policies (#48 option C).
-Student producer RBAC stays in workshop-policies.
-*/ -}}
+Student producer RBAC stays in workshop-policies. */ -}}
 apiVersion: v1
 kind: Namespace
 metadata:

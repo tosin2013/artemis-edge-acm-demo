@@ -1,0 +1,25 @@
+{
+  "authority_id": "131",
+  "criteria": [
+    {
+      "check": "file_exists",
+      "target": ".github/CODEOWNERS"
+    },
+    {
+      "check": "file_exists",
+      "target": ".github/ISSUE_TEMPLATE/bug_report.md"
+    },
+    {
+      "check": "file_exists",
+      "target": ".github/ISSUE_TEMPLATE/feature_request.md"
+    },
+    {
+      "check": "file_exists",
+      "target": ".github/PULL_REQUEST_TEMPLATE.md"
+    },
+    {
+      "check": "file_exists",
+      "target": ".github/dependabot.yml"
+    }
+  ]
+}

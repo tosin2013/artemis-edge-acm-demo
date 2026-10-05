@@ -1,0 +1,33 @@
+{
+  "authority_id": "129",
+  "criteria": [
+    {
+      "check": "file_exists",
+      "target": "values.schema.json"
+    },
+    {
+      "check": "file_exists",
+      "target": "templates/NOTES.txt"
+    },
+    {
+      "check": "file_exists",
+      "target": "templates/tests/test-connection.yaml"
+    },
+    {
+      "check": "command_exit",
+      "target": "helm lint . 2>&1 | grep -q '0 chart(s) failed'"
+    },
+    {
+      "check": "command_exit",
+      "target": "helm lint . -f values-mode2.yaml 2>&1 | grep -q '0 chart(s) failed'"
+    },
+    {
+      "check": "command_exit",
+      "target": "helm lint . -f values-mode2-global.yaml 2>&1 | grep -q '0 chart(s) failed'"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'values-mode2' .github/workflows/helm-validate.yaml"
+    }
+  ]
+}

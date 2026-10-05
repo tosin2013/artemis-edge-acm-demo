@@ -5,19 +5,33 @@ on:
     branches: [main]
     paths:
       - 'Chart.yaml'
-      - 'values.yaml'
+      - 'values*.yaml'
+      - 'values.schema.json'
       - 'templates/**'
       - '.github/workflows/helm-validate.yaml'
   pull_request:
     branches: [main]
     paths:
       - 'Chart.yaml'
-      - 'values.yaml'
+      - 'values*.yaml'
+      - 'values.schema.json'
       - 'templates/**'
 
 jobs:
   lint-and-template:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: "Mode 1 (single-hub)"
+            values: "values.yaml"
+            lint_args: ""
+          - name: "Mode 2 (regional hub)"
+            values: "values.yaml,values-mode2.yaml"
+            lint_args: "-f values-mode2.yaml"
+          - name: "Mode 2 (Global Hub)"
+            values: "values.yaml,values-mode2-global.yaml"
+            lint_args: "-f values-mode2-global.yaml"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,11 +41,16 @@ jobs:
         with:
           version: 'latest'
 
-      - name: Helm lint
-        run: helm lint .
+      - name: "Helm lint — ${{ matrix.name }}"
+        run: helm lint . ${{ matrix.lint_args }}
 
-      - name: Helm template (smoke test)
+      - name: "Helm template — ${{ matrix.name }}"
         run: |
-          helm template test . \
+          VALUES_FILES=""
+          IFS=',' read -ra FILES <<< "${{ matrix.values }}"
+          for f in "${FILES[@]}"; do
+            VALUES_FILES="$VALUES_FILES -f $f"
+          done
+          helm template test . $VALUES_FILES \
             --set global.clusterDomain=ci-test.example.com \
             --set global.clusterApiUrl=https://api.ci-test.example.com:6443

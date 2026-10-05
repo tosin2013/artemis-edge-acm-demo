@@ -1,0 +1,37 @@
+{{- if gt (len .Values.hubBrokers) 0 }}
+{{- range .Values.hubBrokers }}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ $.Release.Name }}-test-{{ .name }}"
+  namespace: {{ $.Values.global.namespace }}
+  labels:
+    {{- include "artemis-edge.labels" $ | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: test-amqp
+      image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+      command:
+        - /bin/sh
+        - -c
+        - |
+          echo "Testing connectivity to {{ .name }}-broker..."
+          # Verify the broker pod exists and is running
+          if curl -sf -o /dev/null "http://{{ .name }}-broker-wconsj-0-svc.{{ $.Values.global.namespace }}.svc:8161/console" 2>/dev/null; then
+            echo "PASS: {{ .name }}-broker web console reachable"
+            exit 0
+          else
+            echo "INFO: Web console not reachable (may require TLS). Checking DNS..."
+            # Fall back to DNS resolution check
+            nslookup {{ .name }}-broker-hdls-svc.{{ $.Values.global.namespace }}.svc.cluster.local 2>/dev/null && \
+              echo "PASS: {{ .name }}-broker DNS resolves" && exit 0
+            echo "FAIL: {{ .name }}-broker not found"
+            exit 1
+          fi
+{{- end }}
+{{- end }}

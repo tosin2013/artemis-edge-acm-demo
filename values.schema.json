@@ -1,0 +1,284 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "artemis-edge-acm-demo values",
+  "description": "JSON Schema for the artemis-edge-acm-demo Helm chart values",
+  "type": "object",
+  "required": ["global", "hubBrokers", "edgeBrokers"],
+  "properties": {
+    "global": {
+      "type": "object",
+      "required": ["mode", "namespace"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["single-hub", "multi-hub"],
+          "description": "Deployment mode: single-hub (Mode 1) or multi-hub (Mode 2)"
+        },
+        "hubTier": {
+          "type": "string",
+          "enum": ["regional", "global"],
+          "description": "Hub tier for Mode 2 deployments"
+        },
+        "region": {
+          "type": "string",
+          "description": "Region identifier for Mode 2 regional hubs (e.g. east, central, west)"
+        },
+        "clusterDomain": {
+          "type": "string",
+          "description": "OpenShift cluster apps domain (e.g. apps.cluster.example.com)"
+        },
+        "clusterApiUrl": {
+          "type": "string",
+          "description": "OpenShift API URL (e.g. https://api.cluster.example.com:6443)"
+        },
+        "namespace": {
+          "type": "string",
+          "default": "artemis",
+          "description": "Target namespace for AMQ broker resources"
+        }
+      }
+    },
+    "amqBrokerOperator": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "name": {
+          "type": "string",
+          "default": "amq-broker-rhel9"
+        },
+        "channel": {
+          "type": "string",
+          "default": "7.14.x"
+        },
+        "source": {
+          "type": "string",
+          "default": "redhat-operators"
+        }
+      }
+    },
+    "hubBrokers": {
+      "type": "array",
+      "description": "Hub AMQ broker instances. Empty array for Global Hub tier.",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^hub-[0-9]+$"
+          },
+          "adminUser": { "type": "string", "default": "admin" },
+          "adminPassword": { "type": "string", "default": "admin" },
+          "replicas": { "type": "integer", "minimum": 1, "default": 1 },
+          "persistenceEnabled": { "type": "boolean", "default": false },
+          "clusterDomain": {
+            "type": "string",
+            "description": "Override cluster domain for this hub broker"
+          },
+          "resources": { "$ref": "#/$defs/resources" }
+        }
+      }
+    },
+    "edgeBrokers": {
+      "type": "array",
+      "description": "Edge (spoke) AMQ broker instances. Empty array for Global Hub tier.",
+      "items": {
+        "type": "object",
+        "required": ["name", "region", "hubConnections"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^spoke-[0-9]+$"
+          },
+          "region": {
+            "type": "string",
+            "description": "Region code for address routing (e.g. NY, NJ, CT)"
+          },
+          "hubConnections": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["hub", "autoStart"],
+              "properties": {
+                "hub": {
+                  "type": "string",
+                  "description": "Must match a name in hubBrokers"
+                },
+                "autoStart": { "type": "boolean" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "edgeBrokerDefaults": {
+      "type": "object",
+      "properties": {
+        "adminUser": { "type": "string", "default": "admin" },
+        "adminPassword": { "type": "string", "default": "admin" },
+        "replicas": { "type": "integer", "minimum": 1, "default": 1 },
+        "persistenceEnabled": { "type": "boolean", "default": false },
+        "resources": { "$ref": "#/$defs/resources" }
+      }
+    },
+    "keycloak": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "namespace": { "type": "string", "default": "keycloak" },
+        "instances": { "type": "integer", "minimum": 1, "default": 1 },
+        "db": {
+          "type": "object",
+          "properties": {
+            "username": { "type": "string" },
+            "password": { "type": "string" },
+            "database": { "type": "string" }
+          }
+        },
+        "clientSecret": { "type": "string" }
+      }
+    },
+    "monitoring": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "acmObservability": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true }
+          }
+        }
+      }
+    },
+    "globalHub": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "apiUrl": { "type": "string" },
+        "consoleUrl": { "type": "string" },
+        "password": { "type": "string" }
+      }
+    },
+    "fleetThanosQuery": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "regionalStores": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "showroom": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "contentRepoUrl": { "type": "string" },
+        "contentRepoRef": { "type": "string", "default": "main" },
+        "terminalImage": { "type": "string" },
+        "terminalRbac": { "type": "array" }
+      }
+    },
+    "workshop": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        }
+      }
+    },
+    "externalSecrets": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "gcpProjectID": { "type": "string" },
+        "gcpSASecretName": { "type": "string" },
+        "gcpSASecretNamespace": { "type": "string" }
+      }
+    },
+    "spokeProvisioning": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "baseDomain": { "type": "string" },
+        "gcpProjectID": { "type": "string" },
+        "gcpRegion": { "type": "string", "default": "us-east1" },
+        "clusterImageSet": { "type": "string" },
+        "sshPublicKey": { "type": "string" },
+        "networkType": { "type": "string", "default": "OVNKubernetes" },
+        "workerMachineType": { "type": "string" },
+        "masterMachineType": { "type": "string" },
+        "clusters": {
+          "type": "array",
+          "items": { "type": "object" }
+        }
+      }
+    },
+    "tls": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "certManager": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "issuerRef": { "type": "string" }
+          }
+        },
+        "hubKeystoreBase64": { "type": "string" },
+        "hubTruststoreBase64": { "type": "string" },
+        "spokeKeystoreBase64": { "type": "string" },
+        "spokeTruststoreBase64": { "type": "string" },
+        "keystorePassword": { "type": "string" },
+        "truststorePassword": { "type": "string" }
+      }
+    },
+    "deployer": {
+      "type": "object",
+      "properties": {
+        "sandboxGuid": { "type": "string" }
+      }
+    },
+    "gitops": {
+      "type": "object",
+      "description": "ArgoCD GitOps settings for fleet-gitops Application (Mode 2 Global Hub)",
+      "properties": {
+        "repoURL": {
+          "type": "string",
+          "default": "https://github.com/tosin2013/artemis-edge-acm-demo.git"
+        },
+        "revision": {
+          "type": "string",
+          "default": "main"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "resources": {
+      "type": "object",
+      "properties": {
+        "limits": {
+          "type": "object",
+          "properties": {
+            "cpu": { "type": "string" },
+            "memory": { "type": "string" }
+          }
+        },
+        "requests": {
+          "type": "object",
+          "properties": {
+            "cpu": { "type": "string" },
+            "memory": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

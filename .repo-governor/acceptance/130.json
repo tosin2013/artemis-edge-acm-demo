@@ -1,0 +1,25 @@
+{
+  "authority_id": "130",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'com.redhat.examples' java/mqtt-client/pom.xml && ! grep -q 'org.redhat.examples' java/mqtt-client/pom.xml"
+    },
+    {
+      "check": "command_exit",
+      "target": "test -f java/amqp-client/src/test/java/com/redhat/examples/amqp/client/config/ModeTest.java"
+    },
+    {
+      "check": "command_exit",
+      "target": "test -f java/mqtt-client/src/test/java/com/redhat/examples/mqtt/client/config/ModeTest.java"
+    },
+    {
+      "check": "command_exit",
+      "target": "test -f java/amqp-bridge/src/test/java/com/redhat/examples/amqp/bridge/config/AddressTypeTest.java"
+    },
+    {
+      "check": "command_exit",
+      "target": "test -f java/artemis-extensions/src/test/java/com/redhat/examples/artemis/core/StaticHeaderPluginTest.java"
+    }
+  ]
+}

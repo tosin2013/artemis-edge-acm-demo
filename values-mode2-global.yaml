@@ -23,3 +23,7 @@ spokeProvisioning:
 
 showroom:
   enabled: false
+
+gitops:
+  repoURL: "https://github.com/tosin2013/artemis-edge-acm-demo.git"
+  revision: "main"

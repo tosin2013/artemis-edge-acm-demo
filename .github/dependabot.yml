@@ -1,0 +1,46 @@
+version: 2
+updates:
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "github-actions"
+
+  # Java / Maven — amqp-client
+  - package-ecosystem: "maven"
+    directory: "/java/amqp-client"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "dependencies"
+      - "java"
+
+  # Java / Maven — mqtt-client
+  - package-ecosystem: "maven"
+    directory: "/java/mqtt-client"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "dependencies"
+      - "java"
+
+  # Java / Maven — amqp-bridge
+  - package-ecosystem: "maven"
+    directory: "/java/amqp-bridge"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "dependencies"
+      - "java"
+
+  # Java / Maven — artemis-extensions
+  - package-ecosystem: "maven"
+    directory: "/java/artemis-extensions"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "dependencies"
+      - "java"

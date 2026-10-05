@@ -1,0 +1,69 @@
+
+=======================================================
+  {{ .Chart.Name }} {{ .Chart.Version }}
+  Mode: {{ .Values.global.mode }}
+{{- if .Values.global.hubTier }}
+  Hub Tier: {{ .Values.global.hubTier }}
+{{- end }}
+=======================================================
+
+{{- if .Values.global.clusterDomain }}
+
+CLUSTER DOMAIN: {{ .Values.global.clusterDomain }}
+{{- end }}
+
+--- Hub Brokers ---
+{{- if eq (len .Values.hubBrokers) 0 }}
+  (none — this is a Global Hub deployment)
+{{- else }}
+{{- range .Values.hubBrokers }}
+  • {{ .name }}  (replicas: {{ .replicas | default 1 }})
+{{- if $.Values.global.clusterDomain }}
+    Console: https://{{ .name }}-broker-wconsj-0-svc-rte-{{ $.Values.global.namespace }}.{{ $.Values.global.clusterDomain }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+--- Edge Brokers ---
+{{- if eq (len .Values.edgeBrokers) 0 }}
+  (none — edge brokers run on SNO clusters in Mode 2)
+{{- else }}
+{{- range .Values.edgeBrokers }}
+  • {{ .name }}  (region: {{ .region }})
+    Hub connections:
+    {{- range .hubConnections }}
+      → {{ .hub }} (autoStart: {{ .autoStart }})
+    {{- end }}
+{{- end }}
+{{- end }}
+
+--- Components ---
+{{- if .Values.keycloak.enabled }}
+  ✓ Keycloak (namespace: {{ .Values.keycloak.namespace }})
+{{- end }}
+{{- if .Values.monitoring.enabled }}
+  ✓ Monitoring
+{{- end }}
+{{- if .Values.showroom.enabled }}
+  ✓ Showroom
+{{- end }}
+{{- if .Values.globalHub.enabled }}
+  ✓ Global Hub
+{{- end }}
+
+--- Credentials ---
+  Broker admin: admin / admin  (change in values.yaml for production)
+
+--- Next Steps ---
+  1. Verify broker pods:
+     oc get pods -n {{ .Values.global.namespace }} -l app.kubernetes.io/part-of=artemis-edge-acm-demo
+
+  2. Run Helm tests:
+     helm test {{ .Release.Name }} -n {{ .Release.Namespace }}
+
+  3. Access the workshop:
+{{- if .Values.showroom.enabled }}
+     Open Showroom in your browser (route in namespace {{ .Values.global.namespace }})
+{{- else }}
+     Showroom is disabled. Enable with --set showroom.enabled=true
+{{- end }}

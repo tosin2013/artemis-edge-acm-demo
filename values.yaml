@@ -120,3 +120,7 @@ tls:
   spokeTruststoreBase64: ""
   keystorePassword: "password"
   truststorePassword: "password"
+
+gitops:
+  repoURL: "https://github.com/tosin2013/artemis-edge-acm-demo.git"
+  revision: "main"

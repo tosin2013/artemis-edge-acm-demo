@@ -18,8 +18,8 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: {{ .Values.gitops.repoURL | default "https://github.com/tosin2013/artemis-edge-acm-demo.git" | quote }}
-    targetRevision: {{ .Values.gitops.revision | default "main" | quote }}
+    repoURL: {{ .Values.gitops.repoURL | quote }}
+    targetRevision: {{ .Values.gitops.revision | quote }}
     path: fleet-gitops
   destination:
     server: https://kubernetes.default.svc

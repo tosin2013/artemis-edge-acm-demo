@@ -1,0 +1,33 @@
+# CODEOWNERS — artemis-edge-acm-demo
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything
+* @tosin2013
+
+# Helm chart (templates, values, schema)
+/Chart.yaml                     @tosin2013
+/values*.yaml                   @tosin2013
+/values.schema.json             @tosin2013
+/templates/                     @tosin2013
+
+# Scripts and bootstrap
+/bootstrap.sh                   @tosin2013
+/scripts/                       @tosin2013
+
+# Java modules
+/java/                          @tosin2013
+
+# Showroom content
+/showroom/                      @tosin2013
+/content/                       @tosin2013
+
+# Fleet GitOps / ACM policies
+/fleet-gitops/                  @tosin2013
+/acm/                           @tosin2013
+/ztp/                           @tosin2013
+
+# CI and GitHub config
+/.github/                       @tosin2013
+
+# AgnosticD deployment config
+/agnosticd/                     @tosin2013
