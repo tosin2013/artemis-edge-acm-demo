@@ -124,7 +124,7 @@ Key bullets:
 - Use `enforce` remediation so ACM auto-remediates drift; `inform` only reports.
 - Keep the `ztp-policies` ApplicationSet unbound — binding it syncs the full hub chart to every SNO.
 - Test federation by producing a small batch and verifying it arrives at the hub before going to production.
-- Pin the AMQ Broker Operator to a specific channel (e.g., `7.12.x`) so edge upgrades are predictable.
+- Pin the AMQ Broker Operator to a specific channel (e.g., `7.14.x`) so edge upgrades are predictable.
 
 ---
 

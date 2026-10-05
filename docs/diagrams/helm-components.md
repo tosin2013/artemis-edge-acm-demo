@@ -17,7 +17,7 @@ flowchart TD
 
     subgraph Wave1 ["Sync Wave 1: Operators + Issuers"]
         AMQOp["amq-broker-operator-sub
-        AMQ Broker 7.12.x"]
+        AMQ Broker 7.14.x"]
         KCOp["keycloak-operator-sub
         RHBK Keycloak"]
         CertIssuer["cert-manager-issuer
@@ -151,7 +151,7 @@ flowchart LR
 |---------------|-----------|-----------|---------|
 | `namespaces.yaml` | 0 | Always | `artemis`, `keycloak` namespaces |
 | `operator-groups.yaml` | 0 | Always | OperatorGroups for AMQ and Keycloak |
-| `amq-broker-operator-sub.yaml` | 1 | Always | AMQ Broker Operator Subscription (7.12.x) |
+| `amq-broker-operator-sub.yaml` | 1 | Always | AMQ Broker Operator Subscription (7.14.x) |
 | `keycloak-operator-sub.yaml` | 1 | `keycloak.enabled` | Keycloak Operator Subscription |
 | `cert-manager-issuer.yaml` | 1 | `tls.certManager.enabled` | ClusterIssuers and Issuers for broker + Keycloak TLS |
 | `wait-for-crds.yaml` | 2-3 | Always | Jobs that wait for AMQ and Keycloak CRDs |

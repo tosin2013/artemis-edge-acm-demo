@@ -25,8 +25,8 @@ spec:
             name: amq-broker-og
             namespace: artemis
           subscription:
-            channel: 7.12.x
-            name: amq-broker-rhel8
+            channel: 7.14.x
+            name: amq-broker-rhel9
             namespace: artemis
             source: redhat-operators
             sourceNamespace: openshift-marketplace

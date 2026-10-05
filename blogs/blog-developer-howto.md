@@ -103,7 +103,7 @@ For proactive alerting, deploy custom Thanos Ruler rules as a ConfigMap. For exa
 
 - At scale, replace per-spoke Helm entries with PolicyGenerator and `fromClusterClaim` to manage hundreds of edge sites without growing your values file.
 - Use `enforce` remediation so RHACM auto-remediates drift. Use `inform` only when you want to monitor without correcting.
-- Pin the AMQ Broker Operator to a specific channel (for example, `7.12.x`) so edge upgrades stay predictable.
+- Pin the AMQ Broker Operator to a specific channel (for example, `7.14.x`) so edge upgrades stay predictable.
 - Test federation by producing a small batch and verifying it arrives at the hub before rolling out to production sites.
 - Keep the `ztp-policies` ApplicationSet unbound — binding it syncs the full hub Helm chart to every SNO, which is not what you want.
 

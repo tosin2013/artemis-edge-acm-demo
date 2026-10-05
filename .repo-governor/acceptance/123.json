@@ -1,0 +1,21 @@
+{
+  "$comment": "No amq-broker-rhel8 or 7.12.x references remain in ztp/, acm/, fleet-gitops/, or docs/diagrams/ — all upgraded to amq-broker-rhel9 / 7.14.x to match the chart templates (see #120). Historical references in docs/amq-bridge-version-compatibility.md are intentionally preserved.",
+  "authority_id": "123",
+  "criteria": [
+    {
+      "$comment": "No amq-broker-rhel8 in ztp/, acm/, or fleet-gitops/ YAML files",
+      "check": "command_exit",
+      "target": "! grep -rq 'amq-broker-rhel8' ztp/ acm/ fleet-gitops/"
+    },
+    {
+      "$comment": "No 7.12.x in ztp/, acm/, or fleet-gitops/ YAML files",
+      "check": "command_exit",
+      "target": "! grep -rq '7\\.12\\.x' ztp/ acm/ fleet-gitops/"
+    },
+    {
+      "$comment": "No amq-broker-rhel8 in docs/diagrams/",
+      "check": "command_exit",
+      "target": "! grep -rq 'amq-broker-rhel8' docs/diagrams/"
+    }
+  ]
+}
