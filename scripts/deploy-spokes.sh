@@ -404,8 +404,19 @@ oc patch application.argoproj.io field-content -n openshift-gitops \
 
 log_ok "ArgoCD patched with spokeProvisioning.enabled=true"
 
-# Trigger a sync
-echo "  Syncing ArgoCD application..."
+# Reset ArgoCD sync state so a fresh sync picks up the new spoke values.
+# A running sync operation retains its original manifest set; new resources
+# added by value changes won't be applied until a new sync starts. (#161)
+echo "  Resetting ArgoCD sync state..."
+oc patch application.argoproj.io field-content -n openshift-gitops --type=json \
+  -p '[{"op":"remove","path":"/spec/syncPolicy/automated"}]' 2>/dev/null || true
+sleep 5
+
+oc patch application.argoproj.io field-content -n openshift-gitops --type=merge \
+  -p '{"spec":{"syncPolicy":{"automated":{"prune":false,"selfHeal":true},"retry":{"limit":10,"backoff":{"duration":"5s","factor":2,"maxDuration":"3m"}},"syncOptions":["CreateNamespace=true","SkipDryRunOnMissingResource=true"]}}}' \
+  2>/dev/null || true
+
+echo "  Triggering fresh ArgoCD sync..."
 oc annotate application.argoproj.io field-content -n openshift-gitops \
   argocd.argoproj.io/refresh=hard --overwrite 2>/dev/null || true
 sleep 10
@@ -426,7 +437,7 @@ log_step "4b/6" "Creating Hive ClusterDeployments..."
 # Wait for install-config secrets (rendered by Helm chart via ArgoCD)
 echo "  Waiting for ArgoCD to render install-config secrets..."
 IC_WAIT=0
-IC_TIMEOUT=120
+IC_TIMEOUT=180
 while [[ $IC_WAIT -lt $IC_TIMEOUT ]]; do
   IC_READY=true
   for i in $(seq 0 $((CLUSTER_COUNT - 1))); do
@@ -437,12 +448,18 @@ while [[ $IC_WAIT -lt $IC_TIMEOUT ]]; do
     fi
   done
   if [[ "$IC_READY" == "true" ]]; then break; fi
+  if (( IC_WAIT % 30 == 0 && IC_WAIT > 0 )); then
+    _PHASE=$(oc get application.argoproj.io field-content -n openshift-gitops \
+      -o jsonpath='{.status.operationState.phase}' 2>/dev/null || echo "unknown")
+    echo "    ${IC_WAIT}s — ArgoCD phase: ${_PHASE}, waiting..."
+  fi
   sleep 5
   IC_WAIT=$((IC_WAIT + 5))
 done
 
 if [[ "$IC_READY" != "true" ]]; then
   log_fail "install-config secrets not created after ${IC_TIMEOUT}s. Check ArgoCD sync."
+  echo "       ArgoCD sync: oc get app field-content -n openshift-gitops"
   exit 1
 fi
 log_ok "install-config secrets ready"

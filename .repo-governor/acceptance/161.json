@@ -1,0 +1,18 @@
+{
+  "authority_id": "161",
+  "$comment": "deploy-spokes.sh: reset ArgoCD sync before waiting for install-config secrets",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'Resetting ArgoCD sync state' scripts/deploy-spokes.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'remove.*syncPolicy.*automated' scripts/deploy-spokes.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "bash -n scripts/deploy-spokes.sh"
+    }
+  ]
+}
