@@ -215,7 +215,10 @@ ocp4_workload_field_content_helm_values:
     masterMachineType: "n2-standard-8"
     clusters: []
   showroom:
-    enabled: false
+    enabled: true
+    terminalRbac:
+      - namespace: showroom
+        serviceAccount: showroom
   tls:
     hubKeystoreBase64: ""
     hubTruststoreBase64: ""
