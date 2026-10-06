@@ -182,6 +182,16 @@ log_step "1/6" "Pre-flight checks..."
 oc whoami &>/dev/null || { log_fail "Not logged in. Run: oc login"; exit 1; }
 log_ok "Logged in as $(oc whoami)"
 
+# Check cluster-admin
+if ! oc auth can-i create clusterdeployments.hive.openshift.io --all-namespaces &>/dev/null; then
+  log_fail "Current user '$(oc whoami)' lacks cluster-admin privileges."
+  echo "       Spoke provisioning requires cluster-admin to create ClusterDeployments,"
+  echo "       manage GCP credentials, and configure Hive resources."
+  echo "       Log in as an admin user: oc login -u admin"
+  exit 1
+fi
+log_ok "Cluster-admin privileges verified"
+
 # Check Hive
 HIVE_PODS=$(oc get pods -n hive --no-headers 2>/dev/null | grep -c Running || true)
 if [[ "$HIVE_PODS" -lt 1 ]]; then

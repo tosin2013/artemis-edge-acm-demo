@@ -1,0 +1,18 @@
+{
+  "authority_id": "160",
+  "$comment": "deploy-spokes.sh: fail fast if user is not cluster-admin",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'cluster-admin privileges' scripts/deploy-spokes.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'auth can-i create clusterdeployments' scripts/deploy-spokes.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "bash -n scripts/deploy-spokes.sh"
+    }
+  ]
+}
