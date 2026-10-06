@@ -414,6 +414,35 @@ CERT_EOF
   "${SCRIPT_DIR}/patch-showroom-home.sh" "${AGD_GUID}" "${KUBECONFIG_FILE}" \
     || echo "WARN: patch-showroom-home.sh failed (non-fatal)"
 
+  # ---------------------------------------------------------------------------
+  # ArgoCD syncOptions guard (#159)
+  # ---------------------------------------------------------------------------
+  # The upstream ocp4_workload_field_content template hardcodes
+  # syncOptions: [CreateNamespace=true] and ignores the sync_options variable.
+  # Without SkipDryRunOnMissingResource=true, ArgoCD fails at CRD discovery
+  # before sync waves can install the operators. Patch immediately after
+  # provision so the first sync attempt succeeds.
+  # ---------------------------------------------------------------------------
+  KUBECONFIG_FILE="${AGD_ROOT}/../agnosticd-v2-output/${AGD_GUID}/openshift-cluster_${AGD_GUID}_kubeconfig"
+  if [[ -f "$KUBECONFIG_FILE" ]]; then
+    _APP_EXISTS=$(KUBECONFIG="$KUBECONFIG_FILE" oc get applications.argoproj.io field-content \
+      -n openshift-gitops --no-headers 2>/dev/null | wc -l)
+    if [[ "$_APP_EXISTS" -gt 0 ]]; then
+      _HAS_SKIP=$(KUBECONFIG="$KUBECONFIG_FILE" oc get applications.argoproj.io field-content \
+        -n openshift-gitops -o jsonpath='{.spec.syncPolicy.syncOptions}' 2>/dev/null \
+        | grep -q "SkipDryRunOnMissingResource=true" && echo "yes" || echo "no")
+      if [[ "$_HAS_SKIP" == "no" ]]; then
+        echo "=== Patching ArgoCD field-content syncOptions (SkipDryRunOnMissingResource) ==="
+        KUBECONFIG="$KUBECONFIG_FILE" oc patch applications.argoproj.io field-content \
+          -n openshift-gitops --type=json \
+          -p '[{"op":"replace","path":"/spec/syncPolicy/syncOptions","value":["CreateNamespace=true","SkipDryRunOnMissingResource=true"]},{"op":"replace","path":"/spec/syncPolicy/automated","value":{"prune":false,"selfHeal":true}}]' \
+          2>/dev/null && echo "  Patched." || echo "  WARN: patch failed (non-fatal)"
+        KUBECONFIG="$KUBECONFIG_FILE" oc annotate applications.argoproj.io field-content \
+          -n openshift-gitops argocd.argoproj.io/refresh=hard --overwrite 2>/dev/null || true
+      fi
+    fi
+  fi
+
   # Mode 2: auto-finalize when all 4 tiers are provisioned
   if [[ "${DEPLOY_MODE}" == "multi-hub" ]]; then
     echo ""

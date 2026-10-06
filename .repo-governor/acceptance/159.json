@@ -1,0 +1,30 @@
+{
+  "authority_id": "159",
+  "$comment": "ArgoCD sync fails on fresh Mode 2 clusters — CRD chicken-and-egg with OLM operators. Layer 1: vars fix (adminPassword in regional vars), Layer 2: deploy.sh guard (patch syncOptions immediately after provision).",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'adminPassword' agnosticd/gcp/vars-multihub-regional.yml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'adminPassword' agnosticd/gcp/vars-multihub-west.yml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'adminPassword' agnosticd/gcp/vars-multihub-central.yml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'hubBrokers: \\[\\]' agnosticd/gcp/vars-multihub.yml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'SkipDryRunOnMissingResource' scripts/deploy.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "bash -n scripts/deploy.sh"
+    }
+  ]
+}
