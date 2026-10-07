@@ -15,15 +15,20 @@ metadata:
     {{- include "artemis-edge.labels" . | nindent 4 }}
 data:
   user_data.yml: |
+    {{- $apiUrl := .Values.global.clusterApiUrl | default (printf "https://api.%s:6443" (.Values.global.clusterDomain | replace "apps." "")) }}
+    {{- $guid := ((.Values.deployer).guid) | default "demo" }}
+    {{- $sandboxGuid := ((.Values.deployer).sandboxGuid) | default $guid }}
     "openshift_cluster_ingress_domain": {{ .Values.global.clusterDomain | quote }}
-    "openshift_api_url": {{ .Values.global.clusterApiUrl | default (printf "https://api.%s:6443" (.Values.global.clusterDomain | replace "apps." "")) | quote }}
+    "openshift_api_url": {{ $apiUrl | quote }}
     "console_url": {{ printf "https://console-openshift-console.%s" .Values.global.clusterDomain | quote }}
-    "guid": {{ ((.Values.deployer).guid) | default "demo" | quote }}
-    "sandbox_guid": {{ ((.Values.deployer).sandboxGuid) | default (((.Values.deployer).guid) | default "demo") | quote }}
+    "guid": {{ $guid | quote }}
+    "sandbox_guid": {{ $sandboxGuid | quote }}
     "user": "admin"
     "password": "admin"
+    "login_command": {{ printf "oc login --insecure-skip-tls-verify=false -u admin -p admin %s" $apiUrl | quote }}
     {{- if eq (default "" .Values.global.mode) "multi-hub" }}
     "mode_multi_hub": "true"
+    "region": {{ .Values.global.region | default "" | quote }}
     "global_hub_api_url": {{ .Values.globalHub.apiUrl | default "" | quote }}
     "global_hub_console_url": {{ .Values.globalHub.consoleUrl | default "" | quote }}
     "global_hub_password": {{ .Values.globalHub.password | default "" | quote }}

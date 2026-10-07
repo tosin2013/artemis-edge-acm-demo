@@ -1,0 +1,18 @@
+{
+  "authority_id": "165",
+  "$comment": "Showroom userdata: add login_command, fix guid, populate global_hub values",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'login_command' templates/showroom.yaml"
+    },
+    {
+      "check": "command_exit",
+      "target": "helm template test . --set showroom.enabled=true --set global.clusterApiUrl=https://api.test:6443 2>/dev/null | grep -q 'login_command'"
+    },
+    {
+      "check": "command_exit",
+      "target": "helm template test . --set showroom.enabled=true --set deployer.guid=myguid 2>/dev/null | grep -q 'myguid'"
+    }
+  ]
+}
