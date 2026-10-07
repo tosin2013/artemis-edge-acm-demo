@@ -1,0 +1,18 @@
+{
+  "authority_id": "164",
+  "$comment": "Helm chart Showroom: add split-frame page (content + terminal side-by-side)",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'split.js' templates/showroom.yaml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q '/content/' templates/showroom.yaml"
+    },
+    {
+      "check": "command_exit",
+      "target": "helm template test . --set showroom.enabled=true 2>/dev/null | grep -q 'split.js'"
+    }
+  ]
+}

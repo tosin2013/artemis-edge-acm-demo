@@ -54,7 +54,20 @@ data:
         listen 8080;
         absolute_redirect off;
 
-        location / {
+        location = / {
+          root /opt/showroom-frame;
+          try_files /index.html =404;
+        }
+        location = /split.css {
+          root /opt/showroom-frame;
+          try_files /split.css =404;
+        }
+        location = /tabs.css {
+          root /opt/showroom-frame;
+          try_files /tabs.css =404;
+        }
+
+        location /content/ {
           proxy_pass http://localhost:8000/;
           proxy_http_version 1.1;
         }
@@ -68,6 +81,82 @@ data:
           proxy_send_timeout 3600s;
         }
       }
+    }
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>{{ .Values.showroom.title | default "Artemis Edge ACM Demo" }}</title>
+        <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+        <link rel="stylesheet" type="text/css" href="split.css">
+        <link rel="stylesheet" type="text/css" href="tabs.css">
+      </head>
+      <body>
+        <div class="content">
+          <div class="split left">
+            <iframe id="doc" src="/content/" width="100%" style="border:none;"></iframe>
+          </div>
+          <div class="split right">
+            <div class="tab">
+              <button class="tablinks" onclick="openTerminal(event, 'terminal_tab1')" id="defaultOpen" tabindex="0">Terminal 1</button>
+            </div>
+            <div id="terminal_tab1" class="tabcontent">
+              <iframe id="terminal_01" src="/terminal/" width="100%" style="border:none;"></iframe>
+            </div>
+          </div>
+        </div>
+        <script>
+          document.getElementById("defaultOpen").click();
+          function openTerminal(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tabcontent");
+            for (i = 0; i < tabcontent.length; i++) { tabcontent[i].style.display = "none"; }
+            tablinks = document.getElementsByClassName("tablinks");
+            for (i = 0; i < tablinks.length; i++) { tablinks[i].className = tablinks[i].className.replace(" active", ""); }
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += "active";
+          }
+        </script>
+        <script src="https://unpkg.com/split.js/dist/split.min.js"></script>
+        <script>
+          Split(['.left', '.right'], { sizes: [45, 55] });
+        </script>
+      </body>
+    </html>
+  split.css: |
+    * { box-sizing: border-box; height: 100%; }
+    body { margin: 0; height: 100%; }
+    .content {
+      width: 100%; height: 100%; padding: 0; display: flex;
+      justify-items: center; align-items: center;
+      border-top: 1px solid Gainsboro; margin-top: 0;
+    }
+    .split { width: 100%; height: 100%; padding: 5px; }
+    .left { height: 100%; }
+    .right { height: 100%; }
+    .gutter {
+      height: 98%; background-color: #eee;
+      background-repeat: no-repeat; background-position: 50%;
+    }
+    .gutter.gutter-horizontal {
+      background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==');
+      cursor: col-resize;
+    }
+  tabs.css: |
+    .tab {
+      overflow: hidden; border: 1px solid #ccc;
+      background-color: #f1f1f1; height: 50px;
+    }
+    .tab button {
+      background-color: inherit; float: left; border: none;
+      outline: none; cursor: pointer; padding: 14px 16px; transition: 0.3s;
+    }
+    .tab button:hover { background-color: #ddd; }
+    .tab button.active { background-color: #ccc; }
+    .tabcontent {
+      display: none; padding: 6px 12px;
+      border: 1px solid #ccc; border-top: none;
+      height: calc(100% - 50px);
     }
 ---
 apiVersion: v1
@@ -121,6 +210,15 @@ spec:
             - name: nginx-config
               mountPath: /etc/nginx/nginx.conf
               subPath: nginx.conf
+            - name: showroom-frame-html
+              mountPath: /opt/showroom-frame/index.html
+              subPath: index.html
+            - name: showroom-frame-splitcss
+              mountPath: /opt/showroom-frame/split.css
+              subPath: split.css
+            - name: showroom-frame-tabscss
+              mountPath: /opt/showroom-frame/tabs.css
+              subPath: tabs.css
             - name: nginx-cache
               mountPath: /var/cache/nginx
             - name: nginx-pid
@@ -161,6 +259,27 @@ spec:
         - name: nginx-config
           configMap:
             name: showroom-proxy-config
+            items:
+              - key: nginx.conf
+                path: nginx.conf
+        - name: showroom-frame-html
+          configMap:
+            name: showroom-proxy-config
+            items:
+              - key: index.html
+                path: index.html
+        - name: showroom-frame-splitcss
+          configMap:
+            name: showroom-proxy-config
+            items:
+              - key: split.css
+                path: split.css
+        - name: showroom-frame-tabscss
+          configMap:
+            name: showroom-proxy-config
+            items:
+              - key: tabs.css
+                path: tabs.css
         - name: nginx-cache
           emptyDir: {}
         - name: nginx-pid
