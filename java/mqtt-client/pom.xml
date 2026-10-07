@@ -15,7 +15,7 @@
     <skipITs>true</skipITs>
 
     <surefire-plugin.version>3.3.1</surefire-plugin.version>
-    <compiler-plugin.version>3.13.0</compiler-plugin.version>
+    <compiler-plugin.version>3.16.0</compiler-plugin.version>
     <maven.compiler.release>21</maven.compiler.release>
 
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
