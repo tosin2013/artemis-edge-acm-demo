@@ -141,6 +141,23 @@ ROLE_MAP = {
     "west":   "west",
 }
 
+def query_showroom_route(kubeconfig_path):
+    """Live cluster fallback: query Showroom route via oc. Returns URL or ''."""
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["oc", "get", "route", "showroom", "-n", "showroom",
+             "-o", "jsonpath={.spec.host}"],
+            env={**os.environ, "KUBECONFIG": kubeconfig_path},
+            capture_output=True, text=True, timeout=10,
+        )
+        host = result.stdout.strip()
+        if host:
+            return f"https://{host}"
+    except Exception:
+        pass
+    return ""
+
 def extract_hub_info(user_data_path, output_dir):
     """Extract the same fields as single-hub mode for one hub."""
     with open(user_data_path) as f:
@@ -172,13 +189,25 @@ def extract_hub_info(user_data_path, output_dir):
     info["rhacm_console_url"] = rhacm_url
     info["rhacm_namespace"] = "open-cluster-management"
 
-    # Showroom URL
+    # Showroom URL — from provision data first
     showroom_url = data.get("showroom_url", "")
     users = data.get("users", {})
     if not showroom_url and users:
         first_user = next(iter(users.values()), {})
         showroom_url = first_user.get("showroom_primary_view_url",
                        first_user.get("lab_ui_url", ""))
+
+    # Kubeconfig (resolve early — needed for live fallback)
+    kubeconfig_path = ""
+    kubeconfig_matches = glob.glob(os.path.join(output_dir, f"*_{guid}_kubeconfig"))
+    if kubeconfig_matches:
+        kubeconfig_path = max(kubeconfig_matches, key=os.path.getmtime)
+
+    # Live cluster fallback: query Showroom route if provision data is empty
+    if not showroom_url and kubeconfig_path:
+        showroom_url = query_showroom_route(kubeconfig_path)
+        if showroom_url:
+            print(f"  Live cluster fallback: detected Showroom at {showroom_url}", file=sys.stderr)
     info["showroom_url"] = showroom_url
 
     # GCP info
@@ -195,16 +224,20 @@ def extract_hub_info(user_data_path, output_dir):
                 "password": u.get("password", ""),
                 "login_command": u.get("login_command", ""),
             }
-            if u.get("showroom_primary_view_url"):
-                user_info["showroom_url"] = u["showroom_primary_view_url"]
+            u_showroom = u.get("showroom_primary_view_url", "")
+            if u_showroom:
+                user_info["showroom_url"] = u_showroom
             if u.get("lab_ui_url"):
                 user_info["lab_ui_url"] = u["lab_ui_url"]
+            # Live cluster fallback: if no per-user showroom URL but route exists,
+            # use the base showroom URL for all users
+            if not u_showroom and not u.get("lab_ui_url") and showroom_url:
+                user_info["showroom_url"] = showroom_url
+                user_info["lab_ui_url"] = showroom_url
             info["users"][name] = user_info
 
-    # Kubeconfig
-    kubeconfig_matches = glob.glob(os.path.join(output_dir, f"*_{guid}_kubeconfig"))
-    if kubeconfig_matches:
-        info["kubeconfig_path"] = max(kubeconfig_matches, key=os.path.getmtime)
+    if kubeconfig_path:
+        info["kubeconfig_path"] = kubeconfig_path
 
     return info
 
@@ -308,11 +341,27 @@ if [[ ! -f "${USER_DATA}" ]]; then
 fi
 
 python3 - "${USER_DATA}" "${OUTPUT_DIR}" "${DEST}" <<'PYEOF'
-import sys, yaml, os, glob
+import sys, yaml, os, glob, subprocess
 
 user_data_path = sys.argv[1]
 output_dir     = sys.argv[2]
 dest_path      = sys.argv[3]
+
+def query_showroom_route(kubeconfig_path):
+    """Live cluster fallback: query Showroom route via oc. Returns URL or ''."""
+    try:
+        result = subprocess.run(
+            ["oc", "get", "route", "showroom", "-n", "showroom",
+             "-o", "jsonpath={.spec.host}"],
+            env={**os.environ, "KUBECONFIG": kubeconfig_path},
+            capture_output=True, text=True, timeout=10,
+        )
+        host = result.stdout.strip()
+        if host:
+            return f"https://{host}"
+    except Exception:
+        pass
+    return ""
 
 with open(user_data_path) as f:
     data = yaml.safe_load(f)
@@ -351,6 +400,18 @@ if not showroom_url and users:
     first_user = next(iter(users.values()), {})
     showroom_url = first_user.get("showroom_primary_view_url",
                    first_user.get("lab_ui_url", ""))
+
+# Kubeconfig — prefer the newest file matching *_GUID_kubeconfig
+kubeconfig_path = ""
+kubeconfig_matches = glob.glob(os.path.join(output_dir, f"*_{guid}_kubeconfig"))
+if kubeconfig_matches:
+    kubeconfig_path = max(kubeconfig_matches, key=os.path.getmtime)
+
+# Live cluster fallback: query Showroom route if provision data is empty
+if not showroom_url and kubeconfig_path:
+    showroom_url = query_showroom_route(kubeconfig_path)
+    if showroom_url:
+        print(f"  Live cluster fallback: detected Showroom at {showroom_url}", file=sys.stderr)
 info["showroom_url"] = showroom_url
 
 # GCP info
@@ -367,16 +428,19 @@ if users:
             "password": u.get("password", ""),
             "login_command": u.get("login_command", ""),
         }
-        if u.get("showroom_primary_view_url"):
-            user_info["showroom_url"] = u["showroom_primary_view_url"]
+        u_showroom = u.get("showroom_primary_view_url", "")
+        if u_showroom:
+            user_info["showroom_url"] = u_showroom
         if u.get("lab_ui_url"):
             user_info["lab_ui_url"] = u["lab_ui_url"]
+        # Live cluster fallback: use base showroom URL for users without their own
+        if not u_showroom and not u.get("lab_ui_url") and showroom_url:
+            user_info["showroom_url"] = showroom_url
+            user_info["lab_ui_url"] = showroom_url
         info["users"][name] = user_info
 
-# Kubeconfig — prefer the newest file matching *_GUID_kubeconfig
-kubeconfig_matches = glob.glob(os.path.join(output_dir, f"*_{guid}_kubeconfig"))
-if kubeconfig_matches:
-    info["kubeconfig_path"] = max(kubeconfig_matches, key=os.path.getmtime)
+if kubeconfig_path:
+    info["kubeconfig_path"] = kubeconfig_path
 
 with open(dest_path, "w") as f:
     f.write("# Generated by scripts/save-deployment-info.sh — DO NOT COMMIT\n")

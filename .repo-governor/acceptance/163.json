@@ -1,0 +1,18 @@
+{
+  "authority_id": "163",
+  "$comment": "save-deployment-info.sh: detect Showroom route from live cluster",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'oc.*get.*route.*showroom' scripts/save-deployment-info.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'Live cluster fallback' scripts/save-deployment-info.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "bash -n scripts/save-deployment-info.sh"
+    }
+  ]
+}
