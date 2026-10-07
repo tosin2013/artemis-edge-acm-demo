@@ -37,7 +37,19 @@ GCP_REGION="us-east1"
 MACHINE_TYPE="n2-standard-8"
 SSH_KEY_PATH="${HOME}/.ssh/sno-edge-key"
 
-SPOKE_NAMES=("sno-edge-01" "sno-edge-02" "sno-edge-03")
+# Per-hub spoke name prefix. In multi-hub deployments all hubs share a single
+# GCP project / DNS zone, so spoke cluster names must be unique across hubs.
+# East keeps the original names (backward compat); Central and West get a
+# short prefix derived from the hub's cluster domain. (#167)
+HUB_PREFIX=""
+HUB_DOMAIN=$(oc get dns cluster -o jsonpath='{.spec.baseDomain}' 2>/dev/null || true)
+case "$HUB_DOMAIN" in
+  hub-central.*) HUB_PREFIX="cen-" ;;
+  hub-west.*)    HUB_PREFIX="west-" ;;
+  # hub-east.* and single-hub: no prefix (backward compat)
+esac
+
+SPOKE_NAMES=("sno-edge-${HUB_PREFIX}01" "sno-edge-${HUB_PREFIX}02" "sno-edge-${HUB_PREFIX}03")
 SPOKE_REGIONS=("NY" "NJ" "CT")
 
 # Parse CLI args

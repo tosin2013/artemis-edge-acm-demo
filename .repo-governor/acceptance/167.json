@@ -1,0 +1,14 @@
+{
+  "authority_id": "167",
+  "$comment": "deploy-spokes.sh per-hub spoke name prefix for multi-hub GCP deployments",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'HUB_PREFIX' scripts/deploy-spokes.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'hub-central\\|hub-west\\|cen\\|west' scripts/deploy-spokes.sh"
+    }
+  ]
+}
