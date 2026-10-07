@@ -458,11 +458,48 @@ while [[ $IC_WAIT -lt $IC_TIMEOUT ]]; do
 done
 
 if [[ "$IC_READY" != "true" ]]; then
-  log_fail "install-config secrets not created after ${IC_TIMEOUT}s. Check ArgoCD sync."
-  echo "       ArgoCD sync: oc get app field-content -n openshift-gitops"
-  exit 1
+  # Fallback: ArgoCD sync is stalled (typically at wave 5 waiting for the
+  # artemis-edge-workloads ApplicationSet to become Healthy — a chicken-and-egg
+  # that resolves only after spokes register). Render the spoke-provisioning
+  # secrets directly via helm template + oc apply. (#166)
+  log_warn "install-config secrets not created after ${IC_TIMEOUT}s — ArgoCD sync likely stalled."
+  echo "  Falling back to direct helm template + oc apply..."
+
+  # Write the current values to a temp file for helm template
+  IC_VALS_FILE=$(mktemp /tmp/deploy-spokes-values-XXXXXX.yaml)
+  echo "$PATCHED_VALUES" > "$IC_VALS_FILE"
+
+  # Determine the chart path — script lives in scripts/, chart is one level up
+  CHART_DIR="$PROJECT_ROOT"
+
+  helm template artemis-edge "$CHART_DIR" \
+    -f "$IC_VALS_FILE" \
+    -s templates/spoke-provisioning-secrets.yaml \
+    -s templates/spoke-policies-namespace.yaml \
+    2>/dev/null \
+    | oc apply --server-side -f - 2>&1 \
+    | while read -r line; do echo "    $line"; done
+
+  rm -f "$IC_VALS_FILE"
+
+  # Verify the secrets now exist
+  IC_READY=true
+  for i in $(seq 0 $((CLUSTER_COUNT - 1))); do
+    SPOKE="${SELECTED_SPOKES[$i]}"
+    if ! oc get secret "${SPOKE}-install-config" -n "$SPOKE" &>/dev/null; then
+      IC_READY=false
+      log_fail "install-config for $SPOKE still missing after direct apply."
+    fi
+  done
+  if [[ "$IC_READY" != "true" ]]; then
+    log_fail "Direct apply fallback failed. Check helm template output above."
+    echo "       Debug: helm template artemis-edge $CHART_DIR -s templates/spoke-provisioning-secrets.yaml"
+    exit 1
+  fi
+  log_ok "install-config secrets created via direct apply (ArgoCD bypass)"
+else
+  log_ok "install-config secrets ready"
 fi
-log_ok "install-config secrets ready"
 
 # Verify install-config baseDomain matches what we expect.
 # ArgoCD may have rendered a stale secret from old values.

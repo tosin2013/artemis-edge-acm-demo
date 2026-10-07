@@ -323,6 +323,22 @@ spec:
           - CreateNamespace=true
           - SkipDryRunOnMissingResource=true
 ---
+# The edge-sno-placement Placement lives in ztp-policies, so it needs a
+# ManagedClusterSetBinding to see ManagedClusters in the default set.
+# Without this the Placement matches 0 clusters, the ApplicationSet stays
+# "Progressing", and the ArgoCD sync stalls at wave 5 forever. (#166)
+apiVersion: cluster.open-cluster-management.io/v1beta2
+kind: ManagedClusterSetBinding
+metadata:
+  name: default
+  namespace: ztp-policies
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+spec:
+  clusterSet: default
+---
 apiVersion: cluster.open-cluster-management.io/v1beta1
 kind: Placement
 metadata:
