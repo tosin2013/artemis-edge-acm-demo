@@ -10,6 +10,8 @@ kind: ManagedClusterSetBinding
 metadata:
   name: default
   namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
   labels:
     {{- include "artemis-edge.labels" . | nindent 4 }}
 spec:
@@ -21,6 +23,8 @@ kind: Placement
 metadata:
   name: regional-hubs
   namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
   labels:
     {{- include "artemis-edge.labels" . | nindent 4 }}
 spec:
@@ -32,11 +36,14 @@ spec:
 ---
 # 3. GitOpsCluster: tell RHACM to create ArgoCD cluster secrets for each
 #    ManagedCluster matched by the Placement above.
+#    Wave 1 ensures the MCSB and Placement from wave 0 exist first.
 apiVersion: apps.open-cluster-management.io/v1beta1
 kind: GitOpsCluster
 metadata:
   name: regional-hubs-gitops
   namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
   labels:
     {{- include "artemis-edge.labels" . | nindent 4 }}
 spec:

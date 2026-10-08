@@ -1,0 +1,29 @@
+{{- if .Values.spokeProvisioning.enabled }}
+# -----------------------------------------------------------------------
+# acm-placement ConfigMap (#169)
+#
+# The ApplicationSet clusterDecisionResource generator uses this ConfigMap
+# to duck-type PlacementDecision resources.  Without it the generator
+# cannot resolve, child Applications are never created, and ArgoCD
+# reports the ApplicationSet as Progressing forever.
+#
+# In Mode 2, the GitOpsCluster resource may auto-create this ConfigMap
+# via the RHACM integration.  This template acts as a fallback so Mode 1
+# deployments (and Mode 2 deployments where the integration hasn't run
+# yet) always have it available.
+# -----------------------------------------------------------------------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: acm-placement
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  labels:
+    {{- include "artemis-edge.labels" . | nindent 4 }}
+data:
+  apiVersion: cluster.open-cluster-management.io/v1beta1
+  kind: placementdecisions
+  statusListKey: decisions
+  matchKey: clusterName
+{{- end }}

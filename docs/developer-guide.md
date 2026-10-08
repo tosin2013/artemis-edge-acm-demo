@@ -12,6 +12,7 @@ repository.
 - [Broker Configuration](#broker-configuration)
 - [Java Clients](#java-clients)
 - [CI/CD Pipelines](#cicd-pipelines)
+- [ArgoCD Prerequisites](#argocd-prerequisites)
 - [Testing Changes](#testing-changes)
 
 ---
@@ -334,6 +335,57 @@ This workflow validates that the chart is syntactically correct and renders with
 4. Deploy to GitHub Pages.
 
 The published site is at https://tosin2013.github.io/artemis-edge-acm-demo/. It is a static preview only.
+
+---
+
+## ArgoCD Prerequisites
+
+The Helm chart relies on several ArgoCD configuration items that are **not**
+part of the chart itself.  These must be applied to each hub cluster after
+OpenShift GitOps is installed.  The script
+`scripts/patch-argocd-health-check.sh` automates all three items below
+(called automatically by `post-provision-multihub.sh` step 3).
+
+### ApplicationSet Health Check
+
+The `artemis-edge-workloads` ApplicationSet in sync wave 5 is
+**intentionally unbound** (Option C / #48).  Without a custom health
+check ArgoCD reports it as `Progressing` forever, stalling the entire
+sync.  The health check always reports `Healthy` for ApplicationSet
+resources so the sync can proceed:
+
+```
+resource.customizations.health.argoproj.io_ApplicationSet
+```
+
+### ApplicationSet Controller
+
+OpenShift GitOps does not start the ApplicationSet controller unless the
+ArgoCD CR has a `spec.applicationSet` section with resource requests.
+The script patches the CR to enable it:
+
+```yaml
+spec:
+  applicationSet:
+    resources:
+      limits:   { cpu: "1",    memory: "1Gi"   }
+      requests: { cpu: "250m", memory: "512Mi" }
+```
+
+### `acm-placement` ConfigMap
+
+The `clusterDecisionResource` generator in the ApplicationSet needs a
+ConfigMap named `acm-placement` in `openshift-gitops` to duck-type
+`PlacementDecision` resources.  The Helm chart creates this ConfigMap at
+sync wave 0 (see `templates/acm-placement-configmap.yaml`, gated by
+`spokeProvisioning.enabled`).  In Mode 2, the `GitOpsCluster` resource
+may also auto-create it via the RHACM integration.
+
+### Application Health Check
+
+The existing `resource.customizations.health.argoproj.io_Application`
+check ensures ArgoCD waits for child Applications to be Healthy before
+proceeding to the next sync wave (App-of-Apps ordering).
 
 ---
 

@@ -1,0 +1,26 @@
+{
+  "$comment": "ArgoCD best practices: ApplicationSet health check, acm-placement ConfigMap, controller enablement, script wiring.",
+  "authority_id": "169",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "grep -q 'argoproj.io_ApplicationSet' scripts/patch-argocd-health-check.sh && grep -q 'applicationSet' scripts/patch-argocd-health-check.sh"
+    },
+    {
+      "check": "file_exists",
+      "target": "templates/acm-placement-configmap.yaml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'sync-wave' templates/global-hub-argocd-bridge.yaml"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'patch-argocd-health-check' scripts/post-provision-multihub.sh || grep -q 'patch-argocd-health-check' scripts/deploy.sh"
+    },
+    {
+      "check": "command_exit",
+      "target": "grep -q 'ApplicationSet' docs/developer-guide.md && grep -q 'acm-placement' docs/developer-guide.md"
+    }
+  ]
+}

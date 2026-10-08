@@ -11,7 +11,9 @@ set -euo pipefail
 #      core_workloads cert-manager role hardcoding dns-zone-{{ guid }})
 #   2. Adds SkipDryRunOnMissingResource=true to ArgoCD Applications
 #      (workaround for field_content role hardcoding syncOptions)
-#   3. Imports regional hubs into the Global Hub as ManagedClusters
+#   3. Patches ArgoCD health checks and enables ApplicationSet controller
+#      (#169: prevents sync stall on intentionally unbound ApplicationSet)
+#   4. Imports regional hubs into the Global Hub as ManagedClusters
 #
 # Prerequisites:
 #   - All 4 Mode 2 clusters provisioned (global + 3 regional)
@@ -141,9 +143,26 @@ done
 echo ""
 
 # ---------------------------------------------------------------------------
-# Step 3: Import regional hubs into the Global Hub
+# Step 3: Patch ArgoCD health checks & ApplicationSet controller (#169)
 # ---------------------------------------------------------------------------
-echo "--- Step 3: Import regional hubs ---"
+# Without the ApplicationSet Lua health check, an intentionally unbound
+# ApplicationSet (Option C / #48) stays Progressing and stalls the sync at
+# wave 5 forever. The ApplicationSet controller must also be enabled in the
+# ArgoCD CR.
+# ---------------------------------------------------------------------------
+echo "--- Step 3: ArgoCD health checks & ApplicationSet controller ---"
+
+for hub_id in "${!KUBECONFIGS[@]}"; do
+  kc="${KUBECONFIGS[$hub_id]}"
+  ARGOCD_NAMESPACE=openshift-gitops KUBECONFIG="$kc" "${SCRIPT_DIR}/patch-argocd-health-check.sh" \
+    2>&1 | sed "s/^/  [${hub_id}] /" || echo "  [WARN] ${hub_id}: patch-argocd-health-check.sh failed (non-fatal)"
+done
+echo ""
+
+# ---------------------------------------------------------------------------
+# Step 4: Import regional hubs into the Global Hub
+# ---------------------------------------------------------------------------
+echo "--- Step 4: Import regional hubs ---"
 "${SCRIPT_DIR}/import-managed-hubs.sh" --sandbox "${SANDBOX}" --output-dir "${OUTPUT_DIR}"
 
 echo ""
