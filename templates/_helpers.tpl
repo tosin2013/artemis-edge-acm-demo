@@ -128,6 +128,63 @@ Call with: include "artemis-edge.snoFederationBrokerProperties" (dict "spoke" . 
 {{- $spoke := .spoke -}}
 {{- $v := .Values -}}
 {{- printf "- %s\n" ("acceptorConfigurations.amqps-acceptor.params.sslAutoReload=true" | quote) -}}
+{{- /* Security roles — match Mode 1 edge-broker-properties.yaml (#168) */ -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.#\".admin.createAddress=true" | quote) -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.#\".admin.deleteAddress=true" | quote) -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.#\".admin.send=true" | quote) -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.#\".admin.consume=true" | quote) -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.#\".admin.browse=true" | quote) -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.#\".admin.createDurableQueue=true" | quote) -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.#\".admin.deleteDurableQueue=true" | quote) -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.#\".admin.createNonDurableQueue=true" | quote) -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.#\".admin.deleteNonDurableQueue=true" | quote) -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.#\".admin.manage=true" | quote) -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.#\".producer.createAddress=true" | quote) -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.#\".producer.send=true" | quote) -}}
+{{- /* Region-specific security roles */ -}}
+{{- printf "- %s\n" (printf "securityRoles.\"messages.%s.#\".admin.createAddress=true" $spoke.region | quote) -}}
+{{- printf "- %s\n" (printf "securityRoles.\"messages.%s.#\".admin.deleteAddress=true" $spoke.region | quote) -}}
+{{- printf "- %s\n" (printf "securityRoles.\"messages.%s.#\".admin.send=true" $spoke.region | quote) -}}
+{{- printf "- %s\n" (printf "securityRoles.\"messages.%s.#\".admin.consume=true" $spoke.region | quote) -}}
+{{- printf "- %s\n" (printf "securityRoles.\"messages.%s.#\".admin.browse=true" $spoke.region | quote) -}}
+{{- printf "- %s\n" (printf "securityRoles.\"messages.%s.#\".admin.createDurableQueue=true" $spoke.region | quote) -}}
+{{- printf "- %s\n" (printf "securityRoles.\"messages.%s.#\".admin.deleteDurableQueue=true" $spoke.region | quote) -}}
+{{- printf "- %s\n" (printf "securityRoles.\"messages.%s.#\".admin.createNonDurableQueue=true" $spoke.region | quote) -}}
+{{- printf "- %s\n" (printf "securityRoles.\"messages.%s.#\".admin.deleteNonDurableQueue=true" $spoke.region | quote) -}}
+{{- printf "- %s\n" (printf "securityRoles.\"messages.%s.#\".admin.manage=true" $spoke.region | quote) -}}
+{{- printf "- %s\n" (printf "securityRoles.\"messages.%s.#\".producer.createAddress=true" $spoke.region | quote) -}}
+{{- printf "- %s\n" (printf "securityRoles.\"messages.%s.#\".producer.send=true" $spoke.region | quote) -}}
+{{- printf "- %s\n" (printf "securityRoles.\"messages.%s.#\".consumer.createAddress=true" $spoke.region | quote) -}}
+{{- printf "- %s\n" (printf "securityRoles.\"messages.%s.#\".consumer.createDurableQueue=true" $spoke.region | quote) -}}
+{{- printf "- %s\n" (printf "securityRoles.\"messages.%s.#\".consumer.createNonDurableQueue=true" $spoke.region | quote) -}}
+{{- printf "- %s\n" (printf "securityRoles.\"messages.%s.#\".consumer.deleteNonDurableQueue=true" $spoke.region | quote) -}}
+{{- printf "- %s\n" (printf "securityRoles.\"messages.%s.#\".consumer.browse=true" $spoke.region | quote) -}}
+{{- printf "- %s\n" (printf "securityRoles.\"messages.%s.#\".consumer.consume=true" $spoke.region | quote) -}}
+{{- /* messages.ALL.# security roles */ -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.ALL.#\".admin.createAddress=true" | quote) -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.ALL.#\".admin.deleteAddress=true" | quote) -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.ALL.#\".admin.send=true" | quote) -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.ALL.#\".admin.consume=true" | quote) -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.ALL.#\".admin.browse=true" | quote) -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.ALL.#\".admin.createDurableQueue=true" | quote) -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.ALL.#\".admin.deleteDurableQueue=true" | quote) -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.ALL.#\".admin.createNonDurableQueue=true" | quote) -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.ALL.#\".admin.deleteNonDurableQueue=true" | quote) -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.ALL.#\".admin.manage=true" | quote) -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.ALL.#\".producer.createAddress=true" | quote) -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.ALL.#\".producer.send=true" | quote) -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.ALL.#\".consumer.createAddress=true" | quote) -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.ALL.#\".consumer.createDurableQueue=true" | quote) -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.ALL.#\".consumer.createNonDurableQueue=true" | quote) -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.ALL.#\".consumer.deleteNonDurableQueue=true" | quote) -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.ALL.#\".consumer.browse=true" | quote) -}}
+{{- printf "- %s\n" ("securityRoles.\"messages.ALL.#\".consumer.consume=true" | quote) -}}
+{{- /* Address settings */ -}}
+{{- printf "- %s\n" ("addressSettings.\"messages.#\".autoDeleteAddresses=true" | quote) -}}
+{{- printf "- %s\n" ("addressSettings.\"messages.#\".autoDeleteAddressesDelay=0" | quote) -}}
+{{- printf "- %s\n" ("addressSettings.\"messages.#\".autoDeleteQueues=true" | quote) -}}
+{{- printf "- %s\n" ("addressSettings.\"messages.#\".autoDeleteCreatedQueues=true" | quote) -}}
+{{- printf "- %s\n" ("addressSettings.\"messages.#\".autoDeleteQueuesDelay=0" | quote) -}}
 {{- range $i, $hubb := $v.hubBrokers -}}
 {{- $hub := $hubb.name -}}
 {{- $auto := "false" -}}
@@ -148,13 +205,8 @@ Call with: include "artemis-edge.snoFederationBrokerProperties" (dict "spoke" . 
 {{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.localAddressPolicies.local-policy.includes.all.addressMatch=messages.ALL.#" $hub $spoke.name | quote) -}}
 {{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.localAddressPolicies.local-policy.includes.region.addressMatch=messages.%s.#" $hub $spoke.name $spoke.region | quote) -}}
 {{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.localAddressPolicies.local-policy.excludes.5603.addressMatch=messages.*.5603" $hub $spoke.name | quote) -}}
-{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy.autoDelete=true" $hub $spoke.name | quote) -}}
-{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy.autoDeleteDelay=0" $hub $spoke.name | quote) -}}
-{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy.autoDeleteMessageCount=1000" $hub $spoke.name | quote) -}}
-{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy.includes.wild.addressMatch=messages.#" $hub $spoke.name | quote) -}}
-{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy.excludes.all.addressMatch=messages.ALL.#" $hub $spoke.name | quote) -}}
-{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy.excludes.region.addressMatch=messages.%s.#" $hub $spoke.name $spoke.region | quote) -}}
-{{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.remote-policy.excludes.5603.addressMatch=messages.*.5603" $hub $spoke.name | quote) -}}
+{{- /* Remote address policy — single named policy matching Mode 1 and #118 convention.
+       The duplicate generic 'remote-policy' was removed in #168. */ -}}
 {{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.%s-to-%s-federation-policy.autoDelete=true" $hub $spoke.name $spoke.name $hub | quote) -}}
 {{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.%s-to-%s-federation-policy.autoDeleteDelay=0" $hub $spoke.name $spoke.name $hub | quote) -}}
 {{- printf "- %s\n" (printf "AMQPConnections.%s-connection.federations.%s-federation.remoteAddressPolicies.%s-to-%s-federation-policy.autoDeleteMessageCount=1000" $hub $spoke.name $spoke.name $hub | quote) -}}
