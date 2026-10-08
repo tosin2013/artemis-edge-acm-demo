@@ -10,27 +10,39 @@
 #    operator does not start the controller unless spec.applicationSet has
 #    resource requests.  Without the controller, ApplicationSet.status stays
 #    null and ArgoCD reports Progressing indefinitely.
+#
+# Health checks are set via spec.resourceHealthChecks on the ArgoCD CR
+# (not by patching argocd-cm directly, which the operator reverts).
 set -euo pipefail
 
 NAMESPACE="${ARGOCD_NAMESPACE:-openshift-gitops}"
+ARGOCD_CR="${ARGOCD_CR_NAME:-openshift-gitops}"
 
-# ── 1. Patch argocd-cm with health checks ────────────────────────────────
+# ── 1. Patch ArgoCD CR with health checks ────────────────────────────────
 
-echo "[1/2] Patching argocd-cm in namespace $NAMESPACE with health checks..."
+echo "[1/2] Patching ArgoCD CR '$ARGOCD_CR' with resourceHealthChecks..."
 
-oc patch configmap argocd-cm -n "$NAMESPACE" --type merge -p '
+oc patch argocd "$ARGOCD_CR" -n "$NAMESPACE" --type merge -p '
 {
-  "data": {
-    "resource.customizations.health.argoproj.io_Application": "hs = {}\nhs.status = \"Progressing\"\nhs.message = \"\"\nif obj.status ~= nil then\n  if obj.status.health ~= nil then\n    hs.status = obj.status.health.status\n    if obj.status.health.message ~= nil then\n      hs.message = obj.status.health.message\n    end\n  end\nend\nreturn hs\n",
-    "resource.customizations.health.argoproj.io_ApplicationSet": "hs = {}\nhs.status = \"Healthy\"\nhs.message = \"ApplicationSet is healthy\"\nreturn hs\n"
+  "spec": {
+    "resourceHealthChecks": [
+      {
+        "group": "argoproj.io",
+        "kind": "Application",
+        "check": "hs = {}\nhs.status = \"Progressing\"\nhs.message = \"\"\nif obj.status ~= nil then\n  if obj.status.health ~= nil then\n    hs.status = obj.status.health.status\n    if obj.status.health.message ~= nil then\n      hs.message = obj.status.health.message\n    end\n  end\nend\nreturn hs"
+      },
+      {
+        "group": "argoproj.io",
+        "kind": "ApplicationSet",
+        "check": "hs = {}\nhs.status = \"Healthy\"\nhs.message = \"ApplicationSet is healthy\"\nreturn hs"
+      }
+    ]
   }
 }'
 
-echo "  argocd-cm patched."
+echo "  ArgoCD CR patched with health checks."
 
-# ── 2. Enable ApplicationSet controller in ArgoCD CR ─────────────────────
-
-ARGOCD_CR="${ARGOCD_CR_NAME:-openshift-gitops}"
+# ── 2. Enable ApplicationSet controller ──────────────────────────────────
 
 echo "[2/2] Ensuring ApplicationSet controller is enabled on ArgoCD CR '$ARGOCD_CR'..."
 
@@ -57,5 +69,5 @@ fi
 echo ""
 echo "Done.  ArgoCD will now:"
 echo "  - Wait for child Applications to be Healthy before proceeding to the next sync wave."
-echo "  - Treat ApplicationSets with no error conditions as Healthy (unbound ApplicationSet won't stall)."
+echo "  - Treat all ApplicationSets as Healthy (unbound ApplicationSet won't stall)."
 echo "  - Run the ApplicationSet controller deployment."
