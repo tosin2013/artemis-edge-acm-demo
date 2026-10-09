@@ -1,14 +1,22 @@
 {
   "authority_id": "168",
-  "$comment": "Mode 2 spoke broker: add security roles + remove duplicate remote-policy",
+  "$comment": "Mode 2 spoke broker: security roles, address settings, federation/bridge config per Josh's review",
   "criteria": [
     {
       "check": "command_exit",
-      "target": "helm template artemis-edge . -s templates/edge-broker-policies.yaml --set spokeProvisioning.enabled=true --set spokeProvisioning.baseDomain=example.com --set spokeProvisioning.gcpProjectID=test --set spokeProvisioning.gcpRegion=us-east1 --set spokeProvisioning.clusterImageSet=img --set spokeProvisioning.sshPublicKey=ssh-ed25519 --set spokeProvisioning.networkType=OVNKubernetes --set spokeProvisioning.workerMachineType=n2 --set spokeProvisioning.masterMachineType=n2 --set 'spokeProvisioning.clusters[0].name=sno-edge-01' --set 'spokeProvisioning.clusters[0].region=NY' 2>&1 | grep -q 'securityRoles'"
+      "target": "helm template artemis-edge . -s templates/edge-broker-policies.yaml --set spokeProvisioning.enabled=true --set spokeProvisioning.baseDomain=example.com --set spokeProvisioning.gcpProjectID=test --set spokeProvisioning.gcpRegion=us-east1 --set spokeProvisioning.clusterImageSet=img --set spokeProvisioning.sshPublicKey=ssh-ed25519 --set spokeProvisioning.networkType=OVNKubernetes --set spokeProvisioning.workerMachineType=n2 --set spokeProvisioning.masterMachineType=n2 --set 'spokeProvisioning.clusters[0].name=sno-edge-01' --set 'spokeProvisioning.clusters[0].region=NY' 2>&1 | grep -q 'globalMaxSize=1GiB'"
     },
     {
       "check": "command_exit",
-      "target": "helm template artemis-edge . -s templates/edge-broker-policies.yaml --set spokeProvisioning.enabled=true --set spokeProvisioning.baseDomain=example.com --set spokeProvisioning.gcpProjectID=test --set spokeProvisioning.gcpRegion=us-east1 --set spokeProvisioning.clusterImageSet=img --set spokeProvisioning.sshPublicKey=ssh-ed25519 --set spokeProvisioning.networkType=OVNKubernetes --set spokeProvisioning.workerMachineType=n2 --set spokeProvisioning.masterMachineType=n2 --set 'spokeProvisioning.clusters[0].name=sno-edge-01' --set 'spokeProvisioning.clusters[0].region=NY' 2>&1 | grep -v 'remoteAddressPolicies.remote-policy'"
+      "target": "helm template artemis-edge . -s templates/edge-broker-policies.yaml --set spokeProvisioning.enabled=true --set spokeProvisioning.baseDomain=example.com --set spokeProvisioning.gcpProjectID=test --set spokeProvisioning.gcpRegion=us-east1 --set spokeProvisioning.clusterImageSet=img --set spokeProvisioning.sshPublicKey=ssh-ed25519 --set spokeProvisioning.networkType=OVNKubernetes --set spokeProvisioning.workerMachineType=n2 --set spokeProvisioning.masterMachineType=n2 --set 'spokeProvisioning.clusters[0].name=sno-edge-01' --set 'spokeProvisioning.clusters[0].region=NY' 2>&1 | grep -q 'defaultPurgeOnNoConsumers=true'"
+    },
+    {
+      "check": "command_exit",
+      "target": "helm template artemis-edge . -s templates/edge-broker-policies.yaml --set spokeProvisioning.enabled=true --set spokeProvisioning.baseDomain=example.com --set spokeProvisioning.gcpProjectID=test --set spokeProvisioning.gcpRegion=us-east1 --set spokeProvisioning.clusterImageSet=img --set spokeProvisioning.sshPublicKey=ssh-ed25519 --set spokeProvisioning.networkType=OVNKubernetes --set spokeProvisioning.workerMachineType=n2 --set spokeProvisioning.masterMachineType=n2 --set 'spokeProvisioning.clusters[0].name=sno-edge-01' --set 'spokeProvisioning.clusters[0].region=NY' 2>&1 | grep -q 'svc.cluster.local:5672'"
+    },
+    {
+      "check": "command_exit",
+      "target": "helm template artemis-edge . -s templates/edge-broker-policies.yaml --set spokeProvisioning.enabled=true --set spokeProvisioning.baseDomain=example.com --set spokeProvisioning.gcpProjectID=test --set spokeProvisioning.gcpRegion=us-east1 --set spokeProvisioning.clusterImageSet=img --set spokeProvisioning.sshPublicKey=ssh-ed25519 --set spokeProvisioning.networkType=OVNKubernetes --set spokeProvisioning.workerMachineType=n2 --set spokeProvisioning.masterMachineType=n2 --set 'spokeProvisioning.clusters[0].name=sno-edge-01' --set 'spokeProvisioning.clusters[0].region=NY' 2>&1 | grep -qv 'localAddressPolicies'"
     }
   ]
 }
