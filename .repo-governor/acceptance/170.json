@@ -1,0 +1,18 @@
+{
+  "authority_id": "170",
+  "$comment": "West hub: orphaned spoke policies deleted, Secret has correct broker properties",
+  "criteria": [
+    {
+      "check": "command_exit",
+      "target": "helm template artemis-edge . -s templates/edge-broker-properties.yaml --set spokeProvisioning.enabled=false --set tls.enabled=false 2>&1 | grep -q 'globalMaxSize=1GiB'"
+    },
+    {
+      "check": "command_exit",
+      "target": "helm template artemis-edge . -s templates/edge-broker-properties.yaml --set spokeProvisioning.enabled=false --set tls.enabled=false 2>&1 | grep -q 'svc.cluster.local:5672'"
+    },
+    {
+      "check": "command_exit",
+      "target": "helm template artemis-edge . -s templates/edge-broker-properties.yaml --set spokeProvisioning.enabled=false --set tls.enabled=false 2>&1 | grep -qv 'localAddressPolicies'"
+    }
+  ]
+}
