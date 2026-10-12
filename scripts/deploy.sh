@@ -261,8 +261,11 @@ echo "=== Delegating to agd ${AGD_ACTION}... ==="
 cd "${AGD_ROOT}"
 
 if [[ "${AGD_ACTION}" == "provision" ]]; then
+  # Disable set -e so we can capture the exit code and run the zone fix logic
+  set +e
   ./bin/agd "${AGD_ACTION}" -g "${AGD_GUID}" -c "${AGD_CONFIG}" -a "${AGD_ACCOUNT}"
   AGD_EXIT=$?
+  set -e
 
   # ---------------------------------------------------------------------------
   # Mode 2 cert-manager zone fix + retry

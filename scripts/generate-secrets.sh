@@ -81,6 +81,15 @@ except Exception:
     fi
 fi
 
+# Auto-detect pull secret from ~/pull-secret.json if not already set
+if [[ -z "$PULL_SECRET" ]]; then
+    PULL_SECRET_FILE="${HOME}/pull-secret.json"
+    if [[ -f "$PULL_SECRET_FILE" ]]; then
+        PULL_SECRET=$(cat "$PULL_SECRET_FILE" | tr -d '\n')
+        echo "  Auto-detected ocp4_pull_secret from ${PULL_SECRET_FILE}"
+    fi
+fi
+
 # Preserve org/billing settings from existing file if present
 read -r FOLDER_ID COST_CENTER BILLING_ACCOUNT ORG_ID REQUESTER_EMAIL < <(python3 -c "
 import yaml, sys
@@ -139,3 +148,19 @@ ocp4_pull_secret: >-
 SECRETS
 
 echo "  Wrote ${SECRETS_FILE}"
+
+# Also update the base secrets.yml if it has a placeholder pull secret
+BASE_SECRETS_FILE="${SECRETS_DIR}/secrets.yml"
+if [[ -n "$PULL_SECRET" && -f "$BASE_SECRETS_FILE" ]]; then
+    if grep -q '<Add Your Pull Secret here>' "$BASE_SECRETS_FILE" 2>/dev/null; then
+        python3 -c "
+import yaml, sys
+with open(sys.argv[1]) as f:
+    data = yaml.safe_load(f)
+data['ocp4_pull_secret'] = sys.argv[2]
+with open(sys.argv[1], 'w') as f:
+    yaml.dump(data, f, default_flow_style=False, width=4096)
+" "$BASE_SECRETS_FILE" "$PULL_SECRET"
+        echo "  Updated ocp4_pull_secret in ${BASE_SECRETS_FILE} (was placeholder)"
+    fi
+fi

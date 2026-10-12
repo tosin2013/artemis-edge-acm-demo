@@ -19,6 +19,7 @@ prerequisites:
     min_version: "3.9"
     install:
       rhel9: "sudo dnf install -y python3"
+      rhel10: "sudo dnf install -y python3"
       macos: "brew install python@3.12"
       fedora: "sudo dnf install -y python3"
       debian: "sudo apt-get install -y python3"
@@ -30,6 +31,7 @@ prerequisites:
     min_version: "3.12"
     install:
       rhel9: "sudo dnf install -y python3.12"
+      rhel10: "sudo dnf install -y python3.12"
       macos: "brew install python@3.12"
       fedora: "sudo dnf install -y python3.12"
       debian: "sudo apt-get install -y python3.12"
@@ -40,6 +42,7 @@ prerequisites:
     version_regex: "podman version (\\d+\\.\\d+)"
     install:
       rhel9: "sudo dnf install -y podman"
+      rhel10: "sudo dnf install -y podman"
       macos: "brew install podman"
       fedora: "sudo dnf install -y podman"
       debian: "sudo apt-get install -y podman"
@@ -49,6 +52,7 @@ prerequisites:
     check_command: "git --version"
     install:
       rhel9: "sudo dnf install -y git"
+      rhel10: "sudo dnf install -y git"
       macos: "brew install git"
       fedora: "sudo dnf install -y git"
       debian: "sudo apt-get install -y git"
@@ -62,6 +66,7 @@ prerequisites:
     check_command: "helm version --short"
     install:
       rhel9: "curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash"
+      rhel10: "curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash"
       macos: "brew install helm"
       fedora: "curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash"
       debian: "curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash"
@@ -71,6 +76,7 @@ prerequisites:
     check_command: "jq --version"
     install:
       rhel9: "sudo dnf install -y jq"
+      rhel10: "sudo dnf install -y jq"
       macos: "brew install jq"
       fedora: "sudo dnf install -y jq"
       debian: "sudo apt-get install -y jq"
@@ -84,6 +90,7 @@ prerequisites:
     check_command: "keytool 2>&1 | head -1"
     install:
       rhel9: "sudo dnf install -y java-21-openjdk-devel"
+      rhel10: "sudo dnf install -y java-21-openjdk-devel"
       macos: "brew install openjdk@21"
       fedora: "sudo dnf install -y java-21-openjdk-devel"
       debian: "sudo apt-get install -y openjdk-21-jdk"
@@ -95,6 +102,7 @@ prerequisites:
     min_version: "21"
     install:
       rhel9: "sudo dnf install -y java-21-openjdk-devel"
+      rhel10: "sudo dnf install -y java-21-openjdk-devel"
       macos: "brew install openjdk@21"
       fedora: "sudo dnf install -y java-21-openjdk-devel"
       debian: "sudo apt-get install -y openjdk-21-jdk"
@@ -103,6 +111,8 @@ prerequisites:
   - name: mvn
     check_command: "mvn -version"
     install:
+      rhel10: "mkdir -p ~/tools && curl -sL https://archive.apache.org/dist/maven/maven-3/3.9.9/binaries/apache-maven-3.9.9-bin.tar.gz | tar -xz -C ~/tools && mkdir -p ~/bin && ln -sf ~/tools/apache-maven-3.9.9/bin/mvn ~/bin/mvn && export PATH=\"$HOME/bin:$PATH\""
+      rhel9: "mkdir -p ~/tools && curl -sL https://archive.apache.org/dist/maven/maven-3/3.9.9/binaries/apache-maven-3.9.9-bin.tar.gz | tar -xz -C ~/tools && mkdir -p ~/bin && ln -sf ~/tools/apache-maven-3.9.9/bin/mvn ~/bin/mvn && export PATH=\"$HOME/bin:$PATH\""
       fallback: "Install Apache Maven from https://maven.apache.org/download.cgi"
 
 # ─────────────────────────────────────────────────────────────
@@ -458,6 +468,7 @@ modes:
         check_command: "command -v shellcheck"
         install:
           rhel9: "sudo dnf install -y ShellCheck"
+          rhel10: "sudo dnf install -y ShellCheck"
           macos: "brew install shellcheck"
           fedora: "sudo dnf install -y ShellCheck"
           debian: "sudo apt-get install -y shellcheck"
@@ -466,6 +477,7 @@ modes:
         check_command: "command -v yamllint"
         install:
           rhel9: "pip3 install yamllint"
+          rhel10: "pip3 install yamllint"
           macos: "brew install yamllint"
           fedora: "sudo dnf install -y yamllint"
           debian: "sudo apt-get install -y yamllint"
