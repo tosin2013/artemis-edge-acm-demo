@@ -289,9 +289,14 @@ if [[ "${AGD_ACTION}" == "provision" ]]; then
       CURRENT_ZONE=$(KUBECONFIG="$KUBECONFIG_FILE" oc get clusterissuer letsencrypt-production-gcp \
         -o jsonpath='{.spec.acme.solvers[0].dns01.cloudDNS.hostedZoneName}' 2>/dev/null || true)
       CORRECT_ZONE="dns-zone-${SANDBOX}"
-      if [[ -n "$CURRENT_ZONE" && "$CURRENT_ZONE" != "$CORRECT_ZONE" ]]; then
+
+      # Trigger fix if zone is wrong OR if any certs are not Ready (stale challenges)
+      _CERTS_NOT_READY=$(KUBECONFIG="$KUBECONFIG_FILE" oc get certificates -A \
+        -o jsonpath='{.items[?(@.status.conditions[0].status!="True")].metadata.name}' 2>/dev/null || true)
+
+      if [[ -n "$CURRENT_ZONE" && ( "$CURRENT_ZONE" != "$CORRECT_ZONE" || -n "$_CERTS_NOT_READY" ) ]]; then
         echo ""
-        echo "=== Cert-manager zone mismatch detected: ${CURRENT_ZONE} != ${CORRECT_ZONE} ==="
+        echo "=== Cert-manager fix: zone=${CURRENT_ZONE} (want ${CORRECT_ZONE}), not-ready=[${_CERTS_NOT_READY}] ==="
         echo "    Fixing ClusterIssuer, issuing certs, then retrying provision..."
         echo ""
 
@@ -300,8 +305,9 @@ if [[ "${AGD_ACTION}" == "provision" ]]; then
         KUBECONFIG="$KUBECONFIG_FILE" oc patch clusterissuer letsencrypt-production-gcp --type=json \
           -p "[{\"op\":\"replace\",\"path\":\"/spec/acme/solvers/0/dns01/cloudDNS/hostedZoneName\",\"value\":\"${CORRECT_ZONE}\"}]" \
           2>&1 || true
+        sleep 3
 
-        # Step 2: Remove finalizers from stuck challenges so they can be deleted
+        # Step 2: Remove finalizers from stuck challenges, then force delete everything
         echo "  [2/5] Cleaning stale challenges and certificate requests..."
         for _ns in openshift-ingress openshift-config; do
           for _ch in $(KUBECONFIG="$KUBECONFIG_FILE" oc get challenges -n "$_ns" \
@@ -310,6 +316,7 @@ if [[ "${AGD_ACTION}" == "provision" ]]; then
               --type=merge -p '{"metadata":{"finalizers":null}}' 2>/dev/null || true
           done
         done
+        sleep 2
         KUBECONFIG="$KUBECONFIG_FILE" oc delete challenges -A --all --force --grace-period=0 2>/dev/null || true
         KUBECONFIG="$KUBECONFIG_FILE" oc delete certificaterequests -A --all --force --grace-period=0 2>/dev/null || true
         KUBECONFIG="$KUBECONFIG_FILE" oc delete certificates -A --all --force --grace-period=0 2>/dev/null || true
