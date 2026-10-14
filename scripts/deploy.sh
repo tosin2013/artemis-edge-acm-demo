@@ -260,6 +260,13 @@ fi
 echo "=== Delegating to agd ${AGD_ACTION}... ==="
 cd "${AGD_ROOT}"
 
+# Export SANDBOX_ID so agd passes it as an extra-var (sandbox_id).
+# This allows cert-manager vars to use a literal zone name instead of
+# relying on Jinja2 regex_replace inside the Execution Environment.
+if [[ "${DEPLOY_MODE}" == "multi-hub" ]]; then
+  export SANDBOX_ID="${SANDBOX}"
+fi
+
 if [[ "${AGD_ACTION}" == "provision" ]]; then
   # Disable set -e so we can capture the exit code and run the zone fix logic
   set +e
@@ -307,17 +314,30 @@ if [[ "${AGD_ACTION}" == "provision" ]]; then
           2>&1 || true
         sleep 3
 
-        # Step 2: Remove finalizers from stuck challenges, then force delete everything
+        # Step 2: Remove finalizers from stuck challenges, then force delete everything.
+        # cert-manager may re-add finalizers while we delete, so loop until clear.
         echo "  [2/5] Cleaning stale challenges and certificate requests..."
-        for _ns in openshift-ingress openshift-config; do
-          for _ch in $(KUBECONFIG="$KUBECONFIG_FILE" oc get challenges -n "$_ns" \
-              -o jsonpath='{.items[*].metadata.name}' 2>/dev/null); do
-            KUBECONFIG="$KUBECONFIG_FILE" oc patch challenge "$_ch" -n "$_ns" \
-              --type=merge -p '{"metadata":{"finalizers":null}}' 2>/dev/null || true
+        _CLEANUP_WAIT=0
+        while [[ $_CLEANUP_WAIT -lt 60 ]]; do
+          # Remove finalizers from all challenges
+          for _ns in openshift-ingress openshift-config; do
+            for _ch in $(KUBECONFIG="$KUBECONFIG_FILE" oc get challenges -n "$_ns" \
+                -o jsonpath='{.items[*].metadata.name}' 2>/dev/null); do
+              KUBECONFIG="$KUBECONFIG_FILE" oc patch challenge "$_ch" -n "$_ns" \
+                --type=merge -p '{"metadata":{"finalizers":null}}' 2>/dev/null || true
+            done
           done
+          KUBECONFIG="$KUBECONFIG_FILE" oc delete challenges -A --all --force --grace-period=0 2>/dev/null || true
+          # Check if all challenges are gone
+          _REMAINING=$(KUBECONFIG="$KUBECONFIG_FILE" oc get challenges -A --no-headers 2>/dev/null | wc -l)
+          if [[ "$_REMAINING" -eq 0 ]]; then
+            echo "        All challenges cleared."
+            break
+          fi
+          echo "        ${_REMAINING} challenge(s) still pending, retrying... (${_CLEANUP_WAIT}s)"
+          sleep 5
+          _CLEANUP_WAIT=$((_CLEANUP_WAIT + 5))
         done
-        sleep 2
-        KUBECONFIG="$KUBECONFIG_FILE" oc delete challenges -A --all --force --grace-period=0 2>/dev/null || true
         KUBECONFIG="$KUBECONFIG_FILE" oc delete certificaterequests -A --all --force --grace-period=0 2>/dev/null || true
         KUBECONFIG="$KUBECONFIG_FILE" oc delete certificates -A --all --force --grace-period=0 2>/dev/null || true
         sleep 5

@@ -84,6 +84,11 @@ prerequisites:
   - name: gcloud
     check_command: "gcloud --version"
     install:
+      rhel10: "curl -sL https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz | tar -xz -C $HOME && $HOME/google-cloud-sdk/install.sh --quiet --path-update true && export PATH=\"$HOME/google-cloud-sdk/bin:$PATH\""
+      rhel9: "curl -sL https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz | tar -xz -C $HOME && $HOME/google-cloud-sdk/install.sh --quiet --path-update true && export PATH=\"$HOME/google-cloud-sdk/bin:$PATH\""
+      fedora: "curl -sL https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz | tar -xz -C $HOME && $HOME/google-cloud-sdk/install.sh --quiet --path-update true && export PATH=\"$HOME/google-cloud-sdk/bin:$PATH\""
+      debian: "curl -sL https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz | tar -xz -C $HOME && $HOME/google-cloud-sdk/install.sh --quiet --path-update true && export PATH=\"$HOME/google-cloud-sdk/bin:$PATH\""
+      macos: "brew install --cask google-cloud-sdk"
       fallback: "Install from https://cloud.google.com/sdk/docs/install"
 
   - name: keytool
@@ -268,6 +273,11 @@ validation:
     command: "gcloud auth list --filter=status:ACTIVE --format='value(account)' | head -1 | grep -q ."
     required: true
     fail_message: "Authenticate: gcloud auth activate-service-account --key-file=<key.json>"
+
+  - name: "OpenShift pull secret"
+    command: "test -f ${HOME}/pull-secret.json"
+    required: true
+    fail_message: "Download your pull secret from https://console.redhat.com/openshift/downloads and save it to ~/pull-secret.json"
 
   - name: "GCP secrets file"
     command: "test -f ${agnosticd_root}/../agnosticd-v2-secrets/secrets-${agd_account}.yml"
