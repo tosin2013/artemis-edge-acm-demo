@@ -200,7 +200,7 @@ Call with: include "artemis-edge.snoFederationBrokerProperties" (dict "spoke" . 
        cert SAN (*.svc.cluster.local) does not match the route hostname. The hub-ca-
        truststore Secret (mounted via extraMounts) validates the CA chain. */ -}}
 {{- $routeHost := printf "%s-broker-amqps-acceptor-0-svc-rte-%s.%s" $hub $v.global.namespace $v.global.clusterDomain -}}
-{{- $uri := printf "tcp://%s:443?sslEnabled=true&verifyHost=false&trustStorePath=/etc/hub-ca-truststore-volume/truststore.p12&trustStorePassword=password&trustStoreType=PKCS12" $routeHost -}}
+{{- $uri := printf "tcp://%s:443?sslEnabled=true&verifyHost=false&trustStorePath=/amq/extra/secrets/hub-ca-truststore/truststore.p12&trustStorePassword=password&trustStoreType=PKCS12" $routeHost -}}
 {{- printf "- %s\n" (printf "AMQPConnections.%s-connection.autostart=%s" $hub $auto | quote) -}}
 {{- printf "- %s\n" (printf "AMQPConnections.%s-connection.uri=%s" $hub $uri | quote) -}}
 {{- printf "- %s\n" (printf "AMQPConnections.%s-connection.user=%s" $hub $v.edgeBrokerDefaults.adminUser | quote) -}}

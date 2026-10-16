@@ -391,7 +391,7 @@ spec:
                   namespace: {{ $.Values.global.namespace }}
                 type: Opaque
                 data:
-                  truststore.p12: '{{ "{{hub" }} (index (lookup "v1" "Secret" "{{ $.Values.global.namespace }}" "hub-ca-truststore").data "truststore.p12") {{ "hub}}" }}'
+                  truststore.p12: '{{ "{{hub" }} (index (lookup "v1" "Secret" "edge-broker-policies" "hub-ca-truststore").data "truststore.p12") {{ "hub}}" }}'
                 stringData:
                   trustStorePassword: "password"
 ---

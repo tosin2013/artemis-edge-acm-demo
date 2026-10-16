@@ -394,7 +394,7 @@ setup_hub_truststore() {
   rm -rf "$tmp_dir"
 }
 
-setup_hub_truststore "artemis"
+setup_hub_truststore "edge-broker-policies"
 
 # ── Step 3: Create per-spoke namespaces and secrets ──────────────────
 
