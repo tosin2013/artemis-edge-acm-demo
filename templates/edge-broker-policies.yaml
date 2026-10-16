@@ -276,6 +276,9 @@ spec:
                       requests:
                         cpu: {{ $defaults.resources.requests.cpu | quote }}
                         memory: {{ $defaults.resources.requests.memory | quote }}
+                    extraMounts:
+                      secrets:
+                        - "hub-ca-truststore"
                   acceptors:
                     - name: core-acceptor
                       protocols: core
@@ -370,6 +373,27 @@ spec:
                         username:
                           name: {{ .name }}-broker-auth
                           key: user
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: hub-ca-truststore-{{ .name }}
+        spec:
+          remediationAction: enforce
+          severity: medium
+          object-templates:
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: v1
+                kind: Secret
+                metadata:
+                  name: hub-ca-truststore
+                  namespace: {{ $.Values.global.namespace }}
+                type: Opaque
+                data:
+                  truststore.p12: '{{ "{{hub" }} (index (lookup "v1" "Secret" "{{ $.Values.global.namespace }}" "hub-ca-truststore").data "truststore.p12") {{ "hub}}" }}'
+                stringData:
+                  trustStorePassword: "password"
 ---
 apiVersion: cluster.open-cluster-management.io/v1beta1
 kind: Placement

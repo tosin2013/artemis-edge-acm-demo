@@ -195,7 +195,12 @@ Call with: include "artemis-edge.snoFederationBrokerProperties" (dict "spoke" . 
 {{- $hub := $hubb.name -}}
 {{- $auto := "false" -}}
 {{- if eq $i 0 }}{{- $auto = "true" -}}{{- end -}}
-{{- $uri := printf "tcp://%s-broker-amqp-acceptor-0-svc.%s.svc.cluster.local:5672" $hub $v.global.namespace -}}
+{{- /* Spoke brokers are on separate SNO clusters — use the hub's external AMQPS
+       passthrough route (:443) with TLS. verifyHost=false because the service-serving
+       cert SAN (*.svc.cluster.local) does not match the route hostname. The hub-ca-
+       truststore Secret (mounted via extraMounts) validates the CA chain. */ -}}
+{{- $routeHost := printf "%s-broker-amqps-acceptor-0-svc-rte-%s.%s" $hub $v.global.namespace $v.global.clusterDomain -}}
+{{- $uri := printf "tcp://%s:443?sslEnabled=true&verifyHost=false&trustStorePath=/etc/hub-ca-truststore-volume/truststore.p12&trustStorePassword=password&trustStoreType=PKCS12" $routeHost -}}
 {{- printf "- %s\n" (printf "AMQPConnections.%s-connection.autostart=%s" $hub $auto | quote) -}}
 {{- printf "- %s\n" (printf "AMQPConnections.%s-connection.uri=%s" $hub $uri | quote) -}}
 {{- printf "- %s\n" (printf "AMQPConnections.%s-connection.user=%s" $hub $v.edgeBrokerDefaults.adminUser | quote) -}}

@@ -340,6 +340,62 @@ if [[ -z "$SSH_PUB_KEY" ]]; then
   fi
 fi
 
+# ── Step 2b: Create hub CA truststore for spoke→hub AMQPS ────────────
+#
+# SNO spoke brokers connect to the hub broker via the hub's external AMQPS
+# passthrough route (:443). The hub's AMQPS acceptor uses a service-serving
+# cert signed by the hub's openshift-service-serving-signer CA. Spokes need
+# a PKCS12 truststore containing this CA so they can verify the hub's cert.
+
+setup_hub_truststore() {
+  log_step "2b/6" "Creating hub CA truststore for spoke→hub AMQPS..."
+
+  local ns="${1:-artemis}"
+  local secret_name="hub-ca-truststore"
+  local ts_password="password"
+  local tmp_dir
+  tmp_dir=$(mktemp -d /tmp/hub-truststore-XXXXXX)
+
+  # Extract hub's service-serving-signer CA
+  oc get configmap signing-cabundle -n openshift-service-ca \
+    -o jsonpath='{.data.ca-bundle\.crt}' > "${tmp_dir}/hub-ca.pem" 2>/dev/null
+
+  if [[ ! -s "${tmp_dir}/hub-ca.pem" ]]; then
+    log_fail "Cannot extract hub service-serving CA from openshift-service-ca/signing-cabundle"
+    rm -rf "$tmp_dir"
+    return 1
+  fi
+  log_ok "Extracted hub service-serving-signer CA"
+
+  # Create PKCS12 truststore
+  keytool -import -trustcacerts -alias hub-service-ca \
+    -file "${tmp_dir}/hub-ca.pem" \
+    -keystore "${tmp_dir}/truststore.p12" \
+    -storetype PKCS12 -storepass "$ts_password" -noprompt &>/dev/null
+
+  if [[ ! -s "${tmp_dir}/truststore.p12" ]]; then
+    log_fail "Failed to create PKCS12 truststore (is keytool/java available?)"
+    rm -rf "$tmp_dir"
+    return 1
+  fi
+  log_ok "Created PKCS12 truststore"
+
+  # Ensure the namespace exists
+  oc create namespace "$ns" --dry-run=client -o yaml 2>/dev/null | oc apply -f - 2>/dev/null
+
+  # Create/update the Secret on the hub
+  oc create secret generic "$secret_name" -n "$ns" \
+    --from-file=truststore.p12="${tmp_dir}/truststore.p12" \
+    --from-literal=trustStorePassword="$ts_password" \
+    --dry-run=client -o yaml 2>/dev/null | oc apply -f - 2>/dev/null
+
+  log_ok "Secret ${ns}/${secret_name} created on hub"
+
+  rm -rf "$tmp_dir"
+}
+
+setup_hub_truststore "artemis"
+
 # ── Step 3: Create per-spoke namespaces and secrets ──────────────────
 
 log_step "3/6" "Creating spoke namespaces & secrets..."
