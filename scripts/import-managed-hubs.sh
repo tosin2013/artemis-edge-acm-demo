@@ -147,21 +147,31 @@ for hub_name in $(echo "${!REGIONAL_HUBS[@]}" | tr ' ' '\n' | sort); do
 
   echo "--- Importing ${hub_name} (region=${region}) ---"
 
-  # Check if already imported
+  # Hosted mode keeps each regional hub's own local-cluster klusterlet.
+  # Default auto-import replaces that klusterlet and leaves MultiClusterHub Pending.
+  # Do not refresh auto-import-secret once a hosted import has joined: rewriting
+  # the secret makes the import controller reconcile again.
+  skip_secret=false
   if KUBECONFIG="$GLOBAL_KC" oc get managedcluster "$hub_name" &>/dev/null 2>&1; then
     joined=$(KUBECONFIG="$GLOBAL_KC" oc get managedcluster "$hub_name" -o jsonpath='{.status.conditions[?(@.type=="ManagedClusterJoined")].status}' 2>/dev/null || true)
-    if [[ "$joined" == "True" ]]; then
-      echo "  Already imported and joined — skipping."
-      # Ensure labels are correct
-      KUBECONFIG="$GLOBAL_KC" oc label managedcluster "$hub_name" \
-        hub-tier=regional region="$region" cloud=GCP vendor=OpenShift \
-        --overwrite 2>/dev/null
-      echo ""
-      continue
+    deploy_mode=$(KUBECONFIG="$GLOBAL_KC" oc get managedcluster "$hub_name" -o jsonpath='{.metadata.annotations.import\.open-cluster-management\.io/klusterlet-deploy-mode}' 2>/dev/null || true)
+    KUBECONFIG="$GLOBAL_KC" oc label managedcluster "$hub_name" \
+      hub-tier=regional region="$region" cloud=GCP vendor=OpenShift \
+      --overwrite 2>/dev/null || true
+    if [[ "$joined" == "True" && "$deploy_mode" == "Hosted" ]]; then
+      echo "  Already joined in hosted mode — leaving the import secret unchanged."
+      skip_secret=true
+    else
+      echo "  Setting hosted klusterlet mode before import."
+      KUBECONFIG="$GLOBAL_KC" oc annotate managedcluster "$hub_name" \
+        import.open-cluster-management.io/klusterlet-deploy-mode=Hosted \
+        import.open-cluster-management.io/hosting-cluster-name=local-cluster \
+        --overwrite 2>/dev/null || true
     fi
-    echo "  ManagedCluster exists but not yet joined — re-applying import secret."
   else
-    # Create ManagedCluster
+    # Create ManagedCluster. Hosted mode runs this hub's klusterlet on the
+    # Global Hub. Default mode would replace the regional hub's own
+    # local-cluster klusterlet and leave MultiClusterHub Pending.
     echo "  Creating ManagedCluster..."
     KUBECONFIG="$GLOBAL_KC" oc apply -f - <<MCEOF
 apiVersion: cluster.open-cluster-management.io/v1
@@ -173,6 +183,9 @@ metadata:
     region: ${region}
     cloud: GCP
     vendor: OpenShift
+  annotations:
+    import.open-cluster-management.io/klusterlet-deploy-mode: Hosted
+    import.open-cluster-management.io/hosting-cluster-name: local-cluster
 spec:
   hubAcceptsClient: true
 MCEOF
@@ -192,7 +205,12 @@ MCEOF
     continue
   fi
 
-  # Create auto-import secret with the regional hub's kubeconfig
+  if [[ "$skip_secret" == "true" ]]; then
+    echo "  Skipping auto-import-secret."
+  else
+  # Create auto-import secret with the regional hub's kubeconfig.
+  # Annotations above must already say Hosted, or ACM installs a singleton
+  # klusterlet on the regional hub.
   echo "  Creating auto-import-secret..."
   kc_content="$(cat "$regional_kc")"
   KUBECONFIG="$GLOBAL_KC" oc apply -f - <<SECEOF
@@ -207,6 +225,7 @@ stringData:
 $(echo "$kc_content" | sed 's/^/    /')
 type: Opaque
 SECEOF
+  fi
 
   # Create KlusterletAddonConfig
   echo "  Creating KlusterletAddonConfig..."
@@ -287,7 +306,7 @@ KUBECONFIG="$GLOBAL_KC" oc get applicationsets -n openshift-gitops 2>/dev/null |
 
 echo ""
 echo "--- ArgoCD Applications (hub-config-*) ---"
-KUBECONFIG="$GLOBAL_KC" oc get applications -n openshift-gitops 2>/dev/null | grep -E 'NAME|hub-config' || echo "  (no hub-config Applications yet)"
+KUBECONFIG="$GLOBAL_KC" oc get applications.argoproj.io -n openshift-gitops 2>/dev/null | grep -E 'NAME|hub-config' || echo "  (no hub-config Applications yet)"
 
 echo ""
 echo "=== Hub import complete ==="

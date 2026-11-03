@@ -435,7 +435,7 @@ run_setup_steps() {
             skip "${name} (already done)"
         else
             run_msg "${name}"
-            if ! eval "$action"; then
+            if ! (eval "$action"); then
                 fail "${name}"
                 return 1
             fi

@@ -156,6 +156,8 @@ AgnosticD passes the correct `-f` flags at deploy time based on `--mode` and `--
 
 ## Adding a New Edge Region (Mode 2)
 
+A new spoke on a hub you already have is not a new region. Follow [docs/add-a-spoke.md](add-a-spoke.md).
+
 To add a fourth region (for example, `south`):
 
 ### 1. Create the regional overlay

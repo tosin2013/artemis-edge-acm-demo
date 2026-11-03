@@ -449,9 +449,9 @@ CERT_EOF
   # ---------------------------------------------------------------------------
   # The upstream ocp4_workload_field_content template hardcodes
   # syncOptions: [CreateNamespace=true] and ignores the sync_options variable.
-  # Without SkipDryRunOnMissingResource=true, ArgoCD fails at CRD discovery
-  # before sync waves can install the operators. Patch immediately after
-  # provision so the first sync attempt succeeds.
+  # SkipDryRunOnMissingResource=true is required, but Argo CD still discovers
+  # every rendered API group before sync waves run. post-provision-multihub.sh
+  # step 2b primes the operator subscriptions so that discovery can succeed.
   # ---------------------------------------------------------------------------
   KUBECONFIG_FILE="${AGD_ROOT}/../agnosticd-v2-output/${AGD_GUID}/openshift-cluster_${AGD_GUID}_kubeconfig"
   if [[ -f "$KUBECONFIG_FILE" ]]; then

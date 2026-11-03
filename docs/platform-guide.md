@@ -115,7 +115,9 @@ Deploy four clusters in order: Global Hub, then three regional hubs.
 # 3. Post-provision (fix cert-manager, import hubs)
 ./scripts/post-provision-multihub.sh
 
-# 4. Provision SNO spokes on a regional hub
+# 4. Add a site on a regional hub
+#    Demo names only: ./scripts/deploy-spokes.sh --clusters 2
+#    Any other name: docs/add-a-spoke.md
 ./scripts/deploy-spokes.sh
 
 # 5. Teardown (reverse order)

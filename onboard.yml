@@ -294,6 +294,11 @@ validation:
     required: true
     fail_message: "GCP key PEM is damaged (likely rewrapped by an editor). Run: python3 scripts/validate-gcp-key.py <key.json> for details. Do not hand-edit the PEM — re-download from GCP console."
 
+  - name: "Pull secret populated in secrets file"
+    command: "python3 -c \"import yaml, json; s=yaml.safe_load(open('${agnosticd_root}/../agnosticd-v2-secrets/secrets-${agd_account}.yml')); ps=json.loads(s.get('ocp4_pull_secret','{}')); assert 'auths' in ps and len(ps['auths'])>0, 'empty'\""
+    required: true
+    fail_message: "ocp4_pull_secret is empty or invalid in secrets-${agd_account}.yml. Download your pull secret from https://console.redhat.com/openshift/install/pull-secret, save to ~/pull-secret.json, then re-run: ./scripts/generate-secrets.sh <gcp-key> <guid> <account> <agnosticd-root>"
+
   - name: "OpenShift login"
     command: "oc whoami"
     required: false

@@ -11,6 +11,8 @@ set -euo pipefail
 #      core_workloads cert-manager role hardcoding dns-zone-{{ guid }})
 #   2. Adds SkipDryRunOnMissingResource=true to ArgoCD Applications
 #      (workaround for field_content role hardcoding syncOptions)
+#   2b. Primes Namespace, OperatorGroup, and Subscription resources so
+#      field-content can discover Keycloak, AMQ, and Global Hub CRDs
 #   3. Patches ArgoCD health checks and enables ApplicationSet controller
 #      (#169: prevents sync stall on intentionally unbound ApplicationSet)
 #   4. Imports regional hubs into the Global Hub as ManagedClusters
@@ -104,8 +106,10 @@ echo ""
 # Step 2: Patch ArgoCD Application syncOptions
 # ---------------------------------------------------------------------------
 # The field_content role hardcodes syncOptions: [CreateNamespace=true]
-# and ignores ocp4_workload_field_content_sync_options. We need
-# SkipDryRunOnMissingResource=true for CRD ordering.
+# and ignores ocp4_workload_field_content_sync_options. The skip option
+# is still required, but it does not stop Argo CD from rejecting the
+# sync when a rendered CRD group is not served yet. Step 2b installs
+# those operators before the refresh.
 # ---------------------------------------------------------------------------
 echo "--- Step 2: Patch ArgoCD syncOptions ---"
 
@@ -113,7 +117,7 @@ for hub_id in "${!KUBECONFIGS[@]}"; do
   kc="${KUBECONFIGS[$hub_id]}"
 
   app_exists=$(KUBECONFIG="$kc" oc get applications.argoproj.io field-content \
-    -n openshift-gitops --no-headers 2>/dev/null | wc -l)
+    -n openshift-gitops --no-headers 2>/dev/null | wc -l || true)
   if [[ "$app_exists" -eq 0 ]]; then
     echo "  [SKIP] ${hub_id}: No field-content Application"
     continue
@@ -140,6 +144,18 @@ for hub_id in "${!KUBECONFIGS[@]}"; do
       argocd.argoproj.io/refresh=hard --overwrite >/dev/null 2>&1
   fi
 done
+echo ""
+
+# ---------------------------------------------------------------------------
+# Step 2b: Prime operator subscriptions
+# ---------------------------------------------------------------------------
+# Discovery runs before sync waves. Apply the chart's Namespace,
+# OperatorGroup, and Subscription documents, wait for the CRDs, then
+# request a field-content sync.
+# ---------------------------------------------------------------------------
+echo "--- Step 2b: Prime field-content operators ---"
+"${SCRIPT_DIR}/prime-field-content.sh" --sandbox "${SANDBOX}" --output-dir "${OUTPUT_DIR}" \
+  || echo "WARN: prime-field-content.sh failed (non-fatal)"
 echo ""
 
 # ---------------------------------------------------------------------------

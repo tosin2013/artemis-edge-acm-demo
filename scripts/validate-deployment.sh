@@ -115,7 +115,7 @@ check "keycloak namespace exists" true \
   "oc get ns keycloak"
 
 check "Keycloak operator Succeeded" true \
-  "oc get csv -n keycloak -o jsonpath='{range .items[*]}{.metadata.name}{\" \"}{.status.phase}{\"\\n\"}{end}' 2>/dev/null | grep -q 'keycloak.*Succeeded'"
+  "oc get csv -n keycloak -o jsonpath='{range .items[*]}{.metadata.name}{\" \"}{.status.phase}{\"\\n\"}{end}' 2>/dev/null | grep -Eq 'keycloak.*Succeeded|rhbk-operator.*Succeeded'"
 
 check "Keycloak pod Running" true \
   "oc get pod -n keycloak -l app=keycloak -o jsonpath='{.items[0].status.phase}' 2>/dev/null | grep -q Running"

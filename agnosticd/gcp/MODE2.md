@@ -30,7 +30,15 @@ Shared from secrets (sandbox only): `gcp_project_id: openenv-<SANDBOX>`, `base_d
 
 ## After the four clusters are up
 
-Run the import script to register regional hubs with the Global Hub:
+`deploy.sh` runs this when all four kubeconfigs exist. Run it again if `field-content` is still OutOfSync:
+
+```bash
+./scripts/post-provision-multihub.sh --sandbox <SANDBOX>
+```
+
+Step 2b (`scripts/prime-field-content.sh`) applies the chart's Namespace, OperatorGroup, and Subscription documents and requests a `field-content` sync. A hard refresh alone does not retry a failed sync of the same revision. Argo CD will not create `fleet-gitops` or `hub-config-*` until that sync succeeds. `SkipDryRunOnMissingResource=true` does not get past the missing Keycloak, AMQ, or MulticlusterGlobalHub APIs.
+
+The import script registers regional hubs with the Global Hub:
 
 ```bash
 ./scripts/import-managed-hubs.sh --sandbox <SANDBOX>
@@ -42,7 +50,7 @@ The script performs steps 1–3 automatically:
 2. **Label** them `hub-tier=regional` and `region=east|central|west`.
 3. **Verify** all hubs reach `JOINED=True` and `AVAILABLE=True`.
 
-The `fleet-gitops/applicationsets/hubs.yaml` ApplicationSet (deployed by `ocp4_workload_field_content` during provision) automatically generates `hub-config-*` ArgoCD Applications for each cluster with the `hub-tier: regional` label. No manual `oc apply` is needed.
+After `field-content` syncs, the `fleet-gitops` Application applies `fleet-gitops/applicationsets/hubs.yaml`. That ApplicationSet generates `hub-config-*` for clusters labeled `hub-tier: regional`. Do not apply the ApplicationSet by hand.
 
 4. Students log into **east**. Module 2 runs `deploy-spokes.sh` there. **Zero SNOs until that step.**
 5. Global Hub inventory then lists the new site under that managed hub. Sites never talk to Global Hub.
